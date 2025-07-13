@@ -118,7 +118,7 @@ export default function UploadScreen({ navigation }) {
 
     // Use XMLHttpRequest for progress
     const xhr = new XMLHttpRequest();
-    xhr.open('POST', 'http://192.168.1.4:8082/api/files/upload');
+    xhr.open('POST', 'https://lipiprint-freelance.onrender.com/api/files/upload');
     xhr.setRequestHeader('Accept', 'application/json');
     // Add auth token if needed
     const token = await ApiService.getToken();
