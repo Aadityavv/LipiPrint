@@ -99,7 +99,7 @@ New folder/
 ### User App
 <div style="display: flex; flex-wrap: wrap; gap: 24px; justify-content: flex-start;">
   <figure style="text-align: center; margin: 0;">
-    <img src="screenshots/User_HomeScreen.jpeg" alt="Home" style="max-height: 320px; border-radius: 8px;" />
+    <img src="screenshots/User_HomeScreen.jpeg" alt="Home" style="max-height: 180px; border-radius: 8px;" />
     <figcaption>Home</figcaption>
   </figure>
   <figure style="text-align: center; margin: 0;">
