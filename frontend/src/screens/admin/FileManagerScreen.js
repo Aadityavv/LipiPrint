@@ -5,6 +5,7 @@ import api from '../../services/api';
 import CustomAlert from '../../components/CustomAlert';
 import LinearGradient from 'react-native-linear-gradient';
 import * as Animatable from 'react-native-animatable';
+import Heading from '../../components/Heading';
 
 const FileManagerScreen = ({ navigation }) => {
   const [files, setFiles] = useState([]);
@@ -195,15 +196,20 @@ const FileManagerScreen = ({ navigation }) => {
         colors={['#667eea', '#764ba2']}
         style={styles.headerGradient}
       >
-        <Animatable.View animation="fadeInDown" delay={100} duration={500} style={styles.header}>
-          <TouchableOpacity onPress={() => navigation?.goBack && navigation.goBack()} style={styles.backButton}>
-            <Icon name="arrow-back" size={24} color="white" />
-          </TouchableOpacity>
-          <Text style={styles.headerTitle}>File Manager</Text>
-          <TouchableOpacity onPress={fetchFiles} style={styles.refreshButton}>
-            <Icon name="refresh" size={24} color="white" />
-          </TouchableOpacity>
-        </Animatable.View>
+        <Heading
+          title="File Manager"
+          left={
+            <TouchableOpacity onPress={() => navigation?.goBack && navigation.goBack()} style={styles.backButton}>
+              <Icon name="arrow-back" size={24} color="white" />
+            </TouchableOpacity>
+          }
+          right={
+            <TouchableOpacity onPress={fetchFiles} style={styles.refreshButton}>
+              <Icon name="refresh" size={24} color="white" />
+            </TouchableOpacity>
+          }
+          variant="primary"
+        />
       </LinearGradient>
 
       {selectionMode && selectedFiles.size > 0 && (

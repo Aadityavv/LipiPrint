@@ -5,6 +5,7 @@ import FileItem from '../../components/FileItem';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 import LinearGradient from 'react-native-linear-gradient';
 import CustomAlert from '../../components/CustomAlert';
+import Heading from '../../components/Heading';
 
 export default function FilesScreen({ navigation }) {
   const [files, setFiles] = useState([]);
@@ -89,13 +90,14 @@ export default function FilesScreen({ navigation }) {
 
   return (
     <View style={styles.container}>
-      <LinearGradient colors={['#667eea', '#764ba2']} style={styles.headerGradient}>
-        <View style={styles.headerRow}>
-          <Text style={styles.header}>Uploaded Files</Text>
-          <TouchableOpacity style={styles.headerRefreshBtn} onPress={handleRefresh}>
-            <Icon name="refresh" size={26} color="white" />
-          </TouchableOpacity>
-        </View>
+      <LinearGradient
+        colors={['#667eea', '#764ba2']}
+        style={styles.headerGradient}
+      >
+        <Heading
+          title="My Files"
+          variant="primary"
+        />
       </LinearGradient>
       <View style={styles.listArea}>
         <FlatList

@@ -5,6 +5,7 @@ import LinearGradient from 'react-native-linear-gradient';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 import api from '../../services/api';
 import { useTheme } from '../../theme/ThemeContext';
+import Heading from '../../components/Heading';
 
 const { width } = Dimensions.get('window');
 
@@ -72,11 +73,14 @@ export default function CheckoutScreen({ navigation, route }) {
   return (
     <View style={[styles.container, { backgroundColor: theme.background }]}>
       <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
-        <LinearGradient colors={['#667eea', '#764ba2']} style={styles.headerGradient}>
-          <Animatable.View animation="fadeInDown" delay={100} duration={500} style={styles.header}>
-            <Text style={styles.headerTitle}>Checkout</Text>
-            <Text style={styles.headerSubtitle}>Confirm and place your order</Text>
-          </Animatable.View>
+        <LinearGradient
+          colors={['#667eea', '#764ba2']}
+          style={styles.headerGradient}
+        >
+          <Heading
+            title="Checkout"
+            variant="primary"
+          />
         </LinearGradient>
 
         <View style={styles.content}>

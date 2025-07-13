@@ -8,6 +8,7 @@ import api from '../../services/api';
 import { useFocusEffect } from '@react-navigation/native';
 import { BackHandler } from 'react-native';
 import { useTheme } from '../../theme/ThemeContext';
+import Heading from '../../components/Heading';
 
 const { width } = Dimensions.get('window');
 
@@ -63,16 +64,13 @@ export default function OrderConfirmationScreen({ navigation, route }) {
     <View style={[styles.container, { backgroundColor: theme.background }]}>
       <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
         <LinearGradient
-          colors={['#4CAF50', '#45a049']}
+          colors={['#667eea', '#764ba2']}
           style={styles.headerGradient}
         >
-          <Animatable.View animation="fadeInDown" delay={100} duration={500} style={styles.header}>
-            <Animatable.View animation="bounceIn" delay={300} duration={600}>
-              <Text style={styles.successIcon}>🎉</Text>
-            </Animatable.View>
-            <Text style={styles.headerTitle}>Order Confirmed!</Text>
-            <Text style={styles.headerSubtitle}>Your print order has been successfully placed</Text>
-          </Animatable.View>
+          <Heading
+            title="Order Confirmation"
+            variant="primary"
+          />
         </LinearGradient>
 
         <View style={styles.content}>

@@ -5,12 +5,27 @@ import * as Animatable from 'react-native-animatable';
 import LinearGradient from 'react-native-linear-gradient';
 import api from '../../services/api';
 import { LineChart } from 'react-native-gifted-charts';
+import Heading from '../../components/Heading';
 
 export default function AdminAnalyticsScreen({ navigation }) {
   const [stats, setStats] = useState([]);
   const [trends, setTrends] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+
+  // Header rendering (always visible)
+  const renderHeader = () => (
+    <LinearGradient colors={['#667eea', '#764ba2']} style={{paddingTop: 40, paddingBottom: 20, paddingHorizontal: 20}}>
+      <View style={{flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', minHeight: 44}}>
+        <TouchableOpacity onPress={() => navigation.goBack()} style={{padding: 6}}>
+          <Icon name="arrow-back" size={24} color="white" />
+        </TouchableOpacity>
+        <Text style={{flex: 1, textAlign: 'center', fontSize: 20, color: '#fff', fontWeight: 'bold', marginLeft: -30}}>
+          Analytics & Reports
+        </Text>
+      </View>
+    </LinearGradient>
+  );
 
   useEffect(() => {
     Promise.all([
@@ -37,26 +52,33 @@ export default function AdminAnalyticsScreen({ navigation }) {
       .finally(() => setLoading(false));
   }, []);
 
-  if (loading) return <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}><Text>Loading analytics...</Text></View>;
-  if (error) return <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}><Text>{error}</Text></View>;
+  // Always show header, even while loading or error
+  if (loading) return (
+    <View style={{ flex: 1, backgroundColor: '#f8f9fa' }}>
+      {renderHeader()}
+      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+        <Text>Loading analytics...</Text>
+      </View>
+    </View>
+  );
+  if (error) return (
+    <View style={{ flex: 1, backgroundColor: '#f8f9fa' }}>
+      {renderHeader()}
+      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+        <Text>{error}</Text>
+      </View>
+    </View>
+  );
 
   return (
     <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
-      <LinearGradient colors={['#667eea', '#764ba2']} style={styles.headerGradient}>
-        <Animatable.View animation="fadeInDown" delay={100} duration={500} style={styles.header}>
-          <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
-            <Icon name="arrow-back" size={24} color="white" />
-          </TouchableOpacity>
-          <Text style={styles.headerTitle}>Analytics & Reports</Text>
-          <View style={{ width: 44 }} />
-        </Animatable.View>
-      </LinearGradient>
+      {renderHeader()}
       <View style={styles.content}>
         <Text style={styles.sectionTitle}>Key Stats</Text>
         <View style={styles.statsGrid}>
           {stats.map((stat, idx) => (
             <View key={stat.title} style={[styles.statCard, { borderLeftColor: stat.color }]}> 
-              <Text style={styles.statValue}>{stat.value}</Text>
+              <Text style={styles.statValue}>{Number(stat.value).toLocaleString(undefined, { maximumFractionDigits: 0 })}</Text>
               <Text style={styles.statTitle}>{stat.title}</Text>
             </View>
           ))}

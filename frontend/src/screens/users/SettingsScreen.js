@@ -14,6 +14,7 @@ import LinearGradient from 'react-native-linear-gradient';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 import CustomAlert from '../../components/CustomAlert';
 import { useTheme } from '../../theme/ThemeContext';
+import Heading from '../../components/Heading';
 
 export default function SettingsScreen({ navigation }) {
   const { theme, toggleTheme, isDark } = useTheme();
@@ -101,18 +102,15 @@ export default function SettingsScreen({ navigation }) {
         colors={theme.header}
         style={styles.headerGradient}
       >
-        <Animatable.View animation="fadeInDown" delay={100} duration={500} style={styles.header}>
-          <TouchableOpacity 
-            style={styles.backButton}
-            onPress={() => navigation.goBack()}
-          >
-            <Icon name="arrow-back" size={24} color={theme.headerText} />
-          </TouchableOpacity>
-          <Text style={[styles.headerTitle, { color: theme.headerText }]}>Settings</Text>
-          <TouchableOpacity style={styles.menuButton}>
-            <Icon name="more-vert" size={24} color={theme.headerText} />
-          </TouchableOpacity>
-        </Animatable.View>
+        <Heading
+          title="Settings"
+          left={
+            <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
+              <Icon name="arrow-back" size={24} color={theme.headerText} />
+            </TouchableOpacity>
+          }
+          variant="primary"
+        />
       </LinearGradient>
 
       <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>

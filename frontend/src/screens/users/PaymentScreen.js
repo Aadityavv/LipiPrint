@@ -15,6 +15,7 @@ import LinearGradient from 'react-native-linear-gradient';
 import { launchRazorpay, createRazorpayOrder } from '../../services/razorpay';
 import ApiService from '../../services/api';
 import CustomAlert from '../../components/CustomAlert';
+import Heading from '../../components/Heading';
 
 const { width } = Dimensions.get('window');
 
@@ -149,10 +150,10 @@ export default function PaymentScreen({ navigation, route }) {
           colors={['#667eea', '#764ba2']}
           style={styles.headerGradient}
         >
-          <Animatable.View animation="fadeInDown" delay={100} duration={500} style={styles.header}>
-            <Text style={styles.headerTitle}>Payment</Text>
-            <Text style={styles.headerSubtitle}>Secure payment gateway</Text>
-          </Animatable.View>
+          <Heading
+            title="Payment"
+            variant="primary"
+          />
         </LinearGradient>
 
         <View style={styles.content}>

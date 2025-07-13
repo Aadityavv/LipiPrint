@@ -15,6 +15,7 @@ import api from '../../services/api';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 import ApiService from '../../services/api';
 import { useTheme } from '../../theme/ThemeContext';
+import Heading from '../../components/Heading';
 
 const { width } = Dimensions.get('window');
 
@@ -200,10 +201,11 @@ export default function DeliveryOptionsScreen({ navigation, route }) {
           colors={['#667eea', '#764ba2']}
           style={styles.headerGradient}
         >
-          <Animatable.View animation="fadeInDown" delay={100} duration={500} style={styles.header}>
-            <Text style={styles.headerTitle}>Delivery Options</Text>
-            <Text style={styles.headerSubtitle}>Choose how you want to receive your prints</Text>
-          </Animatable.View>
+          <Heading
+            title="Delivery Options"
+            subtitle="Choose how you want to receive your prints"
+            variant="primary"
+          />
         </LinearGradient>
 
         <View style={styles.content}>

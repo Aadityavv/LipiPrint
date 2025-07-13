@@ -5,6 +5,7 @@ import LinearGradient from 'react-native-linear-gradient';
 import * as Animatable from 'react-native-animatable';
 import CustomAlert from '../../components/CustomAlert';
 import { useTheme } from '../../theme/ThemeContext';
+import Heading from '../../components/Heading';
 
 const faqs = [
   { q: 'How do I upload a file?', a: 'Tap the upload button and select your file from device, camera, or cloud.' },
@@ -40,9 +41,16 @@ export default function HelpCenterScreen({ navigation }) {
 
   return (
     <View style={[styles.container, { backgroundColor: theme.background }]}>
-      <Animatable.View animation="fadeInDown" delay={100} duration={500} style={styles.header}>
-        <Text style={styles.title}>Help Center</Text>
-      </Animatable.View>
+      <LinearGradient colors={['#667eea', '#764ba2']} style={{paddingTop: 40, paddingBottom: 20, paddingHorizontal: 20}}>
+        <View style={{flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', minHeight: 44}}>
+          <TouchableOpacity style={{padding: 6}} onPress={() => navigation.goBack()}>
+            <Icon name="arrow-back" size={24} color="white" />
+          </TouchableOpacity>
+          <Text style={{flex: 1, textAlign: 'center', fontSize: 20, color: '#fff', fontWeight: 'bold', marginLeft: -30}}>
+            Help Center
+          </Text>
+        </View>
+      </LinearGradient>
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
         <Text style={styles.sectionTitle}>FAQs</Text>
         {faqs.map((faq, idx) => (

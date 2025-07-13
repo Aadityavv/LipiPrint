@@ -22,6 +22,7 @@ import ApiService from '../../services/api';
 import { pick, types, isCancel } from '@react-native-documents/picker';
 import ImagePicker from 'react-native-image-crop-picker';
 import CustomAlert from '../../components/CustomAlert';
+import Heading from '../../components/Heading';
 
 const { width } = Dimensions.get('window');
 
@@ -396,10 +397,11 @@ export default function UploadScreen({ navigation }) {
         colors={['#667eea', '#764ba2']}
         style={styles.headerGradient}
       >
-        <Animatable.View animation="fadeInDown" delay={100} duration={500} style={styles.header}>
-          <Text style={styles.headerTitle}>Upload Files</Text>
-          <Text style={styles.headerSubtitle}>Select your documents to print</Text>
-        </Animatable.View>
+        <Heading
+          title="Upload Files"
+          subtitle="Select files to print"
+          variant="primary"
+        />
       </LinearGradient>
 
       <View style={styles.content}>

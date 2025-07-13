@@ -3,6 +3,7 @@ import { View, Text, StyleSheet, FlatList, TouchableOpacity, ActivityIndicator, 
 import Icon from 'react-native-vector-icons/MaterialIcons';
 import api from '../../services/api';
 import LinearGradient from 'react-native-linear-gradient';
+import Heading from '../../components/Heading';
 
 export default function AdminFileManagerScreen({ navigation }) {
   const [files, setFiles] = useState([]);
@@ -58,13 +59,15 @@ export default function AdminFileManagerScreen({ navigation }) {
   return (
     <View style={styles.container}>
       <LinearGradient colors={["#667eea", "#764ba2"]} style={styles.headerGradient}>
-        <View style={styles.header}>
-          <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
-            <Icon name="arrow-back" size={24} color="white" />
-          </TouchableOpacity>
-          <Text style={styles.headerTitle}>File Manager</Text>
-          <View style={{ width: 44 }} />
-        </View>
+        <Heading
+          title="File Manager"
+          left={
+            <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
+              <Icon name="arrow-back" size={24} color="white" />
+            </TouchableOpacity>
+          }
+          variant="primary"
+        />
       </LinearGradient>
       {loading ? (
         <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}><ActivityIndicator size="large" color="#667eea" /></View>

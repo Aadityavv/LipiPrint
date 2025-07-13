@@ -15,6 +15,7 @@ import LinearGradient from 'react-native-linear-gradient';
 import api from '../../services/api';
 import DocumentPicker from '@react-native-documents/picker';
 import { useTheme } from '../../theme/ThemeContext';
+import Heading from '../../components/Heading';
 
 const { width } = Dimensions.get('window');
 
@@ -282,16 +283,11 @@ export default function PrintOptionsScreen({ navigation, route }) {
         colors={['#667eea', '#764ba2']}
         style={styles.headerGradient}
       >
-        <Animatable.View animation="fadeInDown" delay={100} duration={500} style={styles.header}>
-          <Text style={styles.headerTitle}>Print Options</Text>
-          <Text style={styles.headerSubtitle}>
-            {uploadedFiles.length} file{uploadedFiles.length !== 1 ? 's' : ''} • {uploadedFiles.reduce((sum, file) => sum + (file.pages || 0), 0)} pages
-          </Text>
-          {/* Reset Button */}
-          <TouchableOpacity style={{marginTop: 12, alignSelf: 'center', backgroundColor: '#eee', borderRadius: 8, paddingHorizontal: 16, paddingVertical: 6}} onPress={handleReset}>
-            <Text style={{color: '#667eea', fontWeight: 'bold'}}>Reset</Text>
-          </TouchableOpacity>
-        </Animatable.View>
+        <Heading
+          title="Print Options"
+          subtitle={`${uploadedFiles.length} file${uploadedFiles.length !== 1 ? 's' : ''} • ${uploadedFiles.reduce((sum, file) => sum + (file.pages || 0), 0)} pages`}
+          variant="primary"
+        />
       </LinearGradient>
 
       <View style={styles.content}>

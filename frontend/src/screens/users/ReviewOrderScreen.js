@@ -3,6 +3,7 @@ import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Dimensions } from
 import * as Animatable from 'react-native-animatable';
 import LinearGradient from 'react-native-linear-gradient';
 import { useTheme } from '../../theme/ThemeContext';
+import Heading from '../../components/Heading';
 
 const { width } = Dimensions.get('window');
 
@@ -32,11 +33,14 @@ export default function ReviewOrderScreen({ navigation, route }) {
   return (
     <View style={[styles.container, { backgroundColor: theme.background }]}>
       <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
-        <LinearGradient colors={['#667eea', '#764ba2']} style={styles.headerGradient}>
-          <Animatable.View animation="fadeInDown" delay={100} duration={500} style={styles.header}>
-            <Text style={styles.headerTitle}>Review Order</Text>
-            <Text style={styles.headerSubtitle}>Check your details before proceeding</Text>
-          </Animatable.View>
+        <LinearGradient
+          colors={['#667eea', '#764ba2']}
+          style={styles.headerGradient}
+        >
+          <Heading
+            title="Review Order"
+            variant="primary"
+          />
         </LinearGradient>
 
         <View style={styles.content}>

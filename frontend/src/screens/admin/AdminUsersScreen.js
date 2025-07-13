@@ -5,6 +5,7 @@ import * as Animatable from 'react-native-animatable';
 import LinearGradient from 'react-native-linear-gradient';
 import api from '../../services/api';
 import CustomAlert from '../../components/CustomAlert';
+import Heading from '../../components/Heading';
 
 export default function AdminUsersScreen({ navigation }) {
   const [users, setUsers] = useState([]);
@@ -132,16 +133,21 @@ export default function AdminUsersScreen({ navigation }) {
 
   return (
     <View style={styles.container}>
-      <LinearGradient colors={['#667eea', '#764ba2']} style={styles.headerGradient}>
-        <Animatable.View animation="fadeInDown" delay={100} duration={500} style={styles.header}>
-          <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
+      <LinearGradient
+        colors={['#667eea', '#764ba2']}
+        style={{paddingTop: 40, paddingBottom: 20, paddingHorizontal: 20}}
+      >
+        <View style={{flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', minHeight: 44}}>
+          <TouchableOpacity onPress={() => navigation.goBack()} style={{padding: 6}}>
             <Icon name="arrow-back" size={24} color="white" />
           </TouchableOpacity>
-          <Text style={styles.headerTitle}>Manage Users</Text>
-          <TouchableOpacity style={styles.addButton} onPress={() => navigation.navigate('AddEmployee')}>
+          <Text style={{flex: 1, textAlign: 'center', fontSize: 20, color: '#fff', fontWeight: 'bold', marginLeft: -30}}>
+            Manage Users
+          </Text>
+          <TouchableOpacity style={{padding: 6}} onPress={() => navigation.navigate('AddEmployee')}>
             <Icon name="person-add" size={24} color="white" />
           </TouchableOpacity>
-        </Animatable.View>
+        </View>
       </LinearGradient>
       {/* Filters */}
       <View style={styles.filterRow}>
@@ -202,7 +208,7 @@ export default function AdminUsersScreen({ navigation }) {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#f5f6fa' },
   headerGradient: {paddingBottom: 12 },
-  header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 18, paddingTop: 38, paddingBottom: 12 },
+  header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 18, paddingTop: 38, paddingBottom: 20, },
   backButton: { padding: 6, marginRight: 8 },
   headerTitle: { color: 'white', fontSize: 22, fontWeight: 'bold', letterSpacing: 0.5 },
   addButton: { padding: 6, marginLeft: 8 },

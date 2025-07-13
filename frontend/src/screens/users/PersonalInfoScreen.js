@@ -15,6 +15,7 @@ import * as Animatable from 'react-native-animatable';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 import ApiService from '../../services/api';
 import { useTheme } from '../../theme/ThemeContext';
+import Heading from '../../components/Heading';
 
 export default function PersonalInfoScreen({ navigation }) {
   const { theme } = useTheme();
@@ -99,27 +100,29 @@ export default function PersonalInfoScreen({ navigation }) {
 
   return (
     <View style={[styles.container, { backgroundColor: theme.background }]}>
-      <LinearGradient colors={['#667eea', '#764ba2']} style={styles.headerGradient}>
-        <Animatable.View animation="fadeInDown" delay={100} duration={500} style={styles.header}>
-          <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
+      <LinearGradient colors={['#667eea', '#764ba2']} style={{paddingTop: 40, paddingBottom: 20, paddingHorizontal: 20,}}>
+        <View style={{flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', minHeight: 44}}>
+          <TouchableOpacity style={{padding: 6}} onPress={() => navigation.goBack()}>
             <Icon name="arrow-back" size={24} color="white" />
           </TouchableOpacity>
-          <Text style={styles.headerTitle}>Personal Information</Text>
+          <Text style={{flex: 1, textAlign: 'center', fontSize: 20, color: '#fff', fontWeight: 'bold', marginLeft: -30}}>
+            Personal Information
+          </Text>
           {!editing ? (
-            <TouchableOpacity style={styles.editButton} onPress={() => setEditing(true)}>
+            <TouchableOpacity style={{padding: 6}} onPress={() => setEditing(true)}>
               <Icon name="edit" size={24} color="white" />
             </TouchableOpacity>
           ) : (
-            <View style={styles.editActions}>
-              <TouchableOpacity style={styles.saveButton} onPress={handleSave}>
+            <View style={{flexDirection: 'row', alignItems: 'center'}}>
+              <TouchableOpacity style={{padding: 6}} onPress={handleSave}>
                 <Icon name="check" size={24} color="white" />
               </TouchableOpacity>
-              <TouchableOpacity style={styles.cancelButton} onPress={handleCancel}>
+              <TouchableOpacity style={{padding: 6}} onPress={handleCancel}>
                 <Icon name="close" size={24} color="white" />
               </TouchableOpacity>
             </View>
           )}
-        </Animatable.View>
+        </View>
       </LinearGradient>
       
       <ScrollView 

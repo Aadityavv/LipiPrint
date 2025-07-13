@@ -14,6 +14,7 @@ import LinearGradient from 'react-native-linear-gradient';
 import ApiService from '../../services/api';
 import { useTheme } from '../../theme/ThemeContext';
 import StoreClosedBanner from '../../components/StoreClosedBanner';
+import Heading from '../../components/Heading';
 
 const { width } = Dimensions.get('window');
 
@@ -101,23 +102,20 @@ export default function HomeScreen({ navigation }) {
         colors={['#667eea', '#764ba2']}
         style={styles.headerGradient}
       >
-        <Animatable.View animation="fadeInDown" delay={100} duration={500} style={styles.header}>
-          <View style={styles.headerLeft}>
-            {/* <Image
-              source={require('../../assets/logo/LipiPrintLogo.png')}
-              style={styles.logo}
-              resizeMode="contain"
-            /> */}
-            <View>
-              <Text style={styles.greeting}>Hello, {user?.name || 'User'}! 👋</Text>
-              <Text style={styles.subtitle}>Ready to print something amazing?</Text>
-            </View>
+        <View style={{flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', minHeight: 44}}>
+          <View style={{flex: 1}}>
+            <Text style={{fontSize: 24, color: '#fff', fontWeight: 'bold', textAlign: 'left', marginBottom: 2}}>
+              {`Hello, ${user?.name || 'User'}! 👋`}
+            </Text>
+            <Text style={{fontSize: 15, color: '#e0e0e0', textAlign: 'left'}}>
+              Ready to print something amazing?
+            </Text>
           </View>
           <TouchableOpacity style={styles.notificationButton} onPress={() => navigation.navigate('Notifications')}>
             <Icon name="notifications" size={20} color="white" />
             <View style={styles.badge} />
           </TouchableOpacity>
-        </Animatable.View>
+        </View>
       </LinearGradient>
 
       <View style={styles.content}>

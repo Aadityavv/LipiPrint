@@ -5,6 +5,7 @@ import * as Animatable from 'react-native-animatable';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 import api from '../../services/api';
 import { useTheme } from '../../theme/ThemeContext';
+import Heading from '../../components/Heading';
 
 export default function SavedAddressesScreen({ navigation }) {
   const { theme } = useTheme();
@@ -133,10 +134,14 @@ export default function SavedAddressesScreen({ navigation }) {
 
   return (
     <View style={[styles.container, { backgroundColor: theme.background }]}>
-      <LinearGradient colors={['#667eea', '#764ba2']} style={[styles.headerGradient, { backgroundColor: theme.header }]}>
-        <Animatable.View animation="fadeInDown" delay={100} duration={500} style={styles.header}>
-          <Text style={[styles.headerTitle, { color: 'white', textAlign: 'center', flex: 1 }]}>Saved Addresses</Text>
-        </Animatable.View>
+      <LinearGradient
+        colors={['#667eea', '#764ba2']}
+        style={styles.headerGradient}
+      >
+        <Heading
+          title="Saved Addresses"
+          variant="primary"
+        />
       </LinearGradient>
       <Animatable.View animation="fadeInUp" delay={200} duration={500} style={[styles.content, { backgroundColor: theme.background }]}>
         <Text style={[styles.sectionTitle, { color: theme.text }]}>Your Addresses</Text>

@@ -3,6 +3,7 @@ import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from 'react-nati
 import Icon from 'react-native-vector-icons/MaterialIcons';
 import LinearGradient from 'react-native-linear-gradient';
 import * as Animatable from 'react-native-animatable';
+import Heading from '../../components/Heading';
 
 const steps = [
   {
@@ -35,14 +36,16 @@ const steps = [
 export default function TutorialScreen({ navigation }) {
   return (
     <View style={styles.container}>
-      <LinearGradient
-        colors={['#667eea', '#764ba2']}
-        style={styles.header}
-      >
-        <Text style={styles.title}>Tutorial</Text>
-        <Text style={styles.text}>This is the Tutorial screen for users.</Text>
+      <LinearGradient colors={['#667eea', '#764ba2']} style={{paddingTop: 40, paddingBottom: 20, paddingHorizontal: 20}}>
+        <View style={{flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', minHeight: 44}}>
+          <TouchableOpacity style={{padding: 6}} onPress={() => navigation.goBack()}>
+            <Icon name="arrow-back" size={24} color="white" />
+          </TouchableOpacity>
+          <Text style={{flex: 1, textAlign: 'center', fontSize: 20, color: '#fff', fontWeight: 'bold', marginLeft: -30}}>
+            Tutorial
+          </Text>
+        </View>
       </LinearGradient>
-
       <ScrollView contentContainerStyle={styles.content}>
         {steps.map((step, index) => (
           <Animatable.View
@@ -62,7 +65,7 @@ export default function TutorialScreen({ navigation }) {
 
       <TouchableOpacity
         style={styles.getStartedButton}
-        onPress={() => navigation.navigate('Home')}
+        onPress={() => navigation.navigate('MainTabs', { screen: 'Home' })}
       >
         <Text style={styles.getStartedButtonText}>Get Started</Text>
       </TouchableOpacity>
@@ -128,9 +131,11 @@ const styles = StyleSheet.create({
     borderRadius: 15,
     paddingVertical: 15,
     paddingHorizontal: 30,
+    marginHorizontal:15,
     alignItems: 'center',
     justifyContent: 'center',
     marginTop: 20,
+    marginBottom:20,
     width: '90%',
   },
   getStartedButtonText: {

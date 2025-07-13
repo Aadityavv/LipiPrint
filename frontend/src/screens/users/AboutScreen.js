@@ -5,18 +5,21 @@ import * as Animatable from 'react-native-animatable';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 import LipiPrintLogo from '../../assets/logo/LipiPrintLogo.png';
 import { useTheme } from '../../theme/ThemeContext';
+import Heading from '../../components/Heading';
 
 export default function AboutScreen({ navigation }) {
   const { theme } = useTheme();
   return (
     <View style={[styles.container, { backgroundColor: theme.background }]}>
-      <LinearGradient colors={theme.header} style={styles.headerGradient}>
-        <Animatable.View animation="fadeInDown" delay={100} duration={500} style={styles.header}>
-          <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
-            <Icon name="arrow-back" size={24} color={theme.headerText} />
+      <LinearGradient colors={['#667eea', '#764ba2']} style={{paddingTop: 40, paddingBottom: 20, paddingHorizontal: 20}}>
+        <View style={{flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', minHeight: 44}}>
+          <TouchableOpacity style={{padding: 6}} onPress={() => navigation.goBack()}>
+            <Icon name="arrow-back" size={24} color="white" />
           </TouchableOpacity>
-          <Text style={[styles.headerTitle, { color: theme.headerText }]}>About LipiPrint</Text>
-        </Animatable.View>
+          <Text style={{flex: 1, textAlign: 'center', fontSize: 20, color: '#fff', fontWeight: 'bold', marginLeft: -30}}>
+            About LipiPrint
+          </Text>
+        </View>
       </LinearGradient>
       <Animatable.View animation="fadeInUp" delay={200} duration={500} style={[styles.content, { backgroundColor: theme.card }]}>
         <View style={styles.logoWrap}>

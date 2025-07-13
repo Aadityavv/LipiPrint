@@ -5,6 +5,7 @@ import * as Animatable from 'react-native-animatable';
 import LinearGradient from 'react-native-linear-gradient';
 import api from '../../services/api';
 import { useTheme } from '../../theme/ThemeContext';
+import Heading from '../../components/Heading';
 
 export default function AdminSettingsScreen({ navigation }) {
   const { theme, toggleTheme, isDark } = useTheme();
@@ -59,13 +60,15 @@ export default function AdminSettingsScreen({ navigation }) {
   return (
     <ScrollView style={[styles.container, { backgroundColor: theme.background }]} showsVerticalScrollIndicator={false}>
       <LinearGradient colors={theme.header} style={styles.headerGradient}>
-        <Animatable.View animation="fadeInDown" delay={100} duration={500} style={styles.header}>
-          <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
-            <Icon name="arrow-back" size={24} color={theme.headerText} />
-          </TouchableOpacity>
-          <Text style={[styles.headerTitle, { color: theme.headerText }]}>Admin Settings</Text>
-          <View style={{ width: 44 }} />
-        </Animatable.View>
+        <Heading
+          title="Admin Settings"
+          left={
+            <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
+              <Icon name="arrow-back" size={24} color={theme.headerText} />
+            </TouchableOpacity>
+          }
+          variant="primary"
+        />
       </LinearGradient>
       <View style={styles.content}>
         <Text style={[styles.sectionTitle, { color: theme.text }]}>Preferences</Text>

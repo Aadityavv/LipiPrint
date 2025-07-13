@@ -1,10 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView, FlatList } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, FlatList, ActivityIndicator } from 'react-native';
 import * as Animatable from 'react-native-animatable';
 import LinearGradient from 'react-native-linear-gradient';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 import ApiService from '../../services/api';
 import { useTheme } from '../../theme/ThemeContext';
+import Heading from '../../components/Heading';
 
 export default function OrdersScreen({ navigation }) {
   const { theme } = useTheme();
@@ -112,103 +113,109 @@ export default function OrdersScreen({ navigation }) {
     </Animatable.View>
   );
 
-  if (loading) return <View style={[styles.container, { backgroundColor: theme.background }]}><Text>Loading orders...</Text></View>;
-  if (error) return <View style={[styles.container, { backgroundColor: theme.background }]}><Text>{error}</Text></View>;
-
   return (
     <View style={[styles.container, { backgroundColor: theme.background }]}>
       <LinearGradient
         colors={['#667eea', '#764ba2']}
         style={styles.headerGradient}
       >
-        <Animatable.View animation="fadeInDown" delay={100} duration={500} style={styles.header}>
-          <Text style={[styles.headerTitle, { color: 'white' }]}>My Orders</Text>
-          <Text style={[styles.headerSubtitle, { color: 'white' }]}>Track your print orders</Text>
-        </Animatable.View>
+        <Heading
+          title="My Orders"
+          subtitle="Track your print orders"
+          variant="primary"
+        />
       </LinearGradient>
 
-      {/* Filters */}
-      <Animatable.View animation="fadeInUp" delay={200} duration={500}>
-        <ScrollView 
-          horizontal 
-          showsHorizontalScrollIndicator={false}
-          style={[styles.filtersContainer, { backgroundColor: theme.card }]}
-          contentContainerStyle={styles.filtersContent}
-        >
-          {filters.map((filter, index) => (
-            <Animatable.View
-              key={filter.id}
-              animation="zoomIn"
-              delay={300 + index * 100}
-              duration={400}
+      {loading ? (
+        <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}><ActivityIndicator size="large" color="#667eea" /></View>
+      ) : error ? (
+        <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}><Text>{error}</Text></View>
+      ) : (
+        <>
+          {/* Filters */}
+          <Animatable.View animation="fadeInUp" delay={200} duration={500}>
+            <ScrollView 
+              horizontal 
+              showsHorizontalScrollIndicator={false}
+              style={[styles.filtersContainer, { backgroundColor: theme.card }]}
+              contentContainerStyle={styles.filtersContent}
             >
-              <TouchableOpacity
-                style={[
-                  styles.filterButton,
-                  selectedFilter === filter.id && styles.selectedFilter,
-                  { backgroundColor: theme.card }
-                ]}
-                onPress={() => setSelectedFilter(filter.id)}
-                activeOpacity={0.8}
-              >
-                <Text style={[
-                  styles.filterText,
-                  selectedFilter === filter.id && styles.selectedFilterText,
-                  { color: theme.text }
-                ]}>
-                  {filter.label}
-                </Text>
-                <View style={[
-                  styles.filterCount,
-                  selectedFilter === filter.id && styles.selectedFilterCount,
-                  { backgroundColor: theme.card }
-                ]}>
-                  <Text style={[
-                    styles.filterCountText,
-                    selectedFilter === filter.id && styles.selectedFilterCountText,
-                    { color: theme.text }
-                  ]}>
-                    {filter.count}
-                  </Text>
-                </View>
-              </TouchableOpacity>
-            </Animatable.View>
-          ))}
-        </ScrollView>
-      </Animatable.View>
-
-      {/* Orders List */}
-      <FlatList
-        data={filteredOrders}
-        renderItem={renderOrderCard}
-        keyExtractor={item => item.id}
-        showsVerticalScrollIndicator={false}
-        contentContainerStyle={[styles.ordersList, { backgroundColor: theme.background }]}
-        ListEmptyComponent={
-          <Animatable.View animation="fadeIn" delay={400} duration={500} style={[styles.emptyState, { backgroundColor: theme.background }]}>
-            <Icon name="assignment" size={48} color={theme.text} style={[styles.emptyIcon, { color: theme.text }]} />
-            <Text style={[styles.emptyTitle, { color: theme.text }]}>No Orders Found</Text>
-            <Text style={[styles.emptySubtitle, { color: theme.text }]}>
-              {selectedFilter === 'all' 
-                ? "You haven't placed any orders yet" 
-                : `No ${selectedFilter} orders found`
-              }
-            </Text>
-            <TouchableOpacity
-              style={[styles.newOrderButton, { backgroundColor: theme.card }]}
-              onPress={() => navigation.navigate('Upload')}
-              activeOpacity={0.8}
-            >
-              <LinearGradient
-                colors={['#FF6B6B', '#FF8E53']}
-                style={[styles.newOrderGradient, { backgroundColor: theme.card }]}
-              >
-                <Text style={[styles.newOrderText, { color: theme.text }]}>Place New Order</Text>
-              </LinearGradient>
-            </TouchableOpacity>
+              {filters.map((filter, index) => (
+                <Animatable.View
+                  key={filter.id}
+                  animation="zoomIn"
+                  delay={300 + index * 100}
+                  duration={400}
+                >
+                  <TouchableOpacity
+                    style={[
+                      styles.filterButton,
+                      selectedFilter === filter.id && styles.selectedFilter,
+                      { backgroundColor: theme.card }
+                    ]}
+                    onPress={() => setSelectedFilter(filter.id)}
+                    activeOpacity={0.8}
+                  >
+                    <Text style={[
+                      styles.filterText,
+                      selectedFilter === filter.id && styles.selectedFilterText,
+                      { color: theme.text }
+                    ]}>
+                      {filter.label}
+                    </Text>
+                    <View style={[
+                      styles.filterCount,
+                      selectedFilter === filter.id && styles.selectedFilterCount,
+                      { backgroundColor: theme.card }
+                    ]}>
+                      <Text style={[
+                        styles.filterCountText,
+                        selectedFilter === filter.id && styles.selectedFilterCountText,
+                        { color: theme.text }
+                      ]}>
+                        {filter.count}
+                      </Text>
+                    </View>
+                  </TouchableOpacity>
+                </Animatable.View>
+              ))}
+            </ScrollView>
           </Animatable.View>
-        }
-      />
+
+          {/* Orders List */}
+          <FlatList
+            data={filteredOrders}
+            renderItem={renderOrderCard}
+            keyExtractor={item => item.id}
+            showsVerticalScrollIndicator={false}
+            contentContainerStyle={[styles.ordersList, { backgroundColor: theme.background }]}
+            ListEmptyComponent={
+              <Animatable.View animation="fadeIn" delay={400} duration={500} style={[styles.emptyState, { backgroundColor: theme.background }]}>
+                <Icon name="assignment" size={48} color={theme.text} style={[styles.emptyIcon, { color: theme.text }]} />
+                <Text style={[styles.emptyTitle, { color: theme.text }]}>No Orders Found</Text>
+                <Text style={[styles.emptySubtitle, { color: theme.text }]}>
+                  {selectedFilter === 'all' 
+                    ? "You haven't placed any orders yet" 
+                    : `No ${selectedFilter} orders found`
+                  }
+                </Text>
+                <TouchableOpacity
+                  style={[styles.newOrderButton, { backgroundColor: theme.card }]}
+                  onPress={() => navigation.navigate('Upload')}
+                  activeOpacity={0.8}
+                >
+                  <LinearGradient
+                    colors={['#FF6B6B', '#FF8E53']}
+                    style={[styles.newOrderGradient, { backgroundColor: theme.card }]}
+                  >
+                    <Text style={[styles.newOrderText, { color: theme.text }]}>Place New Order</Text>
+                  </LinearGradient>
+                </TouchableOpacity>
+              </Animatable.View>
+            }
+          />
+        </>
+      )}
     </View>
   );
 }

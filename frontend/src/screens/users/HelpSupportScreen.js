@@ -12,6 +12,7 @@ import LinearGradient from 'react-native-linear-gradient';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 import CustomAlert from '../../components/CustomAlert';
 import { useTheme } from '../../theme/ThemeContext';
+import Heading from '../../components/Heading';
 
 export default function HelpSupportScreen({ navigation }) {
   const { theme } = useTheme();
@@ -255,18 +256,15 @@ export default function HelpSupportScreen({ navigation }) {
         colors={['#667eea', '#764ba2']}
         style={styles.headerGradient}
       >
-        <Animatable.View animation="fadeInDown" delay={100} duration={500} style={styles.header}>
-          <TouchableOpacity 
-            style={styles.backButton}
-            onPress={() => navigation.goBack()}
-          >
-            <Icon name="arrow-back" size={24} color={theme.text} />
-          </TouchableOpacity>
-          <Text style={styles.headerTitle}>Help & Support</Text>
-          <TouchableOpacity style={styles.menuButton}>
-            <Icon name="more-vert" size={24} color={theme.text} />
-          </TouchableOpacity>
-        </Animatable.View>
+        <Heading
+          title="Help & Support"
+          left={
+            <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
+              <Icon name="arrow-back" size={24} color={theme.text} />
+            </TouchableOpacity>
+          }
+          variant="primary"
+        />
       </LinearGradient>
 
       <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>

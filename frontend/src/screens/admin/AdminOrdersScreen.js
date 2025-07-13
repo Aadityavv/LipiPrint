@@ -5,6 +5,7 @@ import * as Animatable from 'react-native-animatable';
 import LinearGradient from 'react-native-linear-gradient';
 import api from '../../services/api';
 import CustomAlert from '../../components/CustomAlert';
+import Heading from '../../components/Heading';
 
 export default function AdminOrdersScreen({ navigation }) {
   const [orders, setOrders] = useState([]);
@@ -78,10 +79,10 @@ export default function AdminOrdersScreen({ navigation }) {
 
   const statusColors = {
     PENDING: '#FF9800',
-    PROCESSING: '#42A5F5',
-    COMPLETED: '#4CAF50',
-    CANCELLED: '#F44336',
-    DELIVERED: '#66BB6A',
+    PROCESSING: '#1976D2', // Blue
+    COMPLETED: '#43B581',  // Green
+    CANCELLED: '#D7263D',  // Red
+    DELIVERED: '#FF9800',  // Orange
   };
 
   const statusLabels = {
@@ -347,14 +348,16 @@ export default function AdminOrdersScreen({ navigation }) {
       {/* HEADER: Minimal, just back button and title */}
       <LinearGradient
         colors={['#667eea', '#764ba2']}
-        style={styles.headerGradient}
+        style={{paddingTop: 40, paddingBottom: 20, paddingHorizontal: 20}}
       >
-        <View style={styles.header}>
-            <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
-              <Icon name="arrow-back" size={24} color="white" />
-            </TouchableOpacity>
-          <Text style={styles.headerTitle}>Manage Order</Text>
-          <TouchableOpacity onPress={fetchOrders} style={styles.refreshButton}>
+        <View style={{flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', minHeight: 44}}>
+          <TouchableOpacity onPress={() => navigation.goBack()} style={{padding: 6}}>
+            <Icon name="arrow-back" size={24} color="white" />
+          </TouchableOpacity>
+          <Text style={{flex: 1, textAlign: 'center', fontSize: 20, color: '#fff', fontWeight: 'bold', marginLeft: -30}}>
+            Manage Orders
+          </Text>
+          <TouchableOpacity onPress={fetchOrders} style={{padding: 6}}>
             <Icon name="refresh" size={24} color="white" />
           </TouchableOpacity>
         </View>
@@ -453,19 +456,27 @@ export default function AdminOrdersScreen({ navigation }) {
           <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', minHeight: 200 }}>
             <Text style={{ color: '#e53935', fontWeight: 'bold' }}>{error}</Text>
           </View>
-        ) : recentOrders.length === 0 ? (
-          <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', minHeight: 200 }}>
-            <Text style={{ color: '#888', fontWeight: 'bold' }}>No recent orders found.</Text>
-          </View>
-        ) : (
-          <FlatList
-            data={recentOrders}
-            renderItem={renderOrderCard}
-            keyExtractor={item => item.id?.toString()}
-            contentContainerStyle={styles.ordersList}
-            showsVerticalScrollIndicator={false}
-          />
-        )
+        ) : (() => {
+          const filteredRecent = selectedFilter === 'all'
+            ? recentOrders
+            : recentOrders.filter(order => (order.status || '').toUpperCase() === selectedFilter);
+          if (filteredRecent.length === 0) {
+            return (
+              <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', minHeight: 200 }}>
+                <Text style={{ color: '#888', fontWeight: 'bold' }}>No orders found for this filter.</Text>
+              </View>
+            );
+          }
+          return (
+            <FlatList
+              data={filteredRecent}
+              renderItem={renderOrderCard}
+              keyExtractor={item => item.id?.toString()}
+              contentContainerStyle={styles.ordersList}
+              showsVerticalScrollIndicator={false}
+            />
+          );
+        })()
       )}
       {activeTab === 'orders' && (
         loading ? (
@@ -478,7 +489,7 @@ export default function AdminOrdersScreen({ navigation }) {
           </View>
         ) : filteredOrders.length === 0 ? (
           <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', minHeight: 200 }}>
-            <Text style={{ color: '#888', fontWeight: 'bold' }}>No orders found.</Text>
+            <Text style={{ color: '#888', fontWeight: 'bold' }}>No orders found for this filter.</Text>
           </View>
         ) : (
         <FlatList

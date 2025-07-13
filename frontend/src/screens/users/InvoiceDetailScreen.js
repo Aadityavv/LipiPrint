@@ -9,6 +9,7 @@ import LipiPrintLogo from '../../assets/logo/LipiPrintLogo.png';
 import CustomAlert from '../../components/CustomAlert';
 import { useTheme } from '../../theme/ThemeContext';
 import Pdf from 'react-native-pdf';
+import Heading from '../../components/Heading';
 
 export default function InvoiceDetailScreen() {
   const route = useRoute();
@@ -170,13 +171,14 @@ export default function InvoiceDetailScreen() {
 
   return (
     <ScrollView style={[styles.container, { backgroundColor: theme.background }]} contentContainerStyle={{ padding: 0 }}>
-      <LinearGradient colors={['#667eea', '#764ba2']} style={styles.gradientHeader}>
-        <View style={styles.header}>
-          <TouchableOpacity style={styles.backBtn} onPress={() => navigation.goBack()}>
-            <Icon name="arrow-back" size={24} color="#fff" />
-          </TouchableOpacity>
-          <Text style={styles.headerTitle}>Invoice</Text>
-        </View>
+      <LinearGradient
+        colors={['#667eea', '#764ba2']}
+        style={styles.gradientHeader}
+      >
+        <Heading
+          title="Invoice Details"
+          variant="primary"
+        />
       </LinearGradient>
       {/* <View style={styles.logoContainer}>
         <Image source={LipiPrintLogo} style={styles.logo} resizeMode="contain" />
