@@ -122,13 +122,13 @@ New folder/
 
 ---
 
-## 🤝 Contributing
-1. Fork the repo
-2. Create a feature branch (`git checkout -b feature/your-feature`)
-3. Commit your changes
-4. Push and open a Pull Request
+## 🚫 Contributing
+External contributions are not accepted for this project. Please do not submit pull requests or attempt to reuse the codebase.
+
+## ⚠️ Copyright & Legal Notice
+All code, designs, and assets in this repository are the intellectual property of the project owner. Copying, redistributing, or using any part of this project without explicit written permission is strictly prohibited and will result in legal action for copyright infringement.
 
 ---
 
 ## 📄 License
-This project is licensed under the MIT License. 
+This project is proprietary and not open source. All rights reserved. 
