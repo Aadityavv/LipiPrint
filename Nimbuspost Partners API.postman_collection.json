@@ -1,0 +1,1993 @@
+{
+	"info": {
+		"_postman_id": "4ad6dd89-31dc-4437-927c-51cee12ba623",
+		"name": "Nimbuspost Partners API",
+		"description": "<img src=\"https://nimbuspost.com/wp-content/uploads/2020/10/Logo.jpg\" width=\"150px\">\n\n<h1>Getting Started</h1>\n\n<p>Follow below given steps to get started:</p>\n\n<h1>Authentication</h1>\n\n<p>Use your email and password to generate token using Users-&gt;Login endpoint.</p>\n\n<p>Use generated token in request header as <b>Authorization: Bearer {token}</b> with each API request.</p>\n\n<h1>Support</h1>\n\n<ul><li><p>All the necessary information on integration is laid out in this document. Please read it thoroughly.</p></li><li><p>For any integration and API related support, you can feel free to drop us an email at<a href=\"mailto:tech@nimbuspost.com\"><i><b>tech@nimbuspost.com</b></i></a>.</p></li></ul>\n\n<h1>Request Format</h1>\n\n<p>Any data sent in any API endpoints is raw JSON format. No POST/GET data is accepted.</p>",
+		"schema": "https://schema.getpostman.com/json/collection/v2.0.0/collection.json",
+		"_exporter_id": "36526685"
+	},
+	"item": [
+		{
+			"name": "Users",
+			"item": [
+				{
+					"name": "Login",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "content-type",
+								"value": "application/json",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"email\" : \"abc@gmail.com\",\n    \"password\" : \"12376767\"\n}"
+						},
+						"url": "{{BASE_URL}}users/login",
+						"description": "<p>Use this API endpoint to generate autorization token. </p>\n\n<h4 id=\"parameters\">Parameters:</h4>\n<div class=\"click-to-expand-wrapper is-table-wrapper\">\n<table>\n  <thead>\n    <tr>\n      <th>Params\n      </th>\n      <th>Required\n      </th>\n      <th>Data Type\n      </th>\n      <th>Description/Example\n      </th>\n    </tr>\n  </thead>\n<tbody>\n<tr>\n<td>email</td>\n<td>Yes</td>\n<td>string</td>\n  <td>abc@mail.com</td>\n</tr>\n<tr>\n<td>password</td>\n<td>Yes</td>\n<td>string</td>\n  <td>123456789</td>\n</tr>\n</tbody>\n</table>\n</div>"
+					},
+					"response": [
+						{
+							"name": "Failed",
+							"originalRequest": {
+								"method": "POST",
+								"header": [
+									{
+										"key": "content-type",
+										"value": "application/json",
+										"type": "text"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"email\" : \"abc@gmail.com\",\n    \"password\" : \"12376767\"\n}"
+								},
+								"url": "{{BASE_URL}}users/login"
+							},
+							"status": "Unauthorized",
+							"code": 401,
+							"_postman_previewlanguage": "json",
+							"header": [
+								{
+									"key": "Date",
+									"value": "Wed, 27 Jan 2021 08:39:18 GMT"
+								},
+								{
+									"key": "Server",
+									"value": "Apache/2.4.46 (Ubuntu)"
+								},
+								{
+									"key": "Expires",
+									"value": "Thu, 19 Nov 1981 08:52:00 GMT"
+								},
+								{
+									"key": "Cache-Control",
+									"value": "no-store, no-cache, must-revalidate"
+								},
+								{
+									"key": "Pragma",
+									"value": "no-cache"
+								},
+								{
+									"key": "Content-Length",
+									"value": "54"
+								},
+								{
+									"key": "Keep-Alive",
+									"value": "timeout=5, max=100"
+								},
+								{
+									"key": "Connection",
+									"value": "Keep-Alive"
+								},
+								{
+									"key": "Content-Type",
+									"value": "application/json; charset=utf-8"
+								}
+							],
+							"cookie": [],
+							"body": "{\n    \"status\": false,\n    \"message\": \"Invalid email or password\"\n}"
+						},
+						{
+							"name": "Success",
+							"originalRequest": {
+								"method": "POST",
+								"header": [
+									{
+										"key": "content-type",
+										"value": "application/json",
+										"type": "text"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"email\" : \"abc@gmail.com\",\n    \"password\" : \"1223432\"\n}"
+								},
+								"url": "{{BASE_URL}}users/login"
+							},
+							"status": "OK",
+							"code": 200,
+							"_postman_previewlanguage": "json",
+							"header": [
+								{
+									"key": "Date",
+									"value": "Wed, 27 Jan 2021 08:38:28 GMT"
+								},
+								{
+									"key": "Server",
+									"value": "Apache/2.4.46 (Ubuntu)"
+								},
+								{
+									"key": "Expires",
+									"value": "Thu, 19 Nov 1981 08:52:00 GMT"
+								},
+								{
+									"key": "Cache-Control",
+									"value": "no-store, no-cache, must-revalidate"
+								},
+								{
+									"key": "Pragma",
+									"value": "no-cache"
+								},
+								{
+									"key": "Set-Cookie",
+									"value": "ci_session=duetvjdjkp7ufeuojfong2fe130ucvf6; expires=Wed, 27-Jan-2021 10:38:28 GMT; Max-Age=7200; path=/; HttpOnly"
+								},
+								{
+									"key": "Content-Length",
+									"value": "345"
+								},
+								{
+									"key": "Keep-Alive",
+									"value": "timeout=5, max=100"
+								},
+								{
+									"key": "Connection",
+									"value": "Keep-Alive"
+								},
+								{
+									"key": "Content-Type",
+									"value": "application/json; charset=utf-8"
+								}
+							],
+							"cookie": [],
+							"body": "{\n    \"status\": true,\n    \"data\": \"eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzUxMiJ9.eyJpYXQiOjE2MTE3MzY3MDgsImp0aSI6IjNvQnJQd1k3bVQ0ME82RFwvVmJBdWNhbDZ3bjFRZEpCYnk2QU45TnFIUVhVPSIsIm5iZiI6MTYxMTczNjcwOCwiZXhwIjoxNjExNzQ3NTA4LCJkYXRhIjp7InVzZXJfaWQiOiI1NzQiLCJwYXJlbnRfaWQiOiIwIn19.-MCCK3kTSWdk8F-jH-Z0CbVQsxsLN70g6iRQvuHxMxgiPccKYW0RdYL0jM_f_w-BABP0sVV-Fq1fCMOl9-BOAw\"\n}"
+						}
+					]
+				}
+			]
+		},
+		{
+			"name": "Shipments",
+			"item": [
+				{
+					"name": "Create Shipment",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": {
+								"token": "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzUxMiJ9.eyJpYXQiOjE2MTc5NjUyMjcsImp0aSI6InJ6YjFrdWhhQkRiN2x6WVFOQ2Ixb0xMXC9lUElvUmdkRXN1TWRDWnp6QXhBPSIsIm5iZiI6MTYxNzk2NTIyNywiZXhwIjoxNjE3OTc2MDI3LCJkYXRhIjp7InVzZXJfaWQiOiI1NzQiLCJwYXJlbnRfaWQiOiIwIn19.uRjcN9ZiZb33mmYEoioGTIn-KN0EXPVWb7-S6V1wei2ZTPzwGjiNx5v3l4XpskdDz73XN2Vy6DwLOZbh2OPJyg"
+							}
+						},
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"order_number\": \"#001\",\n    \"shipping_charges\": 40,\n    \"discount\": 100,\n    \"cod_charges\": 30,\n    \"payment_type\": \"cod\",\n    \"order_amount\": 1000,\n    \"package_weight\": 300,\n    \"package_length\": 10,\n    \"package_breadth\": 10,\n    \"package_height\": 10,\n    \"request_auto_pickup\" : \"yes\",\n    \"consignee\": {\n        \"name\": \"Customer Name\",\n        \"address\": \"190, ABC Road\",\n        \"address_2\": \"Near Bus Stand\",\n        \"city\": \"Mumbai\",\n        \"state\": \"Maharastra\",\n        \"pincode\": \"400001\",\n        \"phone\": \"9999999999\"\n    },\n    \"pickup\": {\n        \"warehouse_name\": \"warehouse 1\",\n        \"name\" : \"Vikalp Sharma\",\n        \"address\": \"140, MG Road\",\n        \"address_2\": \"Near metro station\",\n        \"city\": \"Gurgaon\",\n        \"state\": \"Haryana\",\n        \"pincode\": \"122001\",\n        \"phone\": \"9999999999\"\n    },\n    \"order_items\": [\n        {\n            \"name\": \"product 1\",\n            \"qty\": \"18\",\n            \"price\": \"100\",\n            \"sku\": \"sku001\"\n        }\n    ],\n    \"courier_id\" : \"1\",\n    \"is_insurance\" : \"0\",\n    \"tags\" : \"tag1, tag2\"\n}"
+						},
+						"url": "{{BASE_URL}}{{API_SHIPMENT_CLASS}}",
+						"description": "<p>Use this API endpoint to generate AWB/tracking number for your order. </p>\n\n<p><b>Note: </b> Order total is not automatically calculated in API request. Be sure to input the correct calculated order_amount. </p>\n\n<h4 id=\"parameters\">Parameters:</h4>\n<div class=\"click-to-expand-wrapper is-table-wrapper\">\n<table>\n<thead>\n<tr>\n<th><strong>Params</strong></th>\n<th><strong>Required</strong></th>\n<th><strong>Description</strong></th>\n<th><strong>Example</strong></th>\n</tr>\n</thead>\n<tbody>\n<tr>\n<td><code>order_number</code></td>\n<td>Yes</td>\n<td><em>string -  max length: 20</em></td>\n<td>1234</td>\n</tr>\n  <tr>\n<td><code>payment_type</code></td>\n<td>Yes</td>\n<td><em>Valid Values - cod, prepaid & reverse</em></td>\n<td>cod</td>\n</tr>\n  <tr>\n<td><code>package_weight</code></td>\n<td>No</td>\n<td><em>Weight in grams</em></td>\n<td>400</td>\n</tr>\n  <tr>\n<td><code>package_length</code></td>\n<td>No</td>\n<td><em>Package length in cm.</em></td>\n<td>12</td>\n</tr>\n  <tr>\n<td><code>package_breadth</code></td>\n<td>No</td>\n<td><em>Package breadth in cm.</em></td>\n<td>12</td>\n</tr>\n  <tr>\n<td><code>package_height</code></td>\n<td>No</td>\n<td><em>Package height in cm.</em></td>\n<td>12</td>\n</tr>\n<tr>\n<td><code>request_auto_pickup</code></td>\n<td>No</td>\n<td><em>Use Yes to send auto pickup request to courier.</em></td>\n<td>Yes</td>\n</tr>\n  <tr>\n<td><code>shipping_charges</code></td>\n<td>No</td>\n<td><em>Shipping chages applied.</em></td>\n<td>40</td>\n</tr>\n  <tr>\n<td><code>cod_charges</code></td>\n<td>No</td>\n<td><em>COD chages applied.</em></td>\n<td>40</td>\n</tr>\n  <tr>\n<td><code>discount</code></td>\n<td>No</td>\n<td><em>Discount applied.</em></td>\n<td>40</td>\n</tr>\n  <tr>\n<td><code>order_amount</code></td>\n<td>Yes</td>\n<td><em>Total Order Amont.</em></td>\n<td>999</td>\n</tr>\n  <tr>\n<td><code>consignee[name]</code></td>\n<td>Yes</td>\n<td><em>String - max length: 200</em></td>\n<td>Amit Kumar</td>\n</tr>\n  <tr>\n<td><code>consignee[company_name]</code></td>\n<td>No</td>\n<td><em>String - max length: 200</em></td>\n<td>ABC Company</td>\n</tr>\n  <tr>\n<td><code>consignee[address]</code></td>\n<td>Yes</td>\n<td><em>String - max length: 200</em></td>\n<td>140, ABC Road</td>\n</tr>\n  <tr>\n<td><code>consignee[address_2]</code></td>\n<td>No</td>\n<td><em>String - max length: 200</em></td>\n<td>Near Metro Station</td>\n</tr>\n  <tr>\n<td><code>consignee[city]</code></td>\n<td>Yes</td>\n<td><em>String - max length: 40</em></td>\n<td>Gurgaon</td>\n</tr>\n  <tr>\n<td><code>consignee[state]</code></td>\n<td>Yes</td>\n<td><em>String - max length: 40</em></td>\n<td>Haryana</td>\n</tr>\n  <tr>\n<td><code>consignee[pincode]</code></td>\n<td>Yes</td>\n<td><em>6 digit numeric</em></td>\n<td>122002</td>\n</tr>\n  <tr>\n<td><code>consignee[phone]</code></td>\n<td>Yes</td>\n<td><em>10 digit numeric</em></td>\n<td>9999999999</td>\n</tr>\n  \n  \n  \n  <tr>\n<td><code>pickup[warehouse_name]</code></td>\n<td>Yes</td>\n<td><em>String - max length: 20</em></td>\n<td>Warehouse 1</td>\n</tr>\n  <tr>\n<td><code>pickup[name]</code></td>\n<td>Yes</td>\n<td><em>String - max length: 200</em></td>\n<td>Amit Kumar</td>\n</tr>\n  <tr>\n<td><code>pickup[address]</code></td>\n<td>Yes</td>\n<td><em>String - max length: 200</em></td>\n<td>140, ABC Road</td>\n</tr>\n  <tr>\n<td><code>pickup[address_2]</code></td>\n<td>No</td>\n<td><em>String - max length: 200</em></td>\n<td>Near Metro Station</td>\n</tr>\n  <tr>\n<td><code>pickup[city]</code></td>\n<td>Yes</td>\n<td><em>String - max length: 40</em></td>\n<td>Gurgaon</td>\n</tr>\n  <tr>\n<td><code>pickup[state]</code></td>\n<td>Yes</td>\n<td><em>String - max length: 40</em></td>\n<td>Haryana</td>\n</tr>\n  <tr>\n<td><code>pickup[pincode]</code></td>\n<td>Yes</td>\n<td><em>6 digit numeric</em></td>\n<td>122002</td>\n</tr>\n  <tr>\n<td><code>pickup[phone]</code></td>\n<td>Yes</td>\n<td><em>10 digit numeric</em></td>\n<td>9999999999</td>\n</tr>\n  <tr>\n<td><code>pickup[gst_umber]</code></td>\n<td>No</td>\n<td><em>15 digit alpha numeric</em></td>\n<td>18AABCU9603R1ZM</td>\n</tr>\n  \n  <tr>\n<td><code>is_rto_different</code></td>\n<td>No</td>\n    <td><em>When Pickup & RTO address are different. <br/>If yes then <code>rto[]</code> array is required.<br/>\n   Valid values - yes,no</em></td>\n<td>no</td>\n</tr>\n  \n  <tr>\n<td><code>rto[warehouse_name]</code></td>\n<td>Conditional</td>\n<td><em>String - max length: 20</em></td>\n<td>Warehouse 1</td>\n</tr>\n  <tr>\n<td><code>rto[name]</code></td>\n<td>Conditional</td>\n<td><em>String - max length: 200</em></td>\n<td>Amit Kumar</td>\n</tr>\n  <tr>\n<td><code>rto[address]</code></td>\n<td>Conditional</td>\n<td><em>String - max length: 200</em></td>\n<td>140, ABC Road</td>\n</tr>\n  <tr>\n<td><code>rto[address_2]</code></td>\n<td>Conditional</td>\n<td><em>String - max length: 200</em></td>\n<td>Near Metro Station</td>\n</tr>\n  <tr>\n<td><code>rto[city]</code></td>\n<td>Conditional</td>\n<td><em>String - max length: 40</em></td>\n<td>Gurgaon</td>\n</tr>\n  <tr>\n<td><code>rto[state]</code></td>\n<td>Conditional</td>\n<td><em>String - max length: 40</em></td>\n<td>Haryana</td>\n</tr>\n  <tr>\n<td><code>rto[pincode]</code></td>\n<td>Conditional</td>\n<td><em>6 digit numeric</em></td>\n<td>122002</td>\n</tr>\n  <tr>\n<td><code>rto[phone]</code></td>\n<td>Conditional</td>\n<td><em>10 digit numeric</em></td>\n<td>9999999999</td>\n</tr>\n\n<tr>\n<td><code>courier_id</code></td>\n<td>No</td>\n<td><em>numeric courier id</em></td>\n<td>5</td>\n</tr>\n<tr>\n<td><code>is_insurance</code></td>\n<td>0</td>\n<td><em>numeric 0 or 1</em></td>\n<td>1</td>\n</tr>\n\n<tr>\n<td><code>tags</code></td>\n<td>No</td>\n<td><em>comma separated values. max length: 200</em></td>\n<td>tag1, tag2</td>\n</tr>\n  \n \n</tbody>\n</table>\n</div>"
+					},
+					"response": [
+						{
+							"name": "Successful",
+							"originalRequest": {
+								"method": "POST",
+								"header": [
+									{
+										"key": "Content-Type",
+										"value": "application/json",
+										"type": "text"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"order_number\": \"#001\",\n    \"shipping_charges\": 40,\n    \"discount\": 100,\n    \"cod_charges\": 30,\n    \"payment_type\": \"cod\",\n    \"order_amount\": 1000,\n    \"package_weight\": 300,\n    \"package_length\": 10,\n    \"package_breadth\": 10,\n    \"package_height\": 10,\n    \"consignee\": {\n        \"name\": \"Customer Name\",\n        \"address\": \"190, ABC Road\",\n        \"address_2\": \"Near Bus Stand\",\n        \"city\": \"Mumbai\",\n        \"state\": \"Maharastra\",\n        \"pincode\": \"400001\",\n        \"phone\": \"9999999999\"\n    },\n    \"pickup\": {\n        \"warehouse_name\": \"warehouse 1\",\n        \"name\" : \"Vikalp Sharma\",\n        \"address\": \"140, MG Road\",\n        \"address_2\": \"Near metro station\",\n        \"city\": \"Gurgaon\",\n        \"state\": \"Haryana\",\n        \"pincode\": \"122001\",\n        \"phone\": \"9999999999\"\n    },\n    \"order_items\": [\n        {\n            \"name\": \"product 1\",\n            \"qty\": \"18\",\n            \"price\": \"100\",\n            \"sku\": \"sku001\"\n        }\n    ]\n}"
+								},
+								"url": "{{BASE_URL}}{{API_SHIPMENT_CLASS}}"
+							},
+							"status": "OK",
+							"code": 200,
+							"_postman_previewlanguage": "json",
+							"header": [
+								{
+									"key": "Date",
+									"value": "Wed, 27 Jan 2021 08:31:57 GMT"
+								},
+								{
+									"key": "Server",
+									"value": "Apache/2.4.46 (Ubuntu)"
+								},
+								{
+									"key": "Expires",
+									"value": "Thu, 19 Nov 1981 08:52:00 GMT"
+								},
+								{
+									"key": "Cache-Control",
+									"value": "no-store, no-cache, must-revalidate"
+								},
+								{
+									"key": "Pragma",
+									"value": "no-cache"
+								},
+								{
+									"key": "Set-Cookie",
+									"value": "ci_session=o6g00uru78h2gllh2p8o8619ks8fhfmd; expires=Wed, 27-Jan-2021 10:31:57 GMT; Max-Age=7200; path=/; HttpOnly"
+								},
+								{
+									"key": "Content-Length",
+									"value": "286"
+								},
+								{
+									"key": "Keep-Alive",
+									"value": "timeout=5, max=100"
+								},
+								{
+									"key": "Connection",
+									"value": "Keep-Alive"
+								},
+								{
+									"key": "Content-Type",
+									"value": "application/json; charset=utf-8"
+								}
+							],
+							"cookie": [],
+							"body": "{\n    \"status\": true,\n    \"data\": {\n        \"order_id\": 3351555,\n        \"shipment_id\": 1929242,\n        \"awb_number\": \"59632220664\",\n        \"courier_id\": \"5\",\n        \"courier_name\": \"Bluedart\",\n        \"status\": \"booked\",\n        \"additional_info\": \"BOM / TEC\",\n        \"payment_type\": \"cod\",\n        \"label\": \"http://nimubs-assets.s3.amazonaws.com/labels/20210127140158-79.pdf\"\n    }\n}"
+						},
+						{
+							"name": "Failed",
+							"originalRequest": {
+								"method": "POST",
+								"header": [
+									{
+										"key": "Content-Type",
+										"value": "application/json",
+										"type": "text"
+									},
+									{
+										"key": "NP-API-KEY",
+										"value": "624e82985beb9943010498bd036cf462f816e6c5574",
+										"type": "text"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"order_number\": \"#001\",\n    \"shipping_charges\": 40,\n    \"discount\": 100,\n    \"cod_charges\": 30,\n    \"payment_type\": \"cod\",\n    \"order_amount\": 1000,\n    \"package_weight\": 300,\n    \"package_length\": 10,\n    \"package_breadth\": 10,\n    \"package_height\": 10,\n    \"consignee\": {\n        \"name\": \"\",\n        \"address\": \"190, ABC Road\",\n        \"address_2\": \"Near Bus Stand\",\n        \"city\": \"Mumbai\",\n        \"state\": \"Maharastra\",\n        \"pincode\": \"400001\",\n        \"phone\": \"9999999999\"\n    },\n    \"pickup\": {\n        \"warehouse_name\": \"warehouse 1\",\n        \"name\" : \"Vikalp Sharma\",\n        \"address\": \"140, MG Road\",\n        \"address_2\": \"Near metro station\",\n        \"city\": \"Gurgaon\",\n        \"state\": \"Haryana\",\n        \"pincode\": \"122001\",\n        \"phone\": \"9999999999\"\n    },\n    \"order_items\": [\n        {\n            \"name\": \"product 1\",\n            \"qty\": \"18\",\n            \"price\": \"100\",\n            \"sku\": \"sku001\"\n        }\n    ]\n}"
+								},
+								"url": "{{BASE_URL}}{{API_SHIPMENT_CLASS}}"
+							},
+							"status": "Not Found",
+							"code": 404,
+							"_postman_previewlanguage": "json",
+							"header": [
+								{
+									"key": "Date",
+									"value": "Wed, 27 Jan 2021 08:33:30 GMT"
+								},
+								{
+									"key": "Server",
+									"value": "Apache/2.4.46 (Ubuntu)"
+								},
+								{
+									"key": "Expires",
+									"value": "Thu, 19 Nov 1981 08:52:00 GMT"
+								},
+								{
+									"key": "Cache-Control",
+									"value": "no-store, no-cache, must-revalidate"
+								},
+								{
+									"key": "Pragma",
+									"value": "no-cache"
+								},
+								{
+									"key": "Content-Length",
+									"value": "57"
+								},
+								{
+									"key": "Keep-Alive",
+									"value": "timeout=5, max=100"
+								},
+								{
+									"key": "Connection",
+									"value": "Keep-Alive"
+								},
+								{
+									"key": "Content-Type",
+									"value": "application/json; charset=utf-8"
+								}
+							],
+							"cookie": [],
+							"body": "{\n    \"status\": false,\n    \"message\": \"Consignee name is required\\n\"\n}"
+						},
+						{
+							"name": "Different Pickup & RTO Address",
+							"originalRequest": {
+								"method": "POST",
+								"header": [
+									{
+										"key": "Content-Type",
+										"value": "application/json",
+										"type": "text"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"order_number\": \"#001\",\n    \"shipping_charges\": 40,\n    \"discount\": 100,\n    \"cod_charges\": 30,\n    \"payment_type\": \"cod\",\n    \"order_amount\": 1000,\n    \"package_weight\": 300,\n    \"package_length\": 10,\n    \"package_breadth\": 10,\n    \"package_height\": 10,\n    \"consignee\": {\n        \"name\": \"Customer Name\",\n        \"address\": \"190, ABC Road\",\n        \"address_2\": \"Near Bus Stand\",\n        \"city\": \"Mumbai\",\n        \"state\": \"Maharastra\",\n        \"pincode\": \"400001\",\n        \"phone\": \"9999999999\"\n    },\n    \"pickup\": {\n        \"warehouse_name\": \"warehouse 1\",\n        \"name\" : \"Vikalp Sharma\",\n        \"address\": \"140, MG Road\",\n        \"address_2\": \"Near metro station\",\n        \"city\": \"Gurgaon\",\n        \"state\": \"Haryana\",\n        \"pincode\": \"122001\",\n        \"phone\": \"9999999999\"\n    },\n    \"order_items\": [\n        {\n            \"name\": \"product 1\",\n            \"qty\": \"18\",\n            \"price\": \"100\",\n            \"sku\": \"sku001\"\n        }\n    ],\n    \"is_rto_different\" : \"yes\",\n    \"rto\": {\n        \"warehouse_name\": \"Warehouse 2\",\n        \"name\" : \"Neeraj Yadav \",\n        \"address\": \"234 Address\",\n        \"address_2\": \"Near ABC\",\n        \"city\": \"Gurgaon\",\n        \"state\": \"Haryana\",\n        \"pincode\": \"122002\",\n        \"phone\": \"8888888888\"\n    }\n}"
+								},
+								"url": "{{BASE_URL}}{{API_SHIPMENT_CLASS}}"
+							},
+							"status": "OK",
+							"code": 200,
+							"_postman_previewlanguage": "json",
+							"header": [
+								{
+									"key": "Date",
+									"value": "Wed, 27 Jan 2021 08:34:59 GMT"
+								},
+								{
+									"key": "Server",
+									"value": "Apache/2.4.46 (Ubuntu)"
+								},
+								{
+									"key": "Expires",
+									"value": "Thu, 19 Nov 1981 08:52:00 GMT"
+								},
+								{
+									"key": "Cache-Control",
+									"value": "no-store, no-cache, must-revalidate"
+								},
+								{
+									"key": "Pragma",
+									"value": "no-cache"
+								},
+								{
+									"key": "Content-Length",
+									"value": "286"
+								},
+								{
+									"key": "Keep-Alive",
+									"value": "timeout=5, max=100"
+								},
+								{
+									"key": "Connection",
+									"value": "Keep-Alive"
+								},
+								{
+									"key": "Content-Type",
+									"value": "application/json; charset=utf-8"
+								}
+							],
+							"cookie": [],
+							"body": "{\n    \"status\": true,\n    \"data\": {\n        \"order_id\": 3351556,\n        \"shipment_id\": 1929243,\n        \"awb_number\": \"59632223744\",\n        \"courier_id\": \"5\",\n        \"courier_name\": \"Bluedart\",\n        \"status\": \"booked\",\n        \"additional_info\": \"BOM / TEC\",\n        \"payment_type\": \"cod\",\n        \"label\": \"http://nimubs-assets.s3.amazonaws.com/labels/20210127140503-21.pdf\"\n    }\n}"
+						},
+						{
+							"name": "With Pickup Request",
+							"originalRequest": {
+								"method": "POST",
+								"header": [
+									{
+										"key": "Content-Type",
+										"value": "application/json",
+										"type": "text"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"order_number\": \"#001\",\n    \"shipping_charges\": 40,\n    \"discount\": 100,\n    \"cod_charges\": 30,\n    \"payment_type\": \"cod\",\n    \"order_amount\": 1000,\n    \"package_weight\": 300,\n    \"package_length\": 10,\n    \"package_breadth\": 10,\n    \"package_height\": 10,\n    \"request_auto_pickup\" : \"yes\",\n    \"consignee\": {\n        \"name\": \"Customer Name\",\n        \"address\": \"190, ABC Road\",\n        \"address_2\": \"Near Bus Stand\",\n        \"city\": \"Mumbai\",\n        \"state\": \"Maharastra\",\n        \"pincode\": \"400001\",\n        \"phone\": \"9999999999\"\n    },\n    \"pickup\": {\n        \"warehouse_name\": \"warehouse 1\",\n        \"name\" : \"Vikalp Sharma\",\n        \"address\": \"140, MG Road\",\n        \"address_2\": \"Near metro station\",\n        \"city\": \"Gurgaon\",\n        \"state\": \"Haryana\",\n        \"pincode\": \"122001\",\n        \"phone\": \"9999999999\"\n    },\n    \"order_items\": [\n        {\n            \"name\": \"product 1\",\n            \"qty\": \"18\",\n            \"price\": \"100\",\n            \"sku\": \"sku001\"\n        }\n    ]\n}"
+								},
+								"url": "{{BASE_URL}}{{API_SHIPMENT_CLASS}}"
+							},
+							"status": "OK",
+							"code": 200,
+							"_postman_previewlanguage": "json",
+							"header": [
+								{
+									"key": "Date",
+									"value": "Wed, 10 Mar 2021 11:56:24 GMT"
+								},
+								{
+									"key": "Server",
+									"value": "Apache/2.4.46 (Ubuntu)"
+								},
+								{
+									"key": "Expires",
+									"value": "Thu, 19 Nov 1981 08:52:00 GMT"
+								},
+								{
+									"key": "Cache-Control",
+									"value": "no-store, no-cache, must-revalidate"
+								},
+								{
+									"key": "Pragma",
+									"value": "no-cache"
+								},
+								{
+									"key": "Content-Length",
+									"value": "374"
+								},
+								{
+									"key": "Keep-Alive",
+									"value": "timeout=5, max=99"
+								},
+								{
+									"key": "Connection",
+									"value": "Keep-Alive"
+								},
+								{
+									"key": "Content-Type",
+									"value": "application/json; charset=utf-8"
+								}
+							],
+							"cookie": [],
+							"body": "{\n    \"status\": true,\n    \"data\": {\n        \"order_id\": 4493905,\n        \"shipment_id\": 2555632,\n        \"awb_number\": \"59655096200\",\n        \"courier_id\": \"5\",\n        \"courier_name\": \"Bluedart\",\n        \"status\": \"booked\",\n        \"additional_info\": \"BOM / TEC\",\n        \"payment_type\": \"cod\",\n        \"label\": \"https://nimubs-assets.s3.amazonaws.com/labels/20210310172625-19.pdf\",\n        \"manifest\": \"https://nimubs-assets.s3.amazonaws.com/manifest/20210310172627-39.pdf\"\n    }\n}"
+						},
+						{
+							"name": "Using Courier ID",
+							"originalRequest": {
+								"method": "POST",
+								"header": [
+									{
+										"key": "Content-Type",
+										"value": "application/json",
+										"type": "text"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"order_number\": \"#001\",\n    \"shipping_charges\": 40,\n    \"discount\": 100,\n    \"cod_charges\": 30,\n    \"payment_type\": \"cod\",\n    \"order_amount\": 1000,\n    \"package_weight\": 300,\n    \"package_length\": 10,\n    \"package_breadth\": 10,\n    \"package_height\": 10,\n    \"request_auto_pickup\" : \"yes\",\n    \"consignee\": {\n        \"name\": \"Customer Name\",\n        \"address\": \"190, ABC Road\",\n        \"address_2\": \"Near Bus Stand\",\n        \"city\": \"Mumbai\",\n        \"state\": \"Maharastra\",\n        \"pincode\": \"400001\",\n        \"phone\": \"9999999999\"\n    },\n    \"pickup\": {\n        \"warehouse_name\": \"warehouse 1\",\n        \"name\" : \"Vikalp Sharma\",\n        \"address\": \"140, MG Road\",\n        \"address_2\": \"Near metro station\",\n        \"city\": \"Gurgaon\",\n        \"state\": \"Haryana\",\n        \"pincode\": \"122001\",\n        \"phone\": \"9999999999\"\n    },\n    \"order_items\": [\n        {\n            \"name\": \"product 1\",\n            \"qty\": \"18\",\n            \"price\": \"100\",\n            \"sku\": \"sku001\"\n        }\n    ],\n    \"courier_id\" : \"5\"\n}"
+								},
+								"url": "{{BASE_URL}}{{API_SHIPMENT_CLASS}}"
+							},
+							"status": "OK",
+							"code": 200,
+							"_postman_previewlanguage": "json",
+							"header": [
+								{
+									"key": "Date",
+									"value": "Fri, 09 Apr 2021 10:47:50 GMT"
+								},
+								{
+									"key": "Server",
+									"value": "Apache/2.4.46 (Ubuntu)"
+								},
+								{
+									"key": "Expires",
+									"value": "Thu, 19 Nov 1981 08:52:00 GMT"
+								},
+								{
+									"key": "Cache-Control",
+									"value": "no-store, no-cache, must-revalidate"
+								},
+								{
+									"key": "Pragma",
+									"value": "no-cache"
+								},
+								{
+									"key": "Content-Length",
+									"value": "374"
+								},
+								{
+									"key": "Keep-Alive",
+									"value": "timeout=5, max=100"
+								},
+								{
+									"key": "Connection",
+									"value": "Keep-Alive"
+								},
+								{
+									"key": "Content-Type",
+									"value": "application/json; charset=utf-8"
+								}
+							],
+							"cookie": [],
+							"body": "{\n    \"status\": true,\n    \"data\": {\n        \"order_id\": 5124428,\n        \"shipment_id\": 2911980,\n        \"awb_number\": \"59669772131\",\n        \"courier_id\": \"5\",\n        \"courier_name\": \"Bluedart\",\n        \"status\": \"booked\",\n        \"additional_info\": \"BOM / TEC\",\n        \"payment_type\": \"cod\",\n        \"label\": \"https://nimubs-assets.s3.amazonaws.com/labels/202104094161755-69.pdf\",\n        \"manifest\": \"https://nimubs-assets.s3.amazonaws.com/manifest/202120409161757-55.pdf\"\n    }\n}"
+						}
+					]
+				},
+				{
+					"name": "Track Single Shipment",
+					"event": [
+						{
+							"listen": "prerequest",
+							"script": {
+								"exec": [
+									""
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": {
+								"token": "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzUxMiJ9.eyJpYXQiOjE2MTE3MzQxNTUsImp0aSI6IjhoZHNVWWxLUlBnUmpwRGhReWxZZlZGb21JRlJOeDU5aVl0WVRIM09sWTA9IiwibmJmIjoxNjExNzM0MTU1LCJleHAiOjE2MTE3NDQ5NTUsImRhdGEiOnsidXNlcl9pZCI6IjU3NCIsInBhcmVudF9pZCI6IjAifX0.ga9VxVxpjdsXf75oRuS06EtADxBIpdy4EImvggMFp8fEYZySVnYALj-sczjnG3v50iAgfN9LrQiqguz4qjtcQw"
+							}
+						},
+						"method": "GET",
+						"header": [],
+						"url": "{{BASE_URL}}{{API_SHIPMENT_CLASS}}/track/{{AWB}}",
+						"description": "Get the tracking history a particular shipment through this API by passing the Nimbuspost AWB Number in the endpoint URL itself. Type Nimbuspost shipment AWB Number in place of {awb}.\n\nNo other body parameters are required.\n\n<h4 id=\"parameters\">Parameters:</h4>\n<div class=\"click-to-expand-wrapper is-table-wrapper is-expandable\">\n<table>\n<thead>\n<tr>\n<th><strong>EXAMPLE</strong></th>\n</tr>\n</thead>\n<tbody>\n<tr>\n<td>../shipments/track/N123456789</td>\n</tr>\n</tbody>\n</table>\n</div>\n\n<h4 id=\"parameters\">Response Status Codes:</h4>\n<div class=\"click-to-expand-wrapper is-table-wrapper is-expandable\">\n<table>\n<thead>\n<tr>\n<th><strong>Status Code</strong></th>\n<th><strong>Status</strong></th>\n</tr>\n</thead>\n<tbody>\n<tr>\n<td>PP</td>\n<td>Pending Pickup</td>\n</tr>\n<tr>\n<td>IT</td>\n<td>In Transit</td>\n</tr>\n<tr>\n<td>EX</td>\n<td>Exception</td>\n</tr>\n<tr>\n<td>OFD</td>\n<td>Out For Delivery</td>\n</tr>\n<tr>\n<td>DL</td>\n<td>Delivered</td>\n</tr>\n<tr>\n<td>RT</td>\n<td>RTO</td>\n</tr>\n<tr>\n<td>RT-IT</td>\n<td>RTO In Transit</td>\n</tr>\n<tr>\n<td>RT-DL</td>\n<td>RTO Delivered</td>\n</tr>\n</tbody>\n</table>\n</div>"
+					},
+					"response": [
+						{
+							"name": "Failed",
+							"originalRequest": {
+								"method": "GET",
+								"header": [],
+								"url": "{{BASE_URL}}{{API_SHIPMENT_CLASS}}/track/{{AWB}}"
+							},
+							"status": "Bad Request",
+							"code": 400,
+							"_postman_previewlanguage": "json",
+							"header": [
+								{
+									"key": "Date",
+									"value": "Wed, 27 Jan 2021 10:47:26 GMT"
+								},
+								{
+									"key": "Server",
+									"value": "Apache/2.4.46 (Ubuntu)"
+								},
+								{
+									"key": "Expires",
+									"value": "Thu, 19 Nov 1981 08:52:00 GMT"
+								},
+								{
+									"key": "Cache-Control",
+									"value": "no-store, no-cache, must-revalidate"
+								},
+								{
+									"key": "Pragma",
+									"value": "no-cache"
+								},
+								{
+									"key": "Content-Length",
+									"value": "45"
+								},
+								{
+									"key": "Connection",
+									"value": "close"
+								},
+								{
+									"key": "Content-Type",
+									"value": "application/json; charset=utf-8"
+								}
+							],
+							"cookie": [],
+							"body": "{\n    \"status\": false,\n    \"message\": \"Record not found\"\n}"
+						},
+						{
+							"name": "Success",
+							"originalRequest": {
+								"method": "GET",
+								"header": [],
+								"url": "{{BASE_URL}}{{API_SHIPMENT_CLASS}}/track/{{AWB}}"
+							},
+							"status": "OK",
+							"code": 200,
+							"_postman_previewlanguage": "json",
+							"header": [
+								{
+									"key": "Date",
+									"value": "Fri, 09 Apr 2021 10:31:21 GMT"
+								},
+								{
+									"key": "Server",
+									"value": "Apache/2.4.46 (Ubuntu)"
+								},
+								{
+									"key": "Expires",
+									"value": "Thu, 19 Nov 1981 08:52:00 GMT"
+								},
+								{
+									"key": "Cache-Control",
+									"value": "no-store, no-cache, must-revalidate"
+								},
+								{
+									"key": "Pragma",
+									"value": "no-cache"
+								},
+								{
+									"key": "Set-Cookie",
+									"value": "ci_session=i0hsk251qkk1g8i37i1bomnonofpsrlt; expires=Fri, 09-Apr-2021 12:31:21 GMT; Max-Age=7200; path=/; HttpOnly"
+								},
+								{
+									"key": "Content-Length",
+									"value": "3891"
+								},
+								{
+									"key": "Keep-Alive",
+									"value": "timeout=5, max=100"
+								},
+								{
+									"key": "Connection",
+									"value": "Keep-Alive"
+								},
+								{
+									"key": "Content-Type",
+									"value": "application/json; charset=utf-8"
+								}
+							],
+							"cookie": [],
+							"body": "{\n    \"status\": true,\n    \"data\": {\n        \"id\": \"2482000\",\n        \"order_id\": \"4340000\",\n        \"order_number\": \"#JS5897\",\n        \"created\": \"2021-03-01\",\n        \"awb_number\": \"59650109492\",\n        \"rto_awb\": \"75312963180\",\n        \"courier_id\": \"24\",\n        \"warehouse_id\": \"21135\",\n        \"rto_warehouse_id\": \"21135\",\n        \"status\": \"rto\",\n        \"rto_status\": \"delivered\",\n        \"shipment_info\": \"DEL / VED\",\n        \"history\": [\n            {\n                \"status_code\": \"IT\",\n                \"location\": \"BAREJA EPU (NCX)\",\n                \"event_time\": \"2021-03-02 18:19\",\n                \"message\": \"SHIPMENT ARRIVED\"\n            },\n            {\n                \"status_code\": \"IT\",\n                \"location\": \"BAREJA EPU (NCX)\",\n                \"event_time\": \"2021-03-02 22:07\",\n                \"message\": \"SHIPMENT FURTHER CONNECTED\"\n            },\n            {\n                \"status_code\": \"IT\",\n                \"location\": \"AHMEDABAD HUB (AUB)\",\n                \"event_time\": \"2021-03-02 23:50\",\n                \"message\": \"SHIPMENT ARRIVED AT HUB\"\n            },\n            {\n                \"status_code\": \"IT\",\n                \"location\": \"AHMEDABAD HUB (AUB)\",\n                \"event_time\": \"2021-03-03 03:20\",\n                \"message\": \"SHIPMENT FURTHER CONNECTED\"\n            },\n            {\n                \"status_code\": \"IT\",\n                \"location\": \"DELHI HUB (DUB)\",\n                \"event_time\": \"2021-03-03 07:27\",\n                \"message\": \"SHIPMENT ARRIVED AT HUB\"\n            },\n            {\n                \"status_code\": \"IT\",\n                \"location\": \"GOPINATH BAZAR HUB (GNH)\",\n                \"event_time\": \"2021-03-03 13:14\",\n                \"message\": \"SHIPMENT FURTHER CONNECTED\"\n            },\n            {\n                \"status_code\": \"IT\",\n                \"location\": \"PASCHIM VIHAR ETAIL (VED)\",\n                \"event_time\": \"2021-03-03 14:50\",\n                \"message\": \"SHIPMENT ARRIVED\"\n            },\n            {\n                \"status_code\": \"OFD\",\n                \"location\": \"PASCHIM VIHAR ETAIL (VED)\",\n                \"event_time\": \"2021-03-03 14:51\",\n                \"message\": \"SHIPMENT OUT FOR DELIVERY\"\n            },\n            {\n                \"status_code\": \"EX\",\n                \"location\": \"PASCHIM VIHAR ETAIL (VED)\",\n                \"event_time\": \"2021-03-03 16:03\",\n                \"message\": \"REFUSAL CONFIRMATION CODE VERIFIED\"\n            },\n            {\n                \"status_code\": \"EX\",\n                \"location\": \"PASCHIM VIHAR ETAIL (VED)\",\n                \"event_time\": \"2021-03-03 16:04\",\n                \"message\": \"CONSIGNEE REFUSED TO ACCEPT\"\n            },\n            {\n                \"status_code\": \"IT\",\n                \"location\": \"PASCHIM VIHAR ETAIL (VED)\",\n                \"event_time\": \"2021-03-04 09:55\",\n                \"message\": \"UNDELIVERED SHIPMENT HELD AT LOCATION\"\n            },\n            {\n                \"status_code\": \"IT\",\n                \"location\": \"PASCHIM VIHAR ETAIL (VED)\",\n                \"event_time\": \"2021-03-05 10:16\",\n                \"message\": \"UNDELIVERED SHIPMENT HELD AT LOCATION\"\n            },\n            {\n                \"status_code\": \"RT-IT\",\n                \"location\": \"PASCHIM VIHAR ETAIL (VED)\",\n                \"event_time\": \"2021-03-05 17:18\",\n                \"message\": \"RETURNED TO ORIGIN AT SHIPPER'S REQUEST\"\n            },\n            {\n                \"status_code\": \"RT-IT\",\n                \"location\": \"PASCHIM VIHAR ETAIL (VED)\",\n                \"event_time\": \"2021-03-05 17:18\",\n                \"message\": \"SHIPMENT ARRIVED\"\n            },\n            {\n                \"status_code\": \"RT-IT\",\n                \"location\": \"PASCHIM VIHAR ETAIL (VED)\",\n                \"event_time\": \"2021-03-05 19:52\",\n                \"message\": \"SHIPMENT FURTHER CONNECTED\"\n            },\n            {\n                \"status_code\": \"RT-IT\",\n                \"location\": \"DELHI HUB (DUB)\",\n                \"event_time\": \"2021-03-05 23:57\",\n                \"message\": \"SHIPMENT ARRIVED AT HUB\"\n            },\n            {\n                \"status_code\": \"RT-IT\",\n                \"location\": \"DELHI HUB (DUB)\",\n                \"event_time\": \"2021-03-06 02:05\",\n                \"message\": \"SHIPMENT FURTHER CONNECTED\"\n            },\n            {\n                \"status_code\": \"RT-IT\",\n                \"location\": \"DEL ETAIL HUB (DEH)\",\n                \"event_time\": \"2021-03-06 02:54\",\n                \"message\": \"SHIPMENT IN TRANSIT\"\n            },\n            {\n                \"status_code\": \"RT-IT\",\n                \"location\": \"DEL ETAIL HUB (DEH)\",\n                \"event_time\": \"2021-03-06 03:35\",\n                \"message\": \"SHIPMENT ARRIVED\"\n            },\n            {\n                \"status_code\": \"RT-IT\",\n                \"location\": \"DEL ETAIL HUB (DEH)\",\n                \"event_time\": \"2021-03-06 05:10\",\n                \"message\": \"SHIPMENT FURTHER CONNECTED\"\n            },\n            {\n                \"status_code\": \"RT-IT\",\n                \"location\": \"COD PROCESSING CENTRE II (ITG)\",\n                \"event_time\": \"2021-03-06 07:05\",\n                \"message\": \"SHIPMENT IN TRANSIT\"\n            },\n            {\n                \"status_code\": \"RT-IT\",\n                \"location\": \"COD PROCESSING CENTRE II (ITG)\",\n                \"event_time\": \"2021-03-06 07:06\",\n                \"message\": \"SHIPMENT ARRIVED\"\n            },\n            {\n                \"status_code\": \"RT-IT\",\n                \"location\": \"COD PROCESSING CENTRE II (ITG)\",\n                \"event_time\": \"2021-03-07 05:00\",\n                \"message\": \"SHIPMENT FURTHER CONNECTED\"\n            },\n            {\n                \"status_code\": \"RT-IT\",\n                \"location\": \"ASLALI WAREHOUSE (ASL)\",\n                \"event_time\": \"2021-03-08 00:12\",\n                \"message\": \"SHIPMENT ARRIVED AT HUB\"\n            },\n            {\n                \"status_code\": \"RT-IT\",\n                \"location\": \"ASLALI WAREHOUSE (ASL)\",\n                \"event_time\": \"2021-03-08 04:46\",\n                \"message\": \"SHIPMENT FURTHER CONNECTED\"\n            },\n            {\n                \"status_code\": \"RT-IT\",\n                \"location\": \"AHMEDABAD (PMX)\",\n                \"event_time\": \"2021-03-08 06:24\",\n                \"message\": \"SHIPMENT ARRIVED\"\n            },\n            {\n                \"status_code\": \"RT-IT\",\n                \"location\": \"AHMEDABAD (PMX)\",\n                \"event_time\": \"2021-03-08 07:21\",\n                \"message\": \"SHIPMENT OUT FOR DELIVERY\"\n            },\n            {\n                \"status_code\": \"RT-DL\",\n                \"location\": \"AHMEDABAD (PMX)\",\n                \"event_time\": \"2021-03-08 11:24\",\n                \"message\": \"SHIPMENT DELIVERED\"\n            }\n        ]\n    }\n}"
+						}
+					]
+				},
+				{
+					"name": "Bulk Shipment Tracking",
+					"event": [
+						{
+							"listen": "prerequest",
+							"script": {
+								"exec": [
+									""
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": {
+								"token": ""
+							}
+						},
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"awb\": [\n        \"41529196242631\",\n        \"896239973521\"\n    ]\n}"
+						},
+						"url": "{{BASE_URL}}{{API_SHIPMENT_CLASS}}/track/bulk",
+						"description": "Use this API endpoint to track upto 100 AWBs in one API call."
+					},
+					"response": [
+						{
+							"name": "success",
+							"originalRequest": {
+								"method": "POST",
+								"header": [],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"awb\": [\n        \"4152919624263\",\n        \"89623997352\"\n    ]\n}"
+								},
+								"url": "{{BASE_URL}}{{API_SHIPMENT_CLASS}}/track/bulk"
+							},
+							"status": "OK",
+							"code": 200,
+							"_postman_previewlanguage": "json",
+							"header": [
+								{
+									"key": "Date",
+									"value": "Thu, 25 Aug 2022 07:52:29 GMT"
+								},
+								{
+									"key": "Content-Type",
+									"value": "application/json"
+								},
+								{
+									"key": "Content-Length",
+									"value": "712"
+								},
+								{
+									"key": "Connection",
+									"value": "keep-alive"
+								},
+								{
+									"key": "x-amzn-RequestId",
+									"value": "5a4c8475-2f84-42f4-8cc2-db259f0197e0"
+								},
+								{
+									"key": "x-amz-apigw-id",
+									"value": "XaOJgGTqhcwFRrA="
+								},
+								{
+									"key": "X-Amzn-Trace-Id",
+									"value": "Root=1-63072a3c-5edbb37c053e0a98600b88fb"
+								}
+							],
+							"cookie": [],
+							"body": "{\n    \"status\": true,\n    \"data\": [\n        {\n            \"id\": \"123\",\n            \"order_id\": \"456\",\n            \"order_number\": \"#001\",\n            \"created\": \"2022-08-25\",\n            \"awb_number\": \"4152919624263\",\n            \"rto_awb\": \"\",\n            \"courier_id\": \"1\",\n            \"warehouse_id\": \"113\",\n            \"rto_warehouse_id\": \"113\",\n            \"status\": \"pending pickup\",\n            \"rto_status\": \"\",\n            \"shipment_info\": \"MUM/KCK\",\n            \"history\": [\n                {\n                    \"status_code\": \"PP\",\n                    \"location\": \"Gurgaon_Behrampur_C (Haryana)\",\n                    \"event_time\": \"2022-08-25 12:01\",\n                    \"message\": \"Manifest uploaded\"\n                }\n            ]\n        },\n        {\n            \"id\": \"13011034\",\n            \"order_id\": \"22894468\",\n            \"order_number\": \"170-Copy-Copy\",\n            \"created\": \"2022-08-25\",\n            \"awb_number\": \"89623997352\",\n            \"rto_awb\": \"\",\n            \"courier_id\": \"5\",\n            \"warehouse_id\": \"96372\",\n            \"rto_warehouse_id\": \"96372\",\n            \"status\": \"pending pickup\",\n            \"rto_status\": \"\",\n            \"shipment_info\": \"GGN / DLE\",\n            \"history\": []\n        }\n    ]\n}"
+						}
+					]
+				},
+				{
+					"name": "Manifest",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": {
+								"token": "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzUxMiJ9.eyJpYXQiOjE2MTE3NDY4OTMsImp0aSI6IldySll2bDlEc0ZsRGVya2EraW9EeUVFNXhTM3dNZXZrY2UxdHdtdFoxVFk9IiwibmJmIjoxNjExNzQ2ODkzLCJleHAiOjE2MTE3NTc2OTMsImRhdGEiOnsidXNlcl9pZCI6IjU3NCIsInBhcmVudF9pZCI6IjAifX0.6_Q_j8kpnnw82c_B5ldc03mKQEL57kTnx19Am0fVS_hbGHppK_ldtI4RA6RzNyRgVErz-LUjak2Pj1WJMOW7wg"
+							}
+						},
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"awbs\": [\n        \"4152911775885\",\n        \"NMBC0001789312\"\n    ]\n}"
+						},
+						"url": "{{BASE_URL}}{{API_SHIPMENT_CLASS}}/manifest"
+					},
+					"response": [
+						{
+							"name": "Failed",
+							"originalRequest": {
+								"method": "POST",
+								"header": [
+									{
+										"key": "Content-Type",
+										"value": "application/json",
+										"type": "text"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"awbs\": [\n        \"4152911775845\"\n    ]\n}"
+								},
+								"url": "{{BASE_URL}}{{API_SHIPMENT_CLASS}}/manifest"
+							},
+							"status": "Not Found",
+							"code": 404,
+							"_postman_previewlanguage": "json",
+							"header": [
+								{
+									"key": "Date",
+									"value": "Wed, 27 Jan 2021 11:40:59 GMT"
+								},
+								{
+									"key": "Server",
+									"value": "Apache/2.4.46 (Ubuntu)"
+								},
+								{
+									"key": "Expires",
+									"value": "Thu, 19 Nov 1981 08:52:00 GMT"
+								},
+								{
+									"key": "Cache-Control",
+									"value": "no-store, no-cache, must-revalidate"
+								},
+								{
+									"key": "Pragma",
+									"value": "no-cache"
+								},
+								{
+									"key": "Content-Length",
+									"value": "45"
+								},
+								{
+									"key": "Keep-Alive",
+									"value": "timeout=5, max=100"
+								},
+								{
+									"key": "Connection",
+									"value": "Keep-Alive"
+								},
+								{
+									"key": "Content-Type",
+									"value": "application/json; charset=utf-8"
+								}
+							],
+							"cookie": [],
+							"body": "{\n    \"status\": false,\n    \"message\": \"No records found\"\n}"
+						},
+						{
+							"name": "Success",
+							"originalRequest": {
+								"method": "POST",
+								"header": [
+									{
+										"key": "Content-Type",
+										"value": "application/json",
+										"type": "text"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"awbs\": [\n        \"4152911775885\",\n        \"NMBC0001789312\"\n    ]\n}"
+								},
+								"url": "{{BASE_URL}}{{API_SHIPMENT_CLASS}}/manifest"
+							},
+							"status": "OK",
+							"code": 200,
+							"_postman_previewlanguage": "json",
+							"header": [
+								{
+									"key": "Date",
+									"value": "Wed, 27 Jan 2021 11:38:20 GMT"
+								},
+								{
+									"key": "Server",
+									"value": "Apache/2.4.46 (Ubuntu)"
+								},
+								{
+									"key": "Expires",
+									"value": "Thu, 19 Nov 1981 08:52:00 GMT"
+								},
+								{
+									"key": "Cache-Control",
+									"value": "no-store, no-cache, must-revalidate"
+								},
+								{
+									"key": "Pragma",
+									"value": "no-cache"
+								},
+								{
+									"key": "Set-Cookie",
+									"value": "ci_session=3sna930jmiv93sld87v6v27iv13sjel2; expires=Wed, 27-Jan-2021 13:38:20 GMT; Max-Age=7200; path=/; HttpOnly"
+								},
+								{
+									"key": "Content-Length",
+									"value": "98"
+								},
+								{
+									"key": "Keep-Alive",
+									"value": "timeout=5, max=100"
+								},
+								{
+									"key": "Connection",
+									"value": "Keep-Alive"
+								},
+								{
+									"key": "Content-Type",
+									"value": "application/json; charset=utf-8"
+								}
+							],
+							"cookie": [],
+							"body": "{\n    \"status\": true,\n    \"data\": \"https://nimubs-assets.s3.amazonaws.com/manifest/202101271708221-91.pdf\"\n}"
+						}
+					]
+				},
+				{
+					"name": "Cancel Shipment",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": {
+								"token": "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzUxMiJ9.eyJpYXQiOjE2MTE4MjYwOTIsImp0aSI6IlpibG1RV0Vic1RjYlwvTjM2YTVpMEFDdFJtblJwUVJzclM1VjZHRU5TSjFJPSIsIm5iZiI6MTYxMTgyNjA5MiwiZXhwIjoxNjExODM2ODkyLCJkYXRhIjp7InVzZXJfaWQiOiI1NzQiLCJwYXJlbnRfaWQiOiIwIn19.s15W-i6wxF2SRHajr4yKyssfsfo3a0xCqJY9AweunO0JnupeMF4bEuWi-75thnyUXhdNwJobZAsFrAdvfOjf2A"
+							}
+						},
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"awb\" : \"59632218892\"\n}"
+						},
+						"url": "{{BASE_URL}}{{API_SHIPMENT_CLASS}}/cancel"
+					},
+					"response": [
+						{
+							"name": "Failed",
+							"originalRequest": {
+								"method": "POST",
+								"header": [
+									{
+										"key": "Content-Type",
+										"value": "application/json",
+										"type": "text"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"awb\" : \"59632220664\"\n}"
+								},
+								"url": "{{BASE_URL}}{{API_SHIPMENT_CLASS}}/cancel"
+							},
+							"status": "Not Found",
+							"code": 404,
+							"_postman_previewlanguage": "json",
+							"header": [
+								{
+									"key": "Date",
+									"value": "Thu, 28 Jan 2021 09:29:18 GMT"
+								},
+								{
+									"key": "Server",
+									"value": "Apache/2.4.46 (Ubuntu)"
+								},
+								{
+									"key": "Expires",
+									"value": "Thu, 19 Nov 1981 08:52:00 GMT"
+								},
+								{
+									"key": "Cache-Control",
+									"value": "no-store, no-cache, must-revalidate"
+								},
+								{
+									"key": "Pragma",
+									"value": "no-cache"
+								},
+								{
+									"key": "Content-Length",
+									"value": "45"
+								},
+								{
+									"key": "Keep-Alive",
+									"value": "timeout=5, max=100"
+								},
+								{
+									"key": "Connection",
+									"value": "Keep-Alive"
+								},
+								{
+									"key": "Content-Type",
+									"value": "application/json; charset=utf-8"
+								}
+							],
+							"cookie": [],
+							"body": "{\n    \"status\": false,\n    \"message\": \"Unable to cancel\"\n}"
+						},
+						{
+							"name": "Success",
+							"originalRequest": {
+								"method": "POST",
+								"header": [
+									{
+										"key": "Content-Type",
+										"value": "application/json",
+										"type": "text"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"awb\" : \"59632218892\"\n}"
+								},
+								"url": "{{BASE_URL}}{{API_SHIPMENT_CLASS}}/cancel"
+							},
+							"status": "OK",
+							"code": 200,
+							"_postman_previewlanguage": "json",
+							"header": [
+								{
+									"key": "Date",
+									"value": "Thu, 28 Jan 2021 09:30:08 GMT"
+								},
+								{
+									"key": "Server",
+									"value": "Apache/2.4.46 (Ubuntu)"
+								},
+								{
+									"key": "Expires",
+									"value": "Thu, 19 Nov 1981 08:52:00 GMT"
+								},
+								{
+									"key": "Cache-Control",
+									"value": "no-store, no-cache, must-revalidate"
+								},
+								{
+									"key": "Pragma",
+									"value": "no-cache"
+								},
+								{
+									"key": "Content-Length",
+									"value": "46"
+								},
+								{
+									"key": "Keep-Alive",
+									"value": "timeout=5, max=100"
+								},
+								{
+									"key": "Connection",
+									"value": "Keep-Alive"
+								},
+								{
+									"key": "Content-Type",
+									"value": "application/json; charset=utf-8"
+								}
+							],
+							"cookie": [],
+							"body": "{\n    \"status\": true,\n    \"message\": \"Shipment Cancelled\"\n}"
+						}
+					]
+				},
+				{
+					"name": "Create Hyperlocal Shipment",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": {
+								"token": "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzUxMiJ9.eyJpYXQiOjE2NjQzNjA0MTMsImp0aSI6Ik5GTWY5UVNUT1RNUDJzQkhGek1FYVVcLzRIUWNXd0pkMERySkdkajFwcjE0PSIsIm5iZiI6MTY2NDM2MDQxMywiZXhwIjoxNjY0MzcxMjEzLCJkYXRhIjp7InVzZXJfaWQiOiIxIiwicGFyZW50X2lkIjoiMCJ9fQ.K986GLMBGxsItsKxxSTv1VAng7gZNUlzVT1J1hrjMQRYuqH258exnJkcNxDdnPRuQmxiY-y1HomZE6g9SG5TcA"
+							}
+						},
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"order_number\": \"#001\",\n    \"shipping_charges\": 40,\n    \"discount\": 100,\n    \"cod_charges\": 30,\n    \"payment_type\": \"prepaid\",\n    \"order_amount\": 1000,\n    \"package_weight\": 300,\n    \"package_length\": 10,\n    \"package_breadth\": 10,\n    \"package_height\": 10,\n    \"request_auto_pickup\" : \"yes\",\n    \"consignee\": {\n        \"name\": \"Customer Name\",\n        \"address\": \"190, ABC Road\",\n        \"address_2\": \"Near Bus Stand\",\n        \"city\": \"Mumbai\",\n        \"state\": \"Maharastra\",\n        \"pincode\": \"400001\",\n        \"phone\": \"9999999999\",\n        \"latitude\": \"28.48131\",\n        \"longitude\": \"77.09312\"\n    },\n    \"pickup\": {\n        \"warehouse_name\": \"warehouse 1\",\n        \"name\" : \"Vikalp Sharma\",\n        \"address\": \"140, MG Road\",\n        \"address_2\": \"Near metro station\",\n        \"city\": \"Gurgaon\",\n        \"state\": \"Haryana\",\n        \"pincode\": \"122001\",\n        \"phone\": \"9999999999\",\n        \"latitude\": \"28.48131\",\n        \"longitude\": \"77.09312\"\n    },\n    \"order_items\": [\n        {\n            \"name\": \"product 1\",\n            \"qty\": \"18\",\n            \"price\": \"100\",\n            \"sku\": \"sku001\"\n        }\n    ],\n    \"courier_id\" : \"autoship\",\n    \"is_insurance\" : \"0\",\n    \"tags\" : \"tag1, tag2\"\n}"
+						},
+						"url": "{{BASE_URL}}{{API_SHIPMENT_CLASS}}/hyperlocal",
+						"description": "<p>Use this API endpoint to generate AWB/tracking number for Hyperlocal. </p>\n\n<p><b>Note: </b> Order total is not automatically calculated in API request. Be sure to input the correct calculated order_amount. </p>\n\n<h4 id=\"parameters\">Parameters:</h4>\n<div class=\"click-to-expand-wrapper is-table-wrapper\">\n<table>\n<thead>\n<tr>\n<th><strong>Params</strong></th>\n<th><strong>Required</strong></th>\n<th><strong>Description</strong></th>\n<th><strong>Example</strong></th>\n</tr>\n</thead>\n<tbody>\n<tr>\n<td><code>order_number</code></td>\n<td>Yes</td>\n<td><em>string -  max length: 20</em></td>\n<td>1234</td>\n</tr>\n  <tr>\n<td><code>payment_type</code></td>\n<td>Yes</td>\n<td><em>Valid Values - cod, prepaid</em></td>\n<td>cod</td>\n</tr>\n  <tr>\n<td><code>package_weight</code></td>\n<td>No</td>\n<td><em>Weight in grams</em></td>\n<td>400</td>\n</tr>\n  <tr>\n<td><code>package_length</code></td>\n<td>No</td>\n<td><em>Package length in cm.</em></td>\n<td>12</td>\n</tr>\n  <tr>\n<td><code>package_breadth</code></td>\n<td>No</td>\n<td><em>Package breadth in cm.</em></td>\n<td>12</td>\n</tr>\n  <tr>\n<td><code>package_height</code></td>\n<td>No</td>\n<td><em>Package height in cm.</em></td>\n<td>12</td>\n</tr>\n<tr>\n<td><code>request_auto_pickup</code></td>\n<td>No</td>\n<td><em>Use Yes to send auto pickup request to courier.</em></td>\n<td>Yes</td>\n</tr>\n  <tr>\n<td><code>shipping_charges</code></td>\n<td>No</td>\n<td><em>Shipping chages applied.</em></td>\n<td>40</td>\n</tr>\n  <tr>\n<td><code>cod_charges</code></td>\n<td>No</td>\n<td><em>COD chages applied.</em></td>\n<td>40</td>\n</tr>\n  <tr>\n<td><code>discount</code></td>\n<td>No</td>\n<td><em>Discount applied.</em></td>\n<td>40</td>\n</tr>\n  <tr>\n<td><code>order_amount</code></td>\n<td>Yes</td>\n<td><em>Total Order Amont.</em></td>\n<td>999</td>\n</tr>\n  <tr>\n<td><code>consignee[name]</code></td>\n<td>Yes</td>\n<td><em>String - max length: 200</em></td>\n<td>Amit Kumar</td>\n</tr>\n  <tr>\n<td><code>consignee[company_name]</code></td>\n<td>No</td>\n<td><em>String - max length: 200</em></td>\n<td>ABC Company</td>\n</tr>\n  <tr>\n<td><code>consignee[address]</code></td>\n<td>Yes</td>\n<td><em>String - max length: 200</em></td>\n<td>140, ABC Road</td>\n</tr>\n  <tr>\n<td><code>consignee[address_2]</code></td>\n<td>No</td>\n<td><em>String - max length: 200</em></td>\n<td>Near Metro Station</td>\n</tr>\n  <tr>\n<td><code>consignee[city]</code></td>\n<td>Yes</td>\n<td><em>String - max length: 40</em></td>\n<td>Gurgaon</td>\n</tr>\n  <tr>\n<td><code>consignee[state]</code></td>\n<td>Yes</td>\n<td><em>String - max length: 40</em></td>\n<td>Haryana</td>\n</tr>\n  <tr>\n<td><code>consignee[pincode]</code></td>\n<td>Yes</td>\n<td><em>6 digit numeric</em></td>\n<td>122002</td>\n</tr>\n  <tr>\n<td><code>consignee[phone]</code></td>\n<td>Yes</td>\n<td><em>10 digit numeric</em></td>\n<td>9999999999</td>\n</tr>\n\n  <tr>\n<td><code>consignee[latitude]</code></td>\n<td>Yes</td>\n<td><em>Delivery location latitude</em></td>\n<td>28.48131</td>\n</tr>\n\n  <tr>\n<td><code>consignee[longitude]</code></td>\n<td>Yes</td>\n<td><em>Delivery location Longitude</em></td>\n<td>28.48131</td>\n</tr>\n  \n  \n  \n  <tr>\n<td><code>pickup[warehouse_name]</code></td>\n<td>Yes</td>\n<td><em>String - max length: 20</em></td>\n<td>Warehouse 1</td>\n</tr>\n  <tr>\n<td><code>pickup[name]</code></td>\n<td>Yes</td>\n<td><em>String - max length: 200</em></td>\n<td>Amit Kumar</td>\n</tr>\n  <tr>\n<td><code>pickup[address]</code></td>\n<td>Yes</td>\n<td><em>String - max length: 200</em></td>\n<td>140, ABC Road</td>\n</tr>\n  <tr>\n<td><code>pickup[address_2]</code></td>\n<td>No</td>\n<td><em>String - max length: 200</em></td>\n<td>Near Metro Station</td>\n</tr>\n  <tr>\n<td><code>pickup[city]</code></td>\n<td>Yes</td>\n<td><em>String - max length: 40</em></td>\n<td>Gurgaon</td>\n</tr>\n  <tr>\n<td><code>pickup[state]</code></td>\n<td>Yes</td>\n<td><em>String - max length: 40</em></td>\n<td>Haryana</td>\n</tr>\n  <tr>\n<td><code>pickup[pincode]</code></td>\n<td>Yes</td>\n<td><em>6 digit numeric</em></td>\n<td>122002</td>\n</tr>\n  <tr>\n<td><code>pickup[phone]</code></td>\n<td>Yes</td>\n<td><em>10 digit numeric</em></td>\n<td>9999999999</td>\n</tr>\n  <tr>\n<td><code>pickup[gst_umber]</code></td>\n<td>No</td>\n<td><em>15 digit alpha numeric</em></td>\n<td>18AABCU9603R1ZM</td>\n</tr>\n\n  <tr>\n<td><code>pickup[latitude]</code></td>\n<td>Yes</td>\n<td><em>Pickup location latitude</em></td>\n<td>28.48131</td>\n</tr>\n\n  <tr>\n<td><code>pickup[longitude]</code></td>\n<td>Yes</td>\n<td><em>Pickup location Longitude</em></td>\n<td>28.48131</td>\n</tr>\n\n  \n\n<tr>\n<td><code>courier_id</code></td>\n<td>No</td>\n<td><em>numeric courier id / \"autoship\"</em></td>\n<td>5</td>\n</tr>\n<tr>\n<td><code>is_insurance</code></td>\n<td>0</td>\n<td><em>numeric 0 or 1</em></td>\n<td>1</td>\n</tr>\n\n<tr>\n<td><code>tags</code></td>\n<td>No</td>\n<td><em>comma separated values. max length: 200</em></td>\n<td>tag1, tag2</td>\n</tr>\n  \n \n</tbody>\n</table>\n</div>"
+					},
+					"response": [
+						{
+							"name": "Successful",
+							"originalRequest": {
+								"method": "POST",
+								"header": [
+									{
+										"key": "Content-Type",
+										"value": "application/json",
+										"type": "text"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"order_number\": \"#001\",\n    \"shipping_charges\": 40,\n    \"discount\": 100,\n    \"cod_charges\": 30,\n    \"payment_type\": \"prepaid\",\n    \"order_amount\": 1000,\n    \"package_weight\": 300,\n    \"package_length\": 10,\n    \"package_breadth\": 10,\n    \"package_height\": 10,\n    \"request_auto_pickup\" : \"yes\",\n    \"consignee\": {\n        \"name\": \"Customer Name\",\n        \"address\": \"190, ABC Road\",\n        \"address_2\": \"Near Bus Stand\",\n        \"city\": \"Mumbai\",\n        \"state\": \"Maharastra\",\n        \"pincode\": \"400001\",\n        \"phone\": \"9999999999\",\n        \"latitude\": \"28.48131\",\n        \"longitude\": \"77.09312\"\n    },\n    \"pickup\": {\n        \"warehouse_name\": \"warehouse 1\",\n        \"name\" : \"Vikalp Sharma\",\n        \"address\": \"140, MG Road\",\n        \"address_2\": \"Near metro station\",\n        \"city\": \"Gurgaon\",\n        \"state\": \"Haryana\",\n        \"pincode\": \"122001\",\n        \"phone\": \"9999999999\",\n        \"latitude\": \"28.48131\",\n        \"longitude\": \"77.09312\"\n    },\n    \"order_items\": [\n        {\n            \"name\": \"product 1\",\n            \"qty\": \"18\",\n            \"price\": \"100\",\n            \"sku\": \"sku001\"\n        }\n    ],\n    \"courier_id\" : \"1\",\n    \"is_insurance\" : \"0\",\n    \"tags\" : \"tag1, tag2\"\n}"
+								},
+								"url": "{{BASE_URL}}{{API_SHIPMENT_CLASS}}/hyperlocal"
+							},
+							"status": "OK",
+							"code": 200,
+							"_postman_previewlanguage": "json",
+							"header": [
+								{
+									"key": "Date",
+									"value": "Wed, 28 Sep 2022 10:21:11 GMT"
+								},
+								{
+									"key": "Content-Type",
+									"value": "application/json; charset=utf-8"
+								},
+								{
+									"key": "Transfer-Encoding",
+									"value": "chunked"
+								},
+								{
+									"key": "Connection",
+									"value": "keep-alive"
+								},
+								{
+									"key": "Expires",
+									"value": "Thu, 19 Nov 1981 08:52:00 GMT"
+								},
+								{
+									"key": "Cache-Control",
+									"value": "no-store, no-cache, must-revalidate"
+								},
+								{
+									"key": "Pragma",
+									"value": "no-cache"
+								},
+								{
+									"key": "Access-Control-Allow-Origin",
+									"value": "*"
+								},
+								{
+									"key": "Access-Control-Allow-Headers",
+									"value": "Origin, X-Requested-With, Content-Type, Accept, Access-Control-Request-Method, Authorization"
+								},
+								{
+									"key": "Access-Control-Allow-Methods",
+									"value": "GET, POST, OPTIONS, PUT, PATCH, DELETE"
+								},
+								{
+									"key": "CF-Cache-Status",
+									"value": "DYNAMIC"
+								},
+								{
+									"key": "Report-To",
+									"value": "{\"endpoints\":[{\"url\":\"https:\\/\\/a.nel.cloudflare.com\\/report\\/v3?s=VNmekzLX7t%2BZb2eVbSGOEwB0zM2P7KIkRt%2BeNaZ7Kn5M3OoUa3BiNhMET%2B6O%2BEfd3tcAgbYZ97v11VZBm1%2F%2Fvk51KHzCIiRcz8%2BPD%2FTzEeNj%2BjYfBovUdXMCTVEK8sK%2Fwtq5xIHE\"}],\"group\":\"cf-nel\",\"max_age\":604800}"
+								},
+								{
+									"key": "NEL",
+									"value": "{\"success_fraction\":0,\"report_to\":\"cf-nel\",\"max_age\":604800}"
+								},
+								{
+									"key": "Server",
+									"value": "cloudflare"
+								},
+								{
+									"key": "CF-RAY",
+									"value": "751bbf528aaa92a7-FRA"
+								},
+								{
+									"key": "Content-Encoding",
+									"value": "br"
+								},
+								{
+									"key": "alt-svc",
+									"value": "h3=\":443\"; ma=86400, h3-29=\":443\"; ma=86400"
+								}
+							],
+							"cookie": [],
+							"body": "{\n    \"status\": true,\n    \"data\": {\n        \"order_id\": 24648143,\n        \"shipment_id\": 13915745,\n        \"awb_number\": \"180052342\",\n        \"courier_id\": \"48\",\n        \"courier_name\": \"Shadowfax\",\n        \"status\": \"booked\",\n        \"additional_info\": \"\",\n        \"payment_type\": \"prepaid\",\n        \"label\": \"https://nimubs-assets.s3.amazonaws.com/labels/20220928155110-16960.pdf\",\n        \"manifest\": \"\"\n    }\n}"
+						},
+						{
+							"name": "Failed",
+							"originalRequest": {
+								"method": "POST",
+								"header": [
+									{
+										"key": "Content-Type",
+										"value": "application/json",
+										"type": "text"
+									},
+									{
+										"key": "NP-API-KEY",
+										"value": "",
+										"type": "text",
+										"disabled": true
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"order_number\": \"#001\",\n    \"shipping_charges\": 40,\n    \"discount\": 100,\n    \"cod_charges\": 30,\n    \"payment_type\": \"prepaid\",\n    \"order_amount\": 1000,\n    \"package_weight\": 300,\n    \"package_length\": 10,\n    \"package_breadth\": 10,\n    \"package_height\": 10,\n    \"request_auto_pickup\" : \"yes\",\n    \"consignee\": {\n        \"name\": \"\",\n        \"address\": \"190, ABC Road\",\n        \"address_2\": \"Near Bus Stand\",\n        \"city\": \"Mumbai\",\n        \"state\": \"Maharastra\",\n        \"pincode\": \"400001\",\n        \"phone\": \"9999999999\",\n        \"latitude\": \"28.48131\",\n        \"longitude\": \"77.09312\"\n    },\n    \"pickup\": {\n        \"warehouse_name\": \"warehouse 1\",\n        \"name\" : \"Vikalp Sharma\",\n        \"address\": \"140, MG Road\",\n        \"address_2\": \"Near metro station\",\n        \"city\": \"Gurgaon\",\n        \"state\": \"Haryana\",\n        \"pincode\": \"122001\",\n        \"phone\": \"9999999999\",\n        \"latitude\": \"28.48131\",\n        \"longitude\": \"77.09312\"\n    },\n    \"order_items\": [\n        {\n            \"name\": \"product 1\",\n            \"qty\": \"18\",\n            \"price\": \"100\",\n            \"sku\": \"sku001\"\n        }\n    ],\n    \"courier_id\" : \"1\",\n    \"is_insurance\" : \"0\",\n    \"tags\" : \"tag1, tag2\"\n}"
+								},
+								"url": "{{BASE_URL}}{{API_SHIPMENT_CLASS}}/hyperlocal"
+							},
+							"status": "Not Found",
+							"code": 404,
+							"_postman_previewlanguage": "json",
+							"header": [
+								{
+									"key": "Date",
+									"value": "Wed, 27 Jan 2021 08:33:30 GMT"
+								},
+								{
+									"key": "Server",
+									"value": "Apache/2.4.46 (Ubuntu)"
+								},
+								{
+									"key": "Expires",
+									"value": "Thu, 19 Nov 1981 08:52:00 GMT"
+								},
+								{
+									"key": "Cache-Control",
+									"value": "no-store, no-cache, must-revalidate"
+								},
+								{
+									"key": "Pragma",
+									"value": "no-cache"
+								},
+								{
+									"key": "Content-Length",
+									"value": "57"
+								},
+								{
+									"key": "Keep-Alive",
+									"value": "timeout=5, max=100"
+								},
+								{
+									"key": "Connection",
+									"value": "Keep-Alive"
+								},
+								{
+									"key": "Content-Type",
+									"value": "application/json; charset=utf-8"
+								}
+							],
+							"cookie": [],
+							"body": "{\n    \"status\": false,\n    \"message\": \"Consignee name is required\\n\"\n}"
+						}
+					]
+				}
+			]
+		},
+		{
+			"name": "Couriers",
+			"item": [
+				{
+					"name": "Courier List",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": {
+								"token": "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzUxMiJ9.eyJpYXQiOjE2MTc5NjU3MjgsImp0aSI6IkRnNkhHVEFXTmRFM0lYMWxnN1JRNWloQkZhdHVjbUhhOUlvRExmS2FVTkk9IiwibmJmIjoxNjE3OTY1NzI4LCJleHAiOjE2MTc5NzY1MjgsImRhdGEiOnsidXNlcl9pZCI6IjU3NCIsInBhcmVudF9pZCI6IjAifX0.Z4mFO18iN3hRaYoRIXORTLmDiUV_sMkVqYBLqt2aXbU_AVc-QEjagRe4E-4zxkpReGhgAvY8sIjeqgQiIK3LVA"
+							}
+						},
+						"method": "GET",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json",
+								"type": "text"
+							}
+						],
+						"url": "{{BASE_URL}}courier",
+						"description": "<p>Use this API endpoint to Get the list of available couriers for your account. </p>\n\n<p>No parameters are required.</p>"
+					},
+					"response": [
+						{
+							"name": "Success",
+							"originalRequest": {
+								"method": "GET",
+								"header": [
+									{
+										"key": "Content-Type",
+										"value": "application/json",
+										"type": "text"
+									}
+								],
+								"url": "{{BASE_URL}}courier"
+							},
+							"status": "OK",
+							"code": 200,
+							"_postman_previewlanguage": "json",
+							"header": [
+								{
+									"key": "Date",
+									"value": "Fri, 09 Apr 2021 11:01:39 GMT"
+								},
+								{
+									"key": "Server",
+									"value": "Apache/2.4.46 (Ubuntu)"
+								},
+								{
+									"key": "Expires",
+									"value": "Thu, 19 Nov 1981 08:52:00 GMT"
+								},
+								{
+									"key": "Cache-Control",
+									"value": "no-store, no-cache, must-revalidate"
+								},
+								{
+									"key": "Pragma",
+									"value": "no-cache"
+								},
+								{
+									"key": "Content-Length",
+									"value": "909"
+								},
+								{
+									"key": "Keep-Alive",
+									"value": "timeout=5, max=99"
+								},
+								{
+									"key": "Connection",
+									"value": "Keep-Alive"
+								},
+								{
+									"key": "Content-Type",
+									"value": "application/json; charset=utf-8"
+								}
+							],
+							"cookie": [],
+							"body": "{\n    \"status\": true,\n    \"data\": [\n        {\n            \"id\": \"5\",\n            \"name\": \"Bluedart Express\"\n        },\n        {\n            \"id\": \"24\",\n            \"name\": \"Bluedart IND\"\n        },\n        {\n            \"id\": \"1\",\n            \"name\": \"Delhivery Air\"\n        },\n        {\n            \"id\": \"6\",\n            \"name\": \"Delhivery Surface\"\n        },\n        {\n            \"id\": \"13\",\n            \"name\": \"Delhivery Surface 10 K.G\"\n        },\n        {\n            \"id\": \"7\",\n            \"name\": \"Delhivery Surface 2 K.G\"\n        },\n        {\n            \"id\": \"35\",\n            \"name\": \"Delhivery Surface 20 K.G\"\n        },\n        {\n            \"id\": \"11\",\n            \"name\": \"Delhivery Surface 5 K.G\"\n        },\n        {\n            \"id\": \"8\",\n            \"name\": \"DTDC Air\"\n        },\n        {\n            \"id\": \"9\",\n            \"name\": \"DTDC Surface\"\n        },\n        {\n            \"id\": \"30\",\n            \"name\": \"DTDC Surface 1 K.G\"\n        },\n        {\n            \"id\": \"31\",\n            \"name\": \"DTDC Surface 10 K.G\"\n        },\n        {\n            \"id\": \"29\",\n            \"name\": \"DTDC Surface 5 K.G\"\n        },\n        {\n            \"id\": \"15\",\n            \"name\": \"Ekart\"\n        },\n        {\n            \"id\": \"25\",\n            \"name\": \"Ekart 1 K.G\"\n        },\n        {\n            \"id\": \"27\",\n            \"name\": \"Ekart 2 K.G\"\n        },\n        {\n            \"id\": \"28\",\n            \"name\": \"Ekart 5 K.G\"\n        },\n        {\n            \"id\": \"4\",\n            \"name\": \"Shadowfax\"\n        },\n        {\n            \"id\": \"21\",\n            \"name\": \"Shadowfax - VH\"\n        },\n        {\n            \"id\": \"32\",\n            \"name\": \"Shadowfax 1 K.G\"\n        },\n        {\n            \"id\": \"33\",\n            \"name\": \"Shadowfax 2 K.G\"\n        },\n        {\n            \"id\": \"34\",\n            \"name\": \"Shadowfax 5 K.G\"\n        },\n        {\n            \"id\": \"3\",\n            \"name\": \"Xpressbees Air\"\n        },\n        {\n            \"id\": \"14\",\n            \"name\": \"Xpressbees Surface\"\n        }\n    ]\n}"
+						}
+					]
+				},
+				{
+					"name": "Servicable Pincodes",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": {
+								"token": ""
+							}
+						},
+						"method": "GET",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json",
+								"type": "text"
+							}
+						],
+						"url": "{{BASE_URL}}courier/serviceability",
+						"description": "<p>Use this API endpoint to Get the list of all available pincode with serviceability. </p>\n\n<p>No parameters are required.</p>"
+					},
+					"response": [
+						{
+							"name": "Success",
+							"originalRequest": {
+								"method": "GET",
+								"header": [
+									{
+										"key": "Content-Type",
+										"value": "application/json",
+										"type": "text"
+									}
+								],
+								"url": "{{BASE_URL}}courier/serviceability"
+							},
+							"status": "OK",
+							"code": 200,
+							"_postman_previewlanguage": "json",
+							"header": [
+								{
+									"key": "Date",
+									"value": "Fri, 19 Aug 2022 10:04:46 GMT"
+								},
+								{
+									"key": "Content-Type",
+									"value": "application/json; charset=utf-8"
+								},
+								{
+									"key": "Content-Length",
+									"value": "55267"
+								},
+								{
+									"key": "Connection",
+									"value": "keep-alive"
+								},
+								{
+									"key": "x-amzn-RequestId",
+									"value": "7adaf229-5f04-406f-9b8b-e522dca05b45"
+								},
+								{
+									"key": "CF-RAY",
+									"value": "73d2111e8c154d8e-SIN"
+								},
+								{
+									"key": "Access-Control-Allow-Origin",
+									"value": "*"
+								},
+								{
+									"key": "Expect-CT",
+									"value": "max-age=604800, report-uri=\"https://report-uri.cloudflare.com/cdn-cgi/beacon/expect-ct\""
+								},
+								{
+									"key": "Content-Encoding",
+									"value": "br"
+								},
+								{
+									"key": "CF-Cache-Status",
+									"value": "DYNAMIC"
+								},
+								{
+									"key": "Access-Control-Allow-Headers",
+									"value": "Origin, X-Requested-With, Content-Type, Accept, Access-Control-Request-Method, Authorization"
+								},
+								{
+									"key": "x-amzn-Remapped-Connection",
+									"value": "keep-alive"
+								},
+								{
+									"key": "x-amz-apigw-id",
+									"value": "XGv5jH9LhcwFQEw="
+								},
+								{
+									"key": "Cache-Control",
+									"value": "no-store, no-cache, must-revalidate"
+								},
+								{
+									"key": "x-amzn-Remapped-Server",
+									"value": "cloudflare"
+								},
+								{
+									"key": "Expires",
+									"value": "Thu, 19 Nov 1981 08:52:00 GMT"
+								},
+								{
+									"key": "Report-To",
+									"value": "{\"endpoints\":[{\"url\":\"https:\\/\\/a.nel.cloudflare.com\\/report\\/v3?s=XtxV5qbKXRZRaprhyA5%2BNNGijE3TrzKIs0oHcwezACvJa2OTBvjHVWw3i3ch4OE9hWQJKplQ41pQFeJkN0rDu%2FZdo11lavuTlRD919XwJyae07z9XVjW06XY%2FGCjmjYs94F3Je9j\"}],\"group\":\"cf-nel\",\"max_age\":604800}"
+								},
+								{
+									"key": "NEL",
+									"value": "{\"success_fraction\":0,\"report_to\":\"cf-nel\",\"max_age\":604800}"
+								},
+								{
+									"key": "Access-Control-Allow-Methods",
+									"value": "GET, POST, OPTIONS, PUT, PATCH, DELETE"
+								},
+								{
+									"key": "alt-svc",
+									"value": "h3=\":443\"; ma=86400, h3-29=\":443\"; ma=86400"
+								},
+								{
+									"key": "Pragma",
+									"value": "no-cache"
+								},
+								{
+									"key": "x-amzn-Remapped-Date",
+									"value": "Fri, 19 Aug 2022 10:04:45 GMT"
+								}
+							],
+							"cookie": [],
+							"body": "{\n    \"status\": true,\n    \"count\": 29070,\n    \"data\": [\n        {\n            \"pincode\": \"100003\",\n            \"cod\": \"Y\",\n            \"prepaid\": \"Y\"\n        },\n        {\n            \"pincode\": \"101213\",\n            \"cod\": \"Y\",\n            \"prepaid\": \"Y\"\n        },\n        {\n            \"pincode\": \"110000\",\n            \"cod\": \"Y\",\n            \"prepaid\": \"Y\"\n        },\n               {\n            \"pincode\": \"999994\",\n            \"cod\": \"N\",\n            \"prepaid\": \"N\"\n        }\n    ]\n}"
+						}
+					]
+				},
+				{
+					"name": "Rate & Serviceability",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": {
+								"token": "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzUxMiJ9.eyJpYXQiOjE2MTc4NjU1MzYsImp0aSI6Ik5CTmNBYmUyTk9zWHBlVFpaNUF1UjBZejBZV2tXQzQzUzgzVEhUc3R3aU09IiwibmJmIjoxNjE3ODY1NTM2LCJleHAiOjE2MTc4NzYzMzYsImRhdGEiOnsidXNlcl9pZCI6IjU3NCIsInBhcmVudF9pZCI6IjAifX0.qONkhPoU0ZkxkoYW64jEqRb4b-KyZzLw0TU8Rj-u5BLImfaXnhzSBj35TlDLzxON9w0mkxmDonCyhESSshhwMQ"
+							}
+						},
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"origin\" : \"122001\",\n    \"destination\" : \"122001\",\n    \"payment_type\" : \"cod\",\n    \"order_amount\" : \"999\",\n    \"weight\" : \"600\",\n    \"length\" : \"10\",\n    \"breadth\" : \"10\",\n    \"height\" : \"10\"\n}"
+						},
+						"url": "{{BASE_URL}}courier/serviceability",
+						"description": "<p>Use this API endpoint to Check serviceablity and get Freight Charges between origin and destination pincodes. </p>\n\n<h4 id=\"parameters\">Parameters:</h4>\n<div class=\"click-to-expand-wrapper is-table-wrapper\">\n<table>\n<thead>\n<tr>\n<th><strong>Params</strong></th>\n<th><strong>Required</strong></th>\n<th><strong>Description</strong></th>\n<th><strong>Example</strong></th>\n</tr>\n</thead>\n<tbody>\n<tr>\n<td><code>origin</code></td>\n<td>Yes</td>\n<td><em>Pickup pincode / integer -  length: 6</em></td>\n<td>123456</td>\n</tr>\n<tr>\n<td><code>destination</code></td>\n<td>Yes</td>\n<td><em>Destination pincode / integer -  length: 6</em></td>\n<td>123456</td>\n</tr>\n  <tr>\n<td><code>payment_type</code></td>\n<td>Yes</td>\n<td><em>Valid Values - cod, prepaid</em></td>\n<td>cod</td>\n</tr>\n<tr>\n<td><code>order_amount</code></td>\n<td>Yes for COD order</td>\n<td><em>Total Order Amont.</em></td>\n<td>999</td>\n</tr>\n  <tr>\n<td><code>weight</code></td>\n<td>No</td>\n<td><em>Weight in grams. Default: 500</em></td>\n<td>400</td>\n</tr>\n  <tr>\n<td><code>length</code></td>\n<td>No</td>\n<td><em>Package length in cm. Default: 10</em></td>\n<td>12</td>\n</tr>\n  <tr>\n<td><code>breadth</code></td>\n<td>No</td>\n<td><em>Package breadth in cm. Default: 10</em></td>\n<td>12</td>\n</tr>\n  <tr>\n<td><code>height</code></td>\n<td>No</td>\n<td><em>Package height in cm. Default: 10</em></td>\n<td>12</td>\n</tr>\n \n</tbody>\n</table>\n</div>\n"
+					},
+					"response": [
+						{
+							"name": "Success",
+							"originalRequest": {
+								"method": "POST",
+								"header": [
+									{
+										"key": "Content-Type",
+										"value": "application/json",
+										"type": "text"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"origin\" : \"122001\",\n    \"destination\" : \"122001\",\n    \"payment_type\" : \"cod\",\n    \"order_amount\" : \"999\",\n    \"weight\" : \"600\",\n    \"length\" : \"10\",\n    \"breadth\" : \"10\",\n    \"height\" : \"10\"\n}"
+								},
+								"url": "{{BASE_URL}}courier/serviceability"
+							},
+							"status": "OK",
+							"code": 200,
+							"_postman_previewlanguage": "json",
+							"header": [
+								{
+									"key": "Date",
+									"value": "Thu, 08 Apr 2021 08:10:10 GMT"
+								},
+								{
+									"key": "Server",
+									"value": "Apache/2.4.46 (Ubuntu)"
+								},
+								{
+									"key": "Expires",
+									"value": "Thu, 19 Nov 1981 08:52:00 GMT"
+								},
+								{
+									"key": "Cache-Control",
+									"value": "no-store, no-cache, must-revalidate"
+								},
+								{
+									"key": "Pragma",
+									"value": "no-cache"
+								},
+								{
+									"key": "Content-Length",
+									"value": "3219"
+								},
+								{
+									"key": "Keep-Alive",
+									"value": "timeout=5, max=100"
+								},
+								{
+									"key": "Connection",
+									"value": "Keep-Alive"
+								},
+								{
+									"key": "Content-Type",
+									"value": "application/json; charset=utf-8"
+								}
+							],
+							"cookie": [],
+							"body": "{\n    \"status\": true,\n    \"data\": [\n        {\n            \"id\": \"8\",\n            \"name\": \"DTDC Air\",\n            \"freight_charges\": 61.36,\n            \"cod_charges\": 40.12,\n            \"total_charges\": 101.48,\n            \"min_weight\": 500,\n            \"chargeable_weight\": 1000\n        },\n        {\n            \"id\": \"1\",\n            \"name\": \"Delhivery Air\",\n            \"freight_charges\": 75.52,\n            \"cod_charges\": 42.48,\n            \"total_charges\": 118,\n            \"min_weight\": 500,\n            \"chargeable_weight\": 1000\n        },\n        {\n            \"id\": \"13\",\n            \"name\": \"Delhivery Surface 10 K.G\",\n            \"freight_charges\": 194.7,\n            \"cod_charges\": 42.48,\n            \"total_charges\": 237.18,\n            \"min_weight\": 10000,\n            \"chargeable_weight\": 10000\n        },\n        {\n            \"id\": \"6\",\n            \"name\": \"Delhivery Surface\",\n            \"freight_charges\": 75.52,\n            \"cod_charges\": 42.48,\n            \"total_charges\": 118,\n            \"min_weight\": 500,\n            \"chargeable_weight\": 1000\n        },\n        {\n            \"id\": \"7\",\n            \"name\": \"Delhivery Surface 2 K.G\",\n            \"freight_charges\": 81.42,\n            \"cod_charges\": 42.48,\n            \"total_charges\": 123.9,\n            \"min_weight\": 2000,\n            \"chargeable_weight\": 2000\n        },\n        {\n            \"id\": \"11\",\n            \"name\": \"Delhivery Surface 5 K.G\",\n            \"freight_charges\": 169.92,\n            \"cod_charges\": 42.48,\n            \"total_charges\": 212.4,\n            \"min_weight\": 5000,\n            \"chargeable_weight\": 5000\n        },\n        {\n            \"id\": \"21\",\n            \"name\": \"Shadowfax - VH\",\n            \"freight_charges\": 63.72,\n            \"cod_charges\": 35.4,\n            \"total_charges\": 99.12,\n            \"min_weight\": 500,\n            \"chargeable_weight\": 1000\n        },\n        {\n            \"id\": \"14\",\n            \"name\": \"Xpressbees Surface\",\n            \"freight_charges\": 66.08,\n            \"cod_charges\": 40.12,\n            \"total_charges\": 106.2,\n            \"min_weight\": 500,\n            \"chargeable_weight\": 1000\n        },\n        {\n            \"id\": \"5\",\n            \"name\": \"Bluedart Express\",\n            \"freight_charges\": 90,\n            \"cod_charges\": 44.84,\n            \"total_charges\": 134.84,\n            \"min_weight\": 500,\n            \"chargeable_weight\": 1000\n        },\n        {\n            \"id\": \"29\",\n            \"name\": \"DTDC Surface 5 K.G\",\n            \"freight_charges\": 161.66,\n            \"cod_charges\": 40.12,\n            \"total_charges\": 201.78,\n            \"min_weight\": 5000,\n            \"chargeable_weight\": 5000\n        },\n        {\n            \"id\": \"3\",\n            \"name\": \"Xpressbees Air\",\n            \"freight_charges\": 67.4,\n            \"cod_charges\": 41.3,\n            \"total_charges\": 108.7,\n            \"min_weight\": 500,\n            \"chargeable_weight\": 1000\n        },\n        {\n            \"id\": \"25\",\n            \"name\": \"Ekart 1 K.G\",\n            \"freight_charges\": 75.52,\n            \"cod_charges\": 40.12,\n            \"total_charges\": 115.64,\n            \"min_weight\": 1000,\n            \"chargeable_weight\": 1000\n        },\n        {\n            \"id\": \"4\",\n            \"name\": \"Shadowfax\",\n            \"freight_charges\": 63.72,\n            \"cod_charges\": 35.4,\n            \"total_charges\": 99.12,\n            \"min_weight\": 500,\n            \"chargeable_weight\": 1000\n        },\n        {\n            \"id\": \"27\",\n            \"name\": \"Ekart 2 K.G\",\n            \"freight_charges\": 87.32,\n            \"cod_charges\": 40.12,\n            \"total_charges\": 127.44,\n            \"min_weight\": 2000,\n            \"chargeable_weight\": 2000\n        },\n        {\n            \"id\": \"28\",\n            \"name\": \"Ekart 5 K.G\",\n            \"freight_charges\": 165.2,\n            \"cod_charges\": 40.12,\n            \"total_charges\": 205.32,\n            \"min_weight\": 5000,\n            \"chargeable_weight\": 5000\n        },\n        {\n            \"id\": \"15\",\n            \"name\": \"Ekart\",\n            \"freight_charges\": 75.52,\n            \"cod_charges\": 42.48,\n            \"total_charges\": 118,\n            \"min_weight\": 500,\n            \"chargeable_weight\": 1000\n        },\n        {\n            \"id\": \"9\",\n            \"name\": \"DTDC Surface\",\n            \"freight_charges\": 68.44,\n            \"cod_charges\": 40.12,\n            \"total_charges\": 108.56,\n            \"min_weight\": 500,\n            \"chargeable_weight\": 1000\n        },\n        {\n            \"id\": \"30\",\n            \"name\": \"DTDC Surface 1 K.G\",\n            \"freight_charges\": 49.56,\n            \"cod_charges\": 40.12,\n            \"total_charges\": 89.68,\n            \"min_weight\": 1000,\n            \"chargeable_weight\": 1000\n        },\n        {\n            \"id\": \"32\",\n            \"name\": \"Shadowfax 1 K.G\",\n            \"freight_charges\": 50.74,\n            \"cod_charges\": 35.4,\n            \"total_charges\": 86.14,\n            \"min_weight\": 1000,\n            \"chargeable_weight\": 1000\n        },\n        {\n            \"id\": \"33\",\n            \"name\": \"Shadowfax 2 K.G\",\n            \"freight_charges\": 76.7,\n            \"cod_charges\": 35.4,\n            \"total_charges\": 112.1,\n            \"min_weight\": 2000,\n            \"chargeable_weight\": 2000\n        },\n        {\n            \"id\": \"34\",\n            \"name\": \"Shadowfax 5 K.G\",\n            \"freight_charges\": 141.6,\n            \"cod_charges\": 35.4,\n            \"total_charges\": 177,\n            \"min_weight\": 5000,\n            \"chargeable_weight\": 5000\n        },\n        {\n            \"id\": \"35\",\n            \"name\": \"Delhivery Surface 20 K.G\",\n            \"freight_charges\": 343.38,\n            \"cod_charges\": 42.48,\n            \"total_charges\": 385.86,\n            \"min_weight\": 20000,\n            \"chargeable_weight\": 20000\n        }\n    ]\n}"
+						},
+						{
+							"name": "Not Servicable",
+							"originalRequest": {
+								"method": "POST",
+								"header": [
+									{
+										"key": "Content-Type",
+										"value": "application/json",
+										"type": "text"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"origin\" : \"199001\",\n    \"destination\" : \"122001\",\n    \"payment_type\" : \"cod\",\n    \"order_amount\" : \"999\",\n    \"weight\" : \"600\",\n    \"length\" : \"10\",\n    \"breadth\" : \"10\",\n    \"height\" : \"10\"\n}"
+								},
+								"url": "{{BASE_URL}}courier/serviceability"
+							},
+							"status": "OK",
+							"code": 200,
+							"_postman_previewlanguage": "json",
+							"header": [
+								{
+									"key": "Date",
+									"value": "Thu, 08 Apr 2021 08:10:45 GMT"
+								},
+								{
+									"key": "Server",
+									"value": "Apache/2.4.46 (Ubuntu)"
+								},
+								{
+									"key": "Expires",
+									"value": "Thu, 19 Nov 1981 08:52:00 GMT"
+								},
+								{
+									"key": "Cache-Control",
+									"value": "no-store, no-cache, must-revalidate"
+								},
+								{
+									"key": "Pragma",
+									"value": "no-cache"
+								},
+								{
+									"key": "Set-Cookie",
+									"value": "ci_session=u657nahipggbck0bl5ldvfd1q1n1mjb4; expires=Thu, 08-Apr-2021 10:10:45 GMT; Max-Age=7200; path=/; HttpOnly"
+								},
+								{
+									"key": "Content-Length",
+									"value": "25"
+								},
+								{
+									"key": "Keep-Alive",
+									"value": "timeout=5, max=100"
+								},
+								{
+									"key": "Connection",
+									"value": "Keep-Alive"
+								},
+								{
+									"key": "Content-Type",
+									"value": "application/json; charset=utf-8"
+								}
+							],
+							"cookie": [],
+							"body": "{\n    \"status\": true,\n    \"data\": []\n}"
+						},
+						{
+							"name": "Failed",
+							"originalRequest": {
+								"method": "POST",
+								"header": [
+									{
+										"key": "Content-Type",
+										"value": "application/json",
+										"type": "text"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"origin\" : \"1001\",\n    \"destination\" : \"122001\",\n    \"payment_type\" : \"cod\",\n    \"order_amount\" : \"999\",\n    \"weight\" : \"600\",\n    \"length\" : \"10\",\n    \"breadth\" : \"10\",\n    \"height\" : \"10\"\n}"
+								},
+								"url": "{{BASE_URL}}courier/serviceability"
+							},
+							"status": "Not Found",
+							"code": 404,
+							"_postman_previewlanguage": "json",
+							"header": [
+								{
+									"key": "Date",
+									"value": "Thu, 08 Apr 2021 08:11:08 GMT"
+								},
+								{
+									"key": "Server",
+									"value": "Apache/2.4.46 (Ubuntu)"
+								},
+								{
+									"key": "Expires",
+									"value": "Thu, 19 Nov 1981 08:52:00 GMT"
+								},
+								{
+									"key": "Cache-Control",
+									"value": "no-store, no-cache, must-revalidate"
+								},
+								{
+									"key": "Pragma",
+									"value": "no-cache"
+								},
+								{
+									"key": "Content-Length",
+									"value": "87"
+								},
+								{
+									"key": "Keep-Alive",
+									"value": "timeout=5, max=100"
+								},
+								{
+									"key": "Connection",
+									"value": "Keep-Alive"
+								},
+								{
+									"key": "Content-Type",
+									"value": "application/json; charset=utf-8"
+								}
+							],
+							"cookie": [],
+							"body": "{\n    \"status\": false,\n    \"message\": \"The Origin field must be exactly 6 characters in length.\\n\"\n}"
+						}
+					]
+				}
+			]
+		},
+		{
+			"name": "NDR",
+			"item": [
+				{
+					"name": "NDR List",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": {
+								"token": "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzUxMiJ9.eyJpYXQiOjE2MjI2MzcxMzgsImp0aSI6IjhIeVwvWmJkSDY1XC9weW1TU0FFYUFaNjdJTHNXeGl6aklcL2Q2MTBSSUtxVTQ9IiwibmJmIjoxNjIyNjM3MTM4LCJleHAiOjE2MjI2NDc5MzgsImRhdGEiOnsidXNlcl9pZCI6MTI5MDksInBhcmVudF9pZCI6MTI5MDl9fQ.Axw2qnKPMhiX9_bqumfX-pQdcmktsUJ3epivBf4guyn8Ss5LrL5WcaYA0aBgdiBJE_r8LoSanFht-Mh94QJVdg"
+							}
+						},
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "https://api.nimbuspost.com/v1/ndr",
+							"protocol": "https",
+							"host": [
+								"api",
+								"nimbuspost",
+								"com"
+							],
+							"path": [
+								"v1",
+								"ndr"
+							],
+							"query": [
+								{
+									"key": "awb_number",
+									"value": "1122335577",
+									"description": "Comma separated AWB list to filter",
+									"disabled": true
+								},
+								{
+									"key": "per_page",
+									"value": "1",
+									"description": "page number",
+									"disabled": true
+								},
+								{
+									"key": "page_no",
+									"value": "50",
+									"description": "maximum 250 records",
+									"disabled": true
+								}
+							]
+						}
+					},
+					"response": [
+						{
+							"name": "Success",
+							"originalRequest": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "https://api.nimbuspost.com/v1/ndr",
+									"protocol": "https",
+									"host": [
+										"api",
+										"nimbuspost",
+										"com"
+									],
+									"path": [
+										"v1",
+										"ndr"
+									],
+									"query": [
+										{
+											"key": "",
+											"value": null,
+											"disabled": true
+										}
+									]
+								}
+							},
+							"status": "OK",
+							"code": 200,
+							"_postman_previewlanguage": "json",
+							"header": [
+								{
+									"key": "Date",
+									"value": "Wed, 02 Jun 2021 12:40:02 GMT"
+								},
+								{
+									"key": "Server",
+									"value": "Apache/2.4.46 (Ubuntu)"
+								},
+								{
+									"key": "Expires",
+									"value": "Thu, 19 Nov 1981 08:52:00 GMT"
+								},
+								{
+									"key": "Cache-Control",
+									"value": "no-store, no-cache, must-revalidate"
+								},
+								{
+									"key": "Pragma",
+									"value": "no-cache"
+								},
+								{
+									"key": "Set-Cookie",
+									"value": "ci_session=749dq3urjms524kc7cgmo488k9onccvp; expires=Wed, 02-Jun-2021 14:40:02 GMT; Max-Age=7200; path=/; HttpOnly"
+								},
+								{
+									"key": "Access-Control-Allow-Origin",
+									"value": "*"
+								},
+								{
+									"key": "Access-Control-Allow-Headers",
+									"value": "Origin, X-Requested-With, Content-Type, Accept, Access-Control-Request-Method, Authorization"
+								},
+								{
+									"key": "Access-Control-Allow-Methods",
+									"value": "GET, POST, OPTIONS, PUT, PATCH, DELETE"
+								},
+								{
+									"key": "Content-Length",
+									"value": "2277"
+								},
+								{
+									"key": "Keep-Alive",
+									"value": "timeout=5, max=100"
+								},
+								{
+									"key": "Connection",
+									"value": "Keep-Alive"
+								},
+								{
+									"key": "Content-Type",
+									"value": "application/json; charset=utf-8"
+								}
+							],
+							"cookie": [],
+							"body": "{\n    \"status\": true,\n    \"data\": [\n        {\n            \"awb_number\": \"NMBC0002111111\",\n            \"event_date\": \"2021-04-05\",\n            \"courier_remarks\": \"Customer Not Responding\",\n            \"total_attempts\": \"1\"\n        },\n        {\n            \"awb_number\": \"4152913111112\",\n            \"event_date\": \"2021-04-05\",\n            \"courier_remarks\": \"No customer response from IVR call\",\n            \"total_attempts\": \"2\"\n        },\n        {\n            \"awb_number\": \"59666111113\",\n            \"event_date\": \"2021-04-05\",\n            \"courier_remarks\": \"CONSIGNEE REFUSED TO ACCEPT\",\n            \"total_attempts\": \"1\"\n        }\n    ]\n}"
+						},
+						{
+							"name": "Failed",
+							"originalRequest": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "https://api.nimbuspost.com/v1/ndr",
+									"protocol": "https",
+									"host": [
+										"api",
+										"nimbuspost",
+										"com"
+									],
+									"path": [
+										"v1",
+										"ndr"
+									],
+									"query": [
+										{
+											"key": "",
+											"value": null,
+											"disabled": true
+										}
+									]
+								}
+							},
+							"_postman_previewlanguage": "json",
+							"header": [
+								{
+									"key": "Date",
+									"value": "Wed, 02 Jun 2021 12:40:02 GMT"
+								},
+								{
+									"key": "Server",
+									"value": "Apache/2.4.46 (Ubuntu)"
+								},
+								{
+									"key": "Expires",
+									"value": "Thu, 19 Nov 1981 08:52:00 GMT"
+								},
+								{
+									"key": "Cache-Control",
+									"value": "no-store, no-cache, must-revalidate"
+								},
+								{
+									"key": "Pragma",
+									"value": "no-cache"
+								},
+								{
+									"key": "Set-Cookie",
+									"value": "ci_session=749dq3urjms524kc7cgmo488k9onccvp; expires=Wed, 02-Jun-2021 14:40:02 GMT; Max-Age=7200; path=/; HttpOnly"
+								},
+								{
+									"key": "Access-Control-Allow-Origin",
+									"value": "*"
+								},
+								{
+									"key": "Access-Control-Allow-Headers",
+									"value": "Origin, X-Requested-With, Content-Type, Accept, Access-Control-Request-Method, Authorization"
+								},
+								{
+									"key": "Access-Control-Allow-Methods",
+									"value": "GET, POST, OPTIONS, PUT, PATCH, DELETE"
+								},
+								{
+									"key": "Content-Length",
+									"value": "2277"
+								},
+								{
+									"key": "Keep-Alive",
+									"value": "timeout=5, max=100"
+								},
+								{
+									"key": "Connection",
+									"value": "Keep-Alive"
+								},
+								{
+									"key": "Content-Type",
+									"value": "application/json; charset=utf-8"
+								}
+							],
+							"cookie": [],
+							"body": "{\n    \"status\": false,\n    \"message\" : \"No record found\"\n}"
+						}
+					]
+				},
+				{
+					"name": "Submit NDR Action",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": {
+								"token": "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzUxMiJ9.eyJpYXQiOjE2MjI2MzcxMzgsImp0aSI6IjhIeVwvWmJkSDY1XC9weW1TU0FFYUFaNjdJTHNXeGl6aklcL2Q2MTBSSUtxVTQ9IiwibmJmIjoxNjIyNjM3MTM4LCJleHAiOjE2MjI2NDc5MzgsImRhdGEiOnsidXNlcl9pZCI6MTI5MDksInBhcmVudF9pZCI6MTI5MDl9fQ.Axw2qnKPMhiX9_bqumfX-pQdcmktsUJ3epivBf4guyn8Ss5LrL5WcaYA0aBgdiBJE_r8LoSanFht-Mh94QJVdg"
+							}
+						},
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "[\n    {\n        \"awb\" : \"NMBC0002111111\",\n        \"action\" : \"re-attempt\",\n        \"action_data\" : {\n            \"re_attempt_date\" : \"2021-06-03\"\n        }\n\n    },\n    {\n        \"awb\" : \"NMBC0002111112\",\n        \"action\" : \"change_address\",\n        \"action_data\" : {\n            \"name\" : \"customer name here\",\n            \"address_1\" : \"Address 1 here\",\n            \"address_2\" : \"Address 2 here\"\n        }\n\n    },\n    {\n        \"awb\" : \"NMBC0002111113\",\n        \"action\" : \"change_phone\",\n        \"action_data\" : {\n            \"phone\" : \"99999999\"\n        }\n\n    }\n]"
+						},
+						"url": "https://api.nimbuspost.com/v1/ndr/action",
+						"description": "<p>Use this API endpoint to generate Take action against any AWB. Action against 100 AWBs are allowed in one request.</p>\n\n<p><b>Note: </b> Action is allowed only when Exception is raised by courier company. </p>\n\n<p>Supported Action Types : <b>re-attempt</b>, <b>change_address</b>, <b>change_phone</b> <p>\n\n<p>Check sample request body for supported action_data for each action type.</p>\n"
+					},
+					"response": [
+						{
+							"name": "Result",
+							"originalRequest": {
+								"method": "POST",
+								"header": [
+									{
+										"key": "Content-Type",
+										"value": "application/json",
+										"type": "text"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "[\n    {\n        \"awb\" : \"NMBC0002111111\",\n        \"action\" : \"re-attempt\",\n        \"action_data\" : {\n            \"re_attempt_date\" : \"2021-06-03\"\n        }\n\n    },\n    {\n        \"awb\" : \"NMBC0002111112\",\n        \"action\" : \"change_address\",\n        \"action_data\" : {\n            \"name\" : \"customer name here\",\n            \"address_1\" : \"Address 1 here\",\n            \"address_2\" : \"Address 2 here\"\n        }\n\n    },\n    {\n        \"awb\" : \"NMBC0002111113\",\n        \"action\" : \"change_phone\",\n        \"action_data\" : {\n            \"phone\" : \"9999999999\"\n        }\n\n    }\n]"
+								},
+								"url": "https://api.nimbuspost.com/v1/ndr/action"
+							},
+							"status": "OK",
+							"code": 200,
+							"_postman_previewlanguage": "json",
+							"header": [
+								{
+									"key": "Date",
+									"value": "Wed, 02 Jun 2021 13:02:24 GMT"
+								},
+								{
+									"key": "Server",
+									"value": "Apache/2.4.46 (Ubuntu)"
+								},
+								{
+									"key": "Expires",
+									"value": "Thu, 19 Nov 1981 08:52:00 GMT"
+								},
+								{
+									"key": "Cache-Control",
+									"value": "no-store, no-cache, must-revalidate"
+								},
+								{
+									"key": "Pragma",
+									"value": "no-cache"
+								},
+								{
+									"key": "Access-Control-Allow-Origin",
+									"value": "*"
+								},
+								{
+									"key": "Access-Control-Allow-Headers",
+									"value": "Origin, X-Requested-With, Content-Type, Accept, Access-Control-Request-Method, Authorization"
+								},
+								{
+									"key": "Access-Control-Allow-Methods",
+									"value": "GET, POST, OPTIONS, PUT, PATCH, DELETE"
+								},
+								{
+									"key": "Content-Length",
+									"value": "245"
+								},
+								{
+									"key": "Keep-Alive",
+									"value": "timeout=5, max=100"
+								},
+								{
+									"key": "Connection",
+									"value": "Keep-Alive"
+								},
+								{
+									"key": "Content-Type",
+									"value": "application/json; charset=utf-8"
+								}
+							],
+							"cookie": [],
+							"body": "[\n    {\n        \"status\": true,\n        \"awb\": \"NMBC0002111111\",\n        \"message\": \"NDR Submitted Successfully\"\n    },\n    {\n        \"status\": false,\n        \"awb\": \"NMBC0002111112\",\n        \"message\": \"No Courier Exception Available\"\n    },\n    {\n        \"status\": false,\n        \"awb\": \"NMBC0002111113\",\n        \"message\": \"Mobile number should be 10 digits long\"\n    }\n]"
+						}
+					]
+				}
+			]
+		}
+	],
+	"event": [
+		{
+			"listen": "prerequest",
+			"script": {
+				"type": "text/javascript",
+				"exec": [
+					""
+				]
+			}
+		},
+		{
+			"listen": "test",
+			"script": {
+				"type": "text/javascript",
+				"exec": [
+					""
+				]
+			}
+		}
+	],
+	"variable": [
+		{
+			"key": "BASE_URL",
+			"value": "https://api.nimbuspost.com/v1/"
+		},
+		{
+			"key": "API_SHIPMENT_CLASS",
+			"value": "shipments"
+		},
+		{
+			"key": "AWB",
+			"value": ""
+		}
+	]
+}

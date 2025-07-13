@@ -1,0 +1,100 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en">
+<head>
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+    <title>Invoice - LipiPrint</title>
+    <style type="text/css">
+        body { font-family: Arial, sans-serif; margin: 0; padding: 0; background: #fff; color: #222; }
+        .container { width: 520px; margin: 40px auto; background: #fff; border: 1px solid #eee; border-radius: 8px; padding: 24px 16px; }
+        .header-table { width: 100%; border-collapse: collapse; margin-bottom: 24px; }
+        .header-table td { vertical-align: top; }
+        .logo { height: 60px; }
+        .company-info { font-size: 15px; line-height: 1.5; margin-top: 8px; }
+        .invoice-info { text-align: right; font-size: 15px; }
+        .invoice-title { font-size: 22px; font-weight: bold; color: #2d6cdf; margin-bottom: 8px; }
+        .section { margin-top: 32px; }
+        .section-title { font-size: 17px; font-weight: bold; color: #4a4a4a; margin-bottom: 10px; }
+        .info-table { width: 100%; border-collapse: collapse; }
+        .info-table td { padding: 2px 0; font-size: 15px; }
+        .invoice-table { width: 100%; border-collapse: collapse; margin-bottom: 10px; }
+        .invoice-table th, .invoice-table td { padding: 8px 6px; font-size: 15px; border-bottom: 1px solid #eee; }
+        .invoice-table th { background: #f7f7f7; font-weight: bold; color: #2d6cdf; }
+        .invoice-table td.center, .invoice-table th.center { text-align: center; }
+        .invoice-table td.right, .invoice-table th.right { text-align: right; }
+        .invoice-table .filename {
+            max-width: 180px;
+            word-break: break-all;
+            white-space: pre-line;
+            overflow-wrap: break-word;
+            text-overflow: ellipsis;
+            overflow: hidden;
+            display: block;
+        }
+        .totals { margin-top: 12px; width: 100%; border-collapse: collapse; }
+        .totals td { font-size: 15px; padding: 4px 0; }
+        .totals .label { text-align: right; color: #666; }
+        .totals .value { text-align: right; font-weight: bold; }
+        .grand-total { font-size: 18px; color: #2d6cdf; font-weight: bold; border-top: 2px solid #eee; padding-top: 8px; }
+        .footer { margin-top: 36px; text-align: center; color: #888; font-size: 14px; border-top: 1px solid #eee; padding-top: 14px; }
+        .spacer { height: 18px; }
+        .highlight { background: #f0f4ff; border-radius: 8px; padding: 12px 10px; margin-bottom: 10px; }
+    </style>
+</head>
+<body>
+<div class="container">
+    <table class="header-table">
+        <tr>
+            <td style="width: 60%;">
+                <img src="./LipiPrintLogo.png" alt="LipiPrint Logo" class="logo" style="height:60px;" />
+                <div class="company-info">
+                    LipiPrint<br />
+                    123 Printing Street, Saharanpur, Uttar Pradesh, India<br />
+                    support@lipiprint.in | +91 12345 67890
+                </div>
+            </td>
+            <td style="width: 40%; text-align: right;">
+                <div class="invoice-title">INVOICE</div>
+                <div class="invoice-info">
+                    <div>Invoice #: LP${orderId}</div>
+                    <div>Date: ${orderDate}</div>
+                    <div>Status: ${orderStatus}</div>
+                </div>
+            </td>
+        </tr>
+    </table>
+    <div class="section">
+        <div class="section-title">Bill To</div>
+        <table class="info-table">
+            <tr><td><b>Name:</b></td><td>${customerName}</td></tr>
+            <tr><td><b>Email:</b></td><td>${customerEmail}</td></tr>
+            <tr><td><b>Phone:</b></td><td>${customerPhone}</td></tr>
+            <tr><td><b>Address:</b></td><td>${customerAddress}</td></tr>
+        </table>
+    </div>
+    <div class="section">
+        <div class="section-title">Print Specification</div>
+        <div class="highlight">${printSpecBlock}</div>
+    </div>
+    <div class="section">
+        <div class="section-title">Order Details</div>
+        <table class="invoice-table">
+            <tr>
+                <th>File Name</th>
+                <th>Price</th>
+                <th>Total</th>
+            </tr>
+            ${filesTable}
+        </table>
+        <table class="totals">
+            <tr><td class="label">Subtotal</td><td class="value">INR ${subtotal}</td></tr>
+            <tr><td class="label">CGST (9%)</td><td class="value">INR ${cgst}</td></tr>
+            <tr><td class="label">IGST (9%)</td><td class="value">INR ${igst}</td></tr>
+            <tr><td class="label grand-total">Grand Total</td><td class="value grand-total">INR ${grandTotal}</td></tr>
+        </table>
+    </div>
+    <div class="footer">
+        Thank you for choosing LipiPrint! For support, contact support@lipiprint.in
+    </div>
+</div>
+</body>
+</html> 
