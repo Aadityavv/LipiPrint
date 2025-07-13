@@ -52,7 +52,7 @@ export default function HelpCenterScreen({ navigation }) {
         </View>
       </LinearGradient>
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
-        <Text style={styles.sectionTitle}>FAQs</Text>
+        <Text style={styles.sectionTitleBlue}>FAQs</Text>
         {faqs.map((faq, idx) => (
           <TouchableOpacity key={idx} style={styles.faqItem} onPress={() => setExpanded(expanded === idx ? null : idx)}>
             <View style={styles.faqHeader}>
@@ -62,7 +62,7 @@ export default function HelpCenterScreen({ navigation }) {
             {expanded === idx && <Text style={styles.faqA}>{faq.a}</Text>}
           </TouchableOpacity>
         ))}
-        <Text style={styles.sectionTitle}>Contact Support</Text>
+        <Text style={styles.sectionTitleBlue}>Contact Support</Text>
         <View style={styles.contactForm}>
           <TextInput
             style={styles.input}
@@ -96,6 +96,7 @@ const styles = StyleSheet.create({
   title: { fontSize: 28, fontWeight: 'bold', color: '#fff', letterSpacing: 1 },
   content: { paddingHorizontal: 24, paddingBottom: 100 },
   sectionTitle: { fontSize: 20, fontWeight: 'bold', color: '#fff', marginTop: 20, marginBottom: 10 },
+  sectionTitleBlue: { fontSize: 22, fontWeight: 'bold', color: '#3b5bdb', marginTop: 20, marginBottom: 10 },
   faqItem: { backgroundColor: '#fff', borderRadius: 12, padding: 18, marginBottom: 12 },
   faqHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   faqQ: { fontSize: 16, fontWeight: 'bold', color: '#667eea', flex: 1 },

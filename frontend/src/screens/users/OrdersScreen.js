@@ -30,23 +30,27 @@ export default function OrdersScreen({ navigation }) {
     { id: 'DELIVERED', label: 'Delivered', count: orders.filter(o => o.status === 'DELIVERED').length },
   ];
 
-  const getStatusColor = (status) => {
-    switch (status) {
-      case 'PENDING': return '#FFA726';
-      case 'PROCESSING': return '#42A5F5';
-      case 'READY': return '#66BB6A';
-      case 'COMPLETED': return '#4CAF50';
-      default: return '#9E9E9E';
-    }
+  // Improved status badge colors
+  const statusBadgeColors = {
+    PENDING: '#FFA726',      // Orange
+    PROCESSING: '#1976D2',  // Blue
+    READY: '#43B581',       // Green
+    COMPLETED: '#764ba2',   // Purple
+    CANCELLED: '#D7263D',   // Red
+    DELIVERED: '#00B8D9',   // Cyan
   };
+
+  const getStatusColor = (status) => statusBadgeColors[status] || '#9E9E9E';
 
   const getStatusText = (status) => {
     switch (status) {
       case 'PENDING': return 'Pending';
-      case 'PROCESSING': return 'Printing';
+      case 'PROCESSING': return 'Processing';
       case 'READY': return 'Ready for Pickup';
       case 'COMPLETED': return 'Completed';
-      default: return 'Unknown';
+      case 'CANCELLED': return 'Cancelled';
+      case 'DELIVERED': return 'Delivered';
+      default: return status ? status.charAt(0) + status.slice(1).toLowerCase() : 'Unknown';
     }
   };
 
@@ -60,6 +64,19 @@ export default function OrdersScreen({ navigation }) {
     }
   };
 
+  const getDisplayFileName = (file) => {
+    if (!file) return 'No file';
+    // Prefer originalFilename, fallback to filename
+    let name = file.originalFilename || file.filename || 'No file';
+    // Replace URL-encoded characters with spaces
+    try {
+      name = decodeURIComponent(name);
+    } catch (e) {
+      name = name.replace(/%20/g, ' ');
+    }
+    return name;
+  };
+
   const filteredOrders = selectedFilter === 'all' 
     ? orders 
     : orders.filter(order => order.status === selectedFilter);
@@ -71,43 +88,56 @@ export default function OrdersScreen({ navigation }) {
       duration={400}
     >
       <TouchableOpacity
-        style={[styles.orderCard, { backgroundColor: theme.card }]}
+        style={[
+          styles.orderCard,
+          {
+            backgroundColor: 'linear-gradient(90deg, #e0eafc 0%, #cfdef3 100%)',
+            shadowColor: '#667eea',
+            shadowOpacity: 0.12,
+            shadowRadius: 12,
+            elevation: 4,
+          },
+        ]}
         onPress={() => navigation.navigate('InvoiceDetailScreen', { orderId: item.id, navigation })}
-        activeOpacity={0.8}
+        activeOpacity={0.88}
       >
-        <View style={[styles.orderHeader, { borderBottomColor: theme.border }]}>
-          <View style={[styles.orderInfo, { borderBottomColor: theme.border }]}>
-            <Text style={[styles.orderId, { color: theme.text }]}>{item.id}</Text>
-            {/* Show all files */}
+        <View style={styles.orderHeader}>
+          <View style={styles.orderInfo}>
+            <Text style={[styles.orderId, { color: '#222' }]}>{item.id}</Text>
             {item.printJobs && item.printJobs.length > 0 ? (
-              item.printJobs.map((pj, idx) => (
-                <Text key={pj.id} style={[styles.orderTitle, { color: theme.text }]}>• {pj.file?.filename || 'No file'} ({pj.file?.pages || 0} pages)</Text>
+              item.printJobs.map((pj) => (
+                <Text key={pj.id} style={[styles.orderTitle, { color: '#333' }]}>• {getDisplayFileName(pj.file)} ({pj.file?.pages || 0} pages)</Text>
               ))
             ) : (
-              <Text style={[styles.orderTitle, { color: theme.text }]}>No files</Text>
+              <Text style={[styles.orderTitle, { color: '#333' }]}>No files</Text>
             )}
-            <Text style={[styles.orderMeta, { color: theme.text }]}>
-              {item.createdAt ? `${new Date(item.createdAt).toLocaleString()}` : ''}
-            </Text>
+            <Text style={[styles.orderMeta, { color: '#888' }]}> {item.createdAt ? `${new Date(item.createdAt).toLocaleString()}` : ''}</Text>
           </View>
-          <View style={[styles.statusBadge, { backgroundColor: getStatusColor(item.status) }]}> 
-            {/* {getStatusIcon(item.status)} */}
-            <Text style={[styles.statusText, { color: theme.text }]}>{getStatusText(item.status)}</Text>
+          <View style={[
+            styles.statusBadge,
+            {
+              backgroundColor: getStatusColor(item.status),
+              borderRadius: 16,
+              paddingHorizontal: 14,
+              paddingVertical: 6,
+              minWidth: 90,
+              alignItems: 'center',
+              justifyContent: 'center',
+              shadowColor: getStatusColor(item.status),
+              shadowOpacity: 0.18,
+              shadowRadius: 8,
+              elevation: 2,
+            },
+          ]}>
+            <Text style={{ color: '#fff', fontWeight: 'bold', fontSize: 13 }}>{getStatusText(item.status)}</Text>
           </View>
         </View>
-        <View style={[styles.orderDetails, { borderTopColor: theme.border }]}>
-          <View style={[styles.deliveryInfo, { borderBottomColor: theme.border }]}>
-            <Icon 
-              name="store" 
-              size={16} 
-              color={theme.text} 
-              style={[styles.deliveryIcon, { color: theme.text }]} 
-            />
-            <Text style={[styles.deliveryText, { color: theme.text }]}>
-              Pickup from Main Store
-            </Text>
+        <View style={styles.orderDetails}>
+          <View style={styles.deliveryInfo}>
+            <Icon name="store" size={16} color="#1976D2" style={styles.deliveryIcon} />
+            <Text style={[styles.deliveryText, { color: '#1976D2' }]}>Pickup from Main Store</Text>
           </View>
-          <Text style={[styles.orderAmount, { color: theme.text }]}>₹{item.totalAmount}</Text>
+          <Text style={[styles.orderAmount, { color: '#764ba2', fontWeight: 'bold' }]}>₹{item.totalAmount}</Text>
         </View>
       </TouchableOpacity>
     </Animatable.View>
@@ -150,28 +180,30 @@ export default function OrdersScreen({ navigation }) {
                   <TouchableOpacity
                     style={[
                       styles.filterButton,
-                      selectedFilter === filter.id && styles.selectedFilter,
-                      { backgroundColor: theme.card }
+                      selectedFilter === filter.id && {
+                        backgroundColor: '#667eea',
+                        borderColor: '#764ba2',
+                        borderWidth: 2,
+                      },
+                      !selectedFilter === filter.id && { backgroundColor: '#e0eafc' },
                     ]}
                     onPress={() => setSelectedFilter(filter.id)}
-                    activeOpacity={0.8}
+                    activeOpacity={0.85}
                   >
                     <Text style={[
                       styles.filterText,
-                      selectedFilter === filter.id && styles.selectedFilterText,
-                      { color: theme.text }
+                      selectedFilter === filter.id && { color: '#fff', fontWeight: 'bold' },
+                      !selectedFilter === filter.id && { color: '#222' },
                     ]}>
                       {filter.label}
                     </Text>
                     <View style={[
                       styles.filterCount,
-                      selectedFilter === filter.id && styles.selectedFilterCount,
-                      { backgroundColor: theme.card }
+                      selectedFilter === filter.id && { backgroundColor: '#fff' },
                     ]}>
                       <Text style={[
                         styles.filterCountText,
-                        selectedFilter === filter.id && styles.selectedFilterCountText,
-                        { color: theme.text }
+                        selectedFilter === filter.id && { color: '#667eea', fontWeight: 'bold' },
                       ]}>
                         {filter.count}
                       </Text>

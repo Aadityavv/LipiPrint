@@ -95,7 +95,7 @@ export default function FilesScreen({ navigation }) {
         style={styles.headerGradient}
       >
         <Heading
-          title="My Files"
+          title="My Uploaded Files"
           variant="primary"
         />
       </LinearGradient>

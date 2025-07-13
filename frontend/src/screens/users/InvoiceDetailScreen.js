@@ -135,6 +135,18 @@ export default function InvoiceDetailScreen() {
 
   const invoiceUrl = `${process.env.EXPO_PUBLIC_API_URL || 'http://192.168.1.4:8082/'}api/orders/${orderId}/invoice`;
 
+  // Utility to get display file name
+  const getDisplayFileName = (file) => {
+    if (!file) return '-';
+    let name = file.originalFilename || file.filename || '-';
+    try {
+      name = decodeURIComponent(name);
+    } catch (e) {
+      name = name.replace(/%20/g, ' ');
+    }
+    return name;
+  };
+
   if (showPdf) {
     // Minimum spinner time logic
     const handlePdfLoadComplete = () => {
@@ -211,7 +223,7 @@ export default function InvoiceDetailScreen() {
           {order.printJobs && order.printJobs.length > 0 ? (
             order.printJobs.map((pj, idx) => (
               <View key={pj.id || idx} style={{ marginBottom: 10 }}>
-                <Text style={{ fontWeight: 'bold', color: '#764ba2' }}>File: {pj.file?.originalFilename || '-'}</Text>
+                <Text style={{ fontWeight: 'bold', color: '#764ba2' }}>File: {getDisplayFileName(pj.file)}</Text>
                 <Text>Pages: {pj.file?.pages || '-'}</Text>
                 <Text>Ordered On: {pj.file?.createdAt?.split('T')[0] || '-'}</Text>
                 {/* Print Specifications */}
@@ -251,7 +263,7 @@ export default function InvoiceDetailScreen() {
           {order.printJobs && order.printJobs.length > 0 ? (
             order.printJobs.map((pj, idx) => (
               <View key={pj.id || idx} style={styles.tableRow}>
-                <Text style={styles.tableCell}>{pj.file?.originalFilename || '-'}</Text>
+                <Text style={styles.tableCell}>{getDisplayFileName(pj.file)}</Text>
                 <Text style={styles.tableCell}>{pj.file?.pages || '-'}</Text>
               </View>
             ))
@@ -261,17 +273,24 @@ export default function InvoiceDetailScreen() {
               <Text style={styles.tableCell}>-</Text>
             </View>
           )}
-          <View style={styles.priceRow}>
-            <Text style={styles.priceLabel}>GST (18%)</Text>
-            <Text style={styles.priceValue}>INR {gst}</Text>
-          </View>
-          <View style={styles.priceRow}>
-            <Text style={styles.priceLabel}>Delivery</Text>
-            <Text style={styles.priceValue}>INR {deliveryCharge}</Text>
-          </View>
-          <View style={styles.priceRow}>
-            <Text style={[styles.priceLabel, styles.grandTotal]}>Grand Total</Text>
-            <Text style={[styles.priceValue, styles.grandTotal]}>INR {grandTotal}</Text>
+          <View style={styles.priceCard}>
+            <View style={styles.priceRow}>
+              <Text style={styles.priceLabel}>Subtotal (Before GST)</Text>
+              <Text style={styles.priceValue}>INR {subtotal}</Text>
+            </View>
+            <View style={styles.priceRow}>
+              <Text style={styles.priceLabel}>GST (18%)</Text>
+              <Text style={styles.priceValue}>INR {gst}</Text>
+            </View>
+            <View style={styles.priceRow}>
+              <Text style={styles.priceLabel}>Delivery</Text>
+              <Text style={styles.priceValue}>INR {deliveryCharge}</Text>
+            </View>
+            <View style={styles.priceRowDivider} />
+            <View style={styles.priceRow}>
+              <Text style={[styles.priceLabel, styles.grandTotal]}>Grand Total</Text>
+              <Text style={[styles.priceValue, styles.grandTotal]}>INR {grandTotal}</Text>
+            </View>
           </View>
         </View>
         <View style={styles.section}>
@@ -371,4 +390,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     zIndex: 100,
   },
+  priceCard: { backgroundColor: '#f0f4ff', borderRadius: 10, padding: 14, marginTop: 10, marginBottom: 4, elevation: 2 },
+  priceRowDivider: { height: 1, backgroundColor: '#d1d5db', marginVertical: 8, opacity: 0.5 },
 }); 

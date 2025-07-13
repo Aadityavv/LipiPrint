@@ -105,7 +105,7 @@ export default function HomeScreen({ navigation }) {
         <View style={{flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', minHeight: 44}}>
           <View style={{flex: 1}}>
             <Text style={{fontSize: 24, color: '#fff', fontWeight: 'bold', textAlign: 'left', marginBottom: 2}}>
-              {`Hello, ${user?.name || 'User'}! 👋`}
+              {`Hello, ${(user?.name?.split(' ')[0]) || 'User'}! 👋`}
             </Text>
             <Text style={{fontSize: 15, color: '#e0e0e0', textAlign: 'left'}}>
               Ready to print something amazing?

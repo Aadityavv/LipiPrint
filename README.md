@@ -97,16 +97,19 @@ New folder/
 ## 🖼️ Screenshots
 
 ### User App
-| Home | Upload | Orders | Profile |
-|------|--------|--------|---------|
-| ![Home](screenshots/user_home.png) | ![Upload](screenshots/user_upload.png) | ![Orders](screenshots/user_orders.png) | ![Profile](screenshots/user_profile.png) |
+| Home | Files Uploaded | Orders | Order Confirmation | Invoice | Payment | Razorpay | Delivery Option | Print Option | Selected Print Option | Track Order | Tutorial | Help Center | Customer Support | Settings | Personal Information | Profile | Upload File |
+|------|----------------|--------|-------------------|--------|--------|----------|----------------|-------------|----------------------|------------|----------|-------------|------------------|---------|---------------------|---------|------------|
+| ![](screenshots/User_HomeScreen.jpeg) | ![](screenshots/User_FilesUploadedinApp.jpeg) | ![](screenshots/User_Orders.jpeg) | ![](screenshots/User_OrderConfirmation.jpeg) | ![](screenshots/User_AppInvoice.jpeg) | ![](screenshots/User_Payment.jpeg) | ![](screenshots/User_Razorpay.jpeg) | ![](screenshots/User_DeliveryOption.jpeg) | ![](screenshots/User_PrintOption.jpeg) | ![](screenshots/User_SelectedPrintOption.jpeg) | ![](screenshots/User_TrackOrder.jpeg) | ![](screenshots/User_Tutorial.jpeg) | ![](screenshots/User_HelpCenter.jpeg) | ![](screenshots/User_CustomerSupport.jpeg) | ![](screenshots/User_Settings.jpeg) | ![](screenshots/User_PersonalInformation.jpeg) | ![](screenshots/User_profile.jpeg) | ![](screenshots/User_UploadFile.jpeg) |
 
 ### Admin Dashboard
-| Dashboard | Orders | Order Details | Analytics |
-|-----------|--------|--------------|-----------|
-| ![Dashboard](screenshots/admin_dashboard.png) | ![Orders](screenshots/admin_orders.png) | ![Order Details](screenshots/admin_order_detail.png) | ![Analytics](screenshots/admin_analytics.png) |
+| Home | Manage Orders | Order Details | Analytics | Manage Users | Available Services | Settings |
+|------|--------------|--------------|-----------|--------------|--------------------|----------|
+| ![](screenshots/Admin_HomeScreen.jpeg) | ![](screenshots/Admin_ManageOrders.jpeg) | ![](screenshots/Admin_OrderDetails.jpeg) | ![](screenshots/Admin_Analytics.jpeg) | ![](screenshots/Admin_ManageUsers.jpeg) | ![](screenshots/Admin_AvailableServices.jpeg) | ![](screenshots/Admin_Settings.jpeg) |
 
-> **Note:** Replace the image paths above with your actual screenshots in a `screenshots/` folder at the root.
+### Common Screens
+| Splash | Sign In | Sign Up |
+|--------|--------|--------|
+| ![](screenshots/Common_SplashScreen.jpeg) | ![](screenshots/Common_SignIn.jpeg) | ![](screenshots/Common_SignUp.jpeg) |
 
 ---
 
