@@ -207,17 +207,17 @@ export default function AdminDashboardScreen({ navigation }) {
         {/* Quick Actions */}
         <View style={styles.quickActionsMatrixWrap}>
           <View style={styles.quickActionsMatrixGrid}>
-            {quickActions.map((action, index) => (
-              <TouchableOpacity
-                key={action.title}
+          {quickActions.map((action, index) => (
+            <TouchableOpacity
+              key={action.title}
                 style={[styles.actionPillMatrix, { backgroundColor: action.color }]}
-                onPress={action.onPress}
-                activeOpacity={0.85}
-              >
+              onPress={action.onPress}
+              activeOpacity={0.85}
+            >
                 <View style={styles.actionPillIconWrap}>{action.icon}</View>
                 <Text style={styles.actionPillText}>{action.title}</Text>
-              </TouchableOpacity>
-            ))}
+            </TouchableOpacity>
+          ))}
           </View>
         </View>
         {/* Activity Feed */}
@@ -229,13 +229,13 @@ export default function AdminDashboardScreen({ navigation }) {
             </TouchableOpacity>
           </View>
           <View style={styles.timelineWrap}>
-            {(recentActivities || []).length === 0 ? (
+          {(recentActivities || []).length === 0 ? (
               <View style={styles.emptyStateModern}>
                 <Icon name="event-busy" size={48} color="#bdbdbd" />
                 <Text style={styles.emptyTextModern}>No recent activities. Start managing orders to see updates here!</Text>
               </View>
-            ) : (
-              recentActivities.map((activity, index) => (
+          ) : (
+            recentActivities.map((activity, index) => (
                 <View key={activity.id || index} style={styles.timelineItem}>
                   <View style={[styles.timelineDot, { backgroundColor: getActivityColor(activity.action) }]} />
                   <View style={styles.timelineCard}>
@@ -245,12 +245,12 @@ export default function AdminDashboardScreen({ navigation }) {
                     </View>
                     <Text style={styles.timelineUser}>{activity.user}</Text>
                     <Text style={styles.timelineTime}>{activity.time}</Text>
-                  </View>
                 </View>
-              ))
-            )}
-          </View>
+              </View>
+            ))
+          )}
         </View>
+      </View>
       </ScrollView>
     </ScrollView>
   );

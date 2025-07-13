@@ -22,19 +22,19 @@ export default function AdminOrderDetailScreen() {
   const [showPrintModal, setShowPrintModal] = useState(false);
   const [downloadProgress, setDownloadProgress] = useState(null);
 
-  const fetchOrder = async () => {
-    setLoading(true);
-    setError(null);
-    try {
-      const res = await api.request(`/orders/${orderId}`);
-      setOrder(res);
+    const fetchOrder = async () => {
+      setLoading(true);
+      setError(null);
+      try {
+        const res = await api.request(`/orders/${orderId}`);
+        setOrder(res);
       setPrintedFiles(res.printJobs ? res.printJobs.filter(pj => pj.status === 'COMPLETED').map(pj => pj.file?.id) : []);
-    } catch (e) {
-      setError('Failed to load order details');
-    } finally {
-      setLoading(false);
-    }
-  };
+      } catch (e) {
+        setError('Failed to load order details');
+      } finally {
+        setLoading(false);
+      }
+    };
 
   useEffect(() => {
     fetchOrder();
@@ -102,7 +102,7 @@ export default function AdminOrderDetailScreen() {
         await api.request(`/orders/${orderId}/status?status=PENDING`, { method: 'PUT' });
       } else {
         await api.request(`/orders/${orderId}/status?status=PRINTING`, { method: 'PUT' });
-      }
+    }
     }
     // No else: tick is only added via print modal
     fetchOrder();
@@ -195,7 +195,7 @@ export default function AdminOrderDetailScreen() {
           left={
             <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
               <Icon name="arrow-back" size={24} color="white" />
-            </TouchableOpacity>
+          </TouchableOpacity>
           }
           variant="primary"
         />
@@ -247,22 +247,22 @@ export default function AdminOrderDetailScreen() {
                 <Icon name="check-circle" size={22} color="#4CAF50" style={{ marginRight: 8 }} />
               </TouchableOpacity>
             )}
-            {file.url && (
+              {file.url && (
               <View style={styles.fileActions}>
                 <TouchableOpacity style={styles.fileActionBtn} onPress={() => handleDownloadFile(file)}>
                   <Icon name="file-download" size={20} color="#42A5F5" />
-                </TouchableOpacity>
+                  </TouchableOpacity>
                 <TouchableOpacity
                   style={styles.fileActionBtn}
                   onPress={() => handlePrintFile(file, idx, printJobs[idx]?.id)}
                 >
                   <Icon name="print" size={20} color="#4CAF50" />
-                </TouchableOpacity>
-              </View>
-            )}
-          </View>
-        ))}
-      </View>
+                  </TouchableOpacity>
+                </View>
+              )}
+            </View>
+          ))}
+        </View>
       {/* PRINTING SPECS */}
       <View style={styles.sectionCard}>
         <View style={styles.sectionHeaderRow}>
