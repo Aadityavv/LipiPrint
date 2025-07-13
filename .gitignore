@@ -28,7 +28,7 @@ backend/target/
 *.ear
 
 backend/src/main/resources/serviceAccountKey.json
-
+MOU_LipiPrint_Aaditya.html
 # OS / Editor junk
 .DS_Store
 Thumbs.db
