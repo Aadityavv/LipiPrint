@@ -97,128 +97,19 @@ New folder/
 ## 🖼️ Screenshots
 
 ### User App
-<div style="display: flex; flex-wrap: wrap; gap: 24px; justify-content: flex-start;">
-  <figure style="text-align: center; margin: 0;">
-    <img src="screenshots/User_HomeScreen.jpeg" alt="Home" style="max-height: 180px; border-radius: 8px;" />
-    <figcaption>Home</figcaption>
-  </figure>
-  <figure style="text-align: center; margin: 0;">
-    <img src="screenshots/User_FilesUploadedinApp.jpeg" alt="Files Uploaded" style="max-height: 320px; border-radius: 8px;" />
-    <figcaption>Files Uploaded</figcaption>
-  </figure>
-  <figure style="text-align: center; margin: 0;">
-    <img src="screenshots/User_Orders.jpeg" alt="Orders" style="max-height: 320px; border-radius: 8px;" />
-    <figcaption>Orders</figcaption>
-  </figure>
-  <figure style="text-align: center; margin: 0;">
-    <img src="screenshots/User_OrderConfirmation.jpeg" alt="Order Confirmation" style="max-height: 320px; border-radius: 8px;" />
-    <figcaption>Order Confirmation</figcaption>
-  </figure>
-  <figure style="text-align: center; margin: 0;">
-    <img src="screenshots/User_AppInvoice.jpeg" alt="Invoice" style="max-height: 320px; border-radius: 8px;" />
-    <figcaption>Invoice</figcaption>
-  </figure>
-  <figure style="text-align: center; margin: 0;">
-    <img src="screenshots/User_Payment.jpeg" alt="Payment" style="max-height: 320px; border-radius: 8px;" />
-    <figcaption>Payment</figcaption>
-  </figure>
-  <figure style="text-align: center; margin: 0;">
-    <img src="screenshots/User_Razorpay.jpeg" alt="Razorpay" style="max-height: 320px; border-radius: 8px;" />
-    <figcaption>Razorpay</figcaption>
-  </figure>
-  <figure style="text-align: center; margin: 0;">
-    <img src="screenshots/User_DeliveryOption.jpeg" alt="Delivery Option" style="max-height: 320px; border-radius: 8px;" />
-    <figcaption>Delivery Option</figcaption>
-  </figure>
-  <figure style="text-align: center; margin: 0;">
-    <img src="screenshots/User_PrintOption.jpeg" alt="Print Option" style="max-height: 320px; border-radius: 8px;" />
-    <figcaption>Print Option</figcaption>
-  </figure>
-  <figure style="text-align: center; margin: 0;">
-    <img src="screenshots/User_SelectedPrintOption.jpeg" alt="Selected Print Option" style="max-height: 320px; border-radius: 8px;" />
-    <figcaption>Selected Print Option</figcaption>
-  </figure>
-  <figure style="text-align: center; margin: 0;">
-    <img src="screenshots/User_TrackOrder.jpeg" alt="Track Order" style="max-height: 320px; border-radius: 8px;" />
-    <figcaption>Track Order</figcaption>
-  </figure>
-  <figure style="text-align: center; margin: 0;">
-    <img src="screenshots/User_Tutorial.jpeg" alt="Tutorial" style="max-height: 320px; border-radius: 8px;" />
-    <figcaption>Tutorial</figcaption>
-  </figure>
-  <figure style="text-align: center; margin: 0;">
-    <img src="screenshots/User_HelpCenter.jpeg" alt="Help Center" style="max-height: 320px; border-radius: 8px;" />
-    <figcaption>Help Center</figcaption>
-  </figure>
-  <figure style="text-align: center; margin: 0;">
-    <img src="screenshots/User_CustomerSupport.jpeg" alt="Customer Support" style="max-height: 320px; border-radius: 8px;" />
-    <figcaption>Customer Support</figcaption>
-  </figure>
-  <figure style="text-align: center; margin: 0;">
-    <img src="screenshots/User_Settings.jpeg" alt="Settings" style="max-height: 320px; border-radius: 8px;" />
-    <figcaption>Settings</figcaption>
-  </figure>
-  <figure style="text-align: center; margin: 0;">
-    <img src="screenshots/User_PersonalInformation.jpeg" alt="Personal Information" style="max-height: 320px; border-radius: 8px;" />
-    <figcaption>Personal Information</figcaption>
-  </figure>
-  <figure style="text-align: center; margin: 0;">
-    <img src="screenshots/User_profile.jpeg" alt="Profile" style="max-height: 320px; border-radius: 8px;" />
-    <figcaption>Profile</figcaption>
-  </figure>
-  <figure style="text-align: center; margin: 0;">
-    <img src="screenshots/User_UploadFile.jpeg" alt="Upload File" style="max-height: 320px; border-radius: 8px;" />
-    <figcaption>Upload File</figcaption>
-  </figure>
-</div>
+| Home | Files Uploaded | Orders | Order Confirmation | Invoice | Payment | Razorpay | Delivery Option | Print Option | Selected Print Option | Track Order | Tutorial | Help Center | Customer Support | Settings | Personal Information | Profile | Upload File |
+|------|----------------|--------|-------------------|--------|--------|----------|----------------|-------------|----------------------|------------|----------|-------------|------------------|---------|---------------------|---------|------------|
+| ![](screenshots/User_HomeScreen.jpeg) | ![](screenshots/User_FilesUploadedinApp.jpeg) | ![](screenshots/User_Orders.jpeg) | ![](screenshots/User_OrderConfirmation.jpeg) | ![](screenshots/User_AppInvoice.jpeg) | ![](screenshots/User_Payment.jpeg) | ![](screenshots/User_Razorpay.jpeg) | ![](screenshots/User_DeliveryOption.jpeg) | ![](screenshots/User_PrintOption.jpeg) | ![](screenshots/User_SelectedPrintOption.jpeg) | ![](screenshots/User_TrackOrder.jpeg) | ![](screenshots/User_Tutorial.jpeg) | ![](screenshots/User_HelpCenter.jpeg) | ![](screenshots/User_CustomerSupport.jpeg) | ![](screenshots/User_Settings.jpeg) | ![](screenshots/User_PersonalInformation.jpeg) | ![](screenshots/User_profile.jpeg) | ![](screenshots/User_UploadFile.jpeg) |
 
 ### Admin Dashboard
-<div style="display: flex; flex-wrap: wrap; gap: 24px; justify-content: flex-start;">
-  <figure style="text-align: center; margin: 0;">
-    <img src="screenshots/Admin_HomeScreen.jpeg" alt="Admin Home" style="max-height: 320px; border-radius: 8px;" />
-    <figcaption>Home</figcaption>
-  </figure>
-  <figure style="text-align: center; margin: 0;">
-    <img src="screenshots/Admin_ManageOrders.jpeg" alt="Manage Orders" style="max-height: 320px; border-radius: 8px;" />
-    <figcaption>Manage Orders</figcaption>
-  </figure>
-  <figure style="text-align: center; margin: 0;">
-    <img src="screenshots/Admin_OrderDetails.jpeg" alt="Order Details" style="max-height: 320px; border-radius: 8px;" />
-    <figcaption>Order Details</figcaption>
-  </figure>
-  <figure style="text-align: center; margin: 0;">
-    <img src="screenshots/Admin_Analytics.jpeg" alt="Analytics" style="max-height: 320px; border-radius: 8px;" />
-    <figcaption>Analytics</figcaption>
-  </figure>
-  <figure style="text-align: center; margin: 0;">
-    <img src="screenshots/Admin_ManageUsers.jpeg" alt="Manage Users" style="max-height: 320px; border-radius: 8px;" />
-    <figcaption>Manage Users</figcaption>
-  </figure>
-  <figure style="text-align: center; margin: 0;">
-    <img src="screenshots/Admin_AvailableServices.jpeg" alt="Available Services" style="max-height: 320px; border-radius: 8px;" />
-    <figcaption>Available Services</figcaption>
-  </figure>
-  <figure style="text-align: center; margin: 0;">
-    <img src="screenshots/Admin_Settings.jpeg" alt="Settings" style="max-height: 320px; border-radius: 8px;" />
-    <figcaption>Settings</figcaption>
-  </figure>
-</div>
+| Home | Manage Orders | Order Details | Analytics | Manage Users | Available Services | Settings |
+|------|--------------|--------------|-----------|--------------|--------------------|----------|
+| ![](screenshots/Admin_HomeScreen.jpeg) | ![](screenshots/Admin_ManageOrders.jpeg) | ![](screenshots/Admin_OrderDetails.jpeg) | ![](screenshots/Admin_Analytics.jpeg) | ![](screenshots/Admin_ManageUsers.jpeg) | ![](screenshots/Admin_AvailableServices.jpeg) | ![](screenshots/Admin_Settings.jpeg) |
 
 ### Common Screens
-<div style="display: flex; flex-wrap: wrap; gap: 24px; justify-content: flex-start;">
-  <figure style="text-align: center; margin: 0;">
-    <img src="screenshots/Common_SplashScreen.jpeg" alt="Splash" style="max-height: 320px; border-radius: 8px;" />
-    <figcaption>Splash</figcaption>
-  </figure>
-  <figure style="text-align: center; margin: 0;">
-    <img src="screenshots/Common_SignIn.jpeg" alt="Sign In" style="max-height: 320px; border-radius: 8px;" />
-    <figcaption>Sign In</figcaption>
-  </figure>
-  <figure style="text-align: center; margin: 0;">
-    <img src="screenshots/Common_SignUp.jpeg" alt="Sign Up" style="max-height: 320px; border-radius: 8px;" />
-    <figcaption>Sign Up</figcaption>
-  </figure>
-</div>
+| Splash | Sign In | Sign Up |
+|--------|--------|--------|
+| ![](screenshots/Common_SplashScreen.jpeg) | ![](screenshots/Common_SignIn.jpeg) | ![](screenshots/Common_SignUp.jpeg) |
 
 ---
 
