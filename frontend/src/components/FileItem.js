@@ -9,7 +9,7 @@ export default function FileItem({ file, onDelete, canDelete }) {
         <Icon name="insert-drive-file" size={32} color="#667eea" />
       </View>
       <View style={styles.infoContainer}>
-        <Text style={styles.filename} numberOfLines={1}>{file.originalFilename || file.filename}</Text>
+        <Text style={styles.filename} numberOfLines={1}>{(() => { try { return decodeURIComponent(file.originalFilename || file.filename); } catch (e) { return (file.originalFilename || file.filename).replace(/%20/g, ' '); } })()}</Text>
         <View style={styles.metaRow}>
           <Text style={styles.meta}>{file.pages || 0} pages</Text>
           <Text style={styles.meta}>• {formatSize(file.size)}</Text>

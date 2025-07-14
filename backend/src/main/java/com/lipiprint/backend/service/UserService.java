@@ -87,4 +87,8 @@ public class UserService {
     public long getActiveUserCount() {
         return userRepository.count();
     }
+
+    public void deleteUser(Long userId) {
+        userRepository.deleteById(userId);
+    }
 } 

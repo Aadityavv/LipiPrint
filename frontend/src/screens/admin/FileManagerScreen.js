@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, FlatList, TouchableOpacity, Alert, ActivityIndicator, StyleSheet } from 'react-native';
+import { View, Text, FlatList, TouchableOpacity, Alert, ActivityIndicator, StyleSheet, TextInput, Modal, Image, Dimensions, Linking, Platform } from 'react-native';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 import api from '../../services/api';
 import CustomAlert from '../../components/CustomAlert';
@@ -20,6 +20,10 @@ const FileManagerScreen = ({ navigation }) => {
   const [alertConfirm, setAlertConfirm] = useState(null);
   const [alertLoading, setAlertLoading] = useState(false);
   const [alertProgress, setAlertProgress] = useState(null);
+  const [search, setSearch] = useState('');
+  const [sortBy, setSortBy] = useState('date');
+  const [previewFile, setPreviewFile] = useState(null);
+  const [previewVisible, setPreviewVisible] = useState(false);
 
   useEffect(() => {
     fetchFiles();
@@ -132,6 +136,27 @@ const FileManagerScreen = ({ navigation }) => {
     }
   };
 
+  // Filter and sort files
+  const filteredFiles = files
+    .filter(f => (f.name || f.fileName || f.originalFilename || '').toLowerCase().includes(search.toLowerCase()))
+    .sort((a, b) => {
+      if (sortBy === 'date') return (b.createdAt || '').localeCompare(a.createdAt || '');
+      if (sortBy === 'name') return (a.name || a.fileName || a.originalFilename || '').localeCompare(b.name || b.fileName || b.originalFilename || '');
+      return 0;
+    });
+
+  // Helper to get file URL
+  const getFileUrl = (item) => item.url || item.fileUrl || item.downloadUrl || item.path || '';
+  // Helper to get file extension
+  const getFileExt = (item) => {
+    const name = item.name || item.fileName || item.originalFilename || '';
+    return name.split('.').pop().toLowerCase();
+  };
+  // Helper to check if image
+  const isImage = (ext) => ['jpg', 'jpeg', 'png', 'gif', 'bmp', 'webp'].includes(ext);
+  // Helper to check if PDF
+  const isPDF = (ext) => ext === 'pdf';
+
   const renderItem = ({ item }) => (
     <TouchableOpacity 
       style={[
@@ -155,8 +180,9 @@ const FileManagerScreen = ({ navigation }) => {
           />
         </View>
       )}
+      <Icon name="insert-drive-file" size={22} color="#667eea" style={{ marginRight: 8 }} />
       <View style={{ flex: 1 }}>
-        <Text style={styles.fileName}>{item.name || item.fileName || item.originalFilename || 'Unnamed File'}</Text>
+        <Text style={styles.fileName}>{(() => { try { return decodeURIComponent(item.name || item.fileName || item.originalFilename || 'Unnamed File'); } catch (e) { return (item.name || item.fileName || item.originalFilename || 'Unnamed File').replace(/%20/g, ' '); } })()}</Text>
         <Text style={styles.fileInfo}>ID: {item.id}</Text>
         {item.uploadedBy && (
           <Text style={styles.fileInfo}>
@@ -174,6 +200,9 @@ const FileManagerScreen = ({ navigation }) => {
           </Text>
         )}
       </View>
+      <TouchableOpacity style={styles.actionBtn} onPress={() => { setPreviewFile(item); setPreviewVisible(true); }}>
+        <Icon name="remove-red-eye" size={20} color="#667eea" />
+      </TouchableOpacity>
       {!selectionMode && (
         <TouchableOpacity
           style={styles.deleteBtn}
@@ -211,7 +240,20 @@ const FileManagerScreen = ({ navigation }) => {
           variant="primary"
         />
       </LinearGradient>
-
+      <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 20, paddingTop: 10, paddingBottom: 4 }}>
+        <Text style={{ fontSize: 18, fontWeight: 'bold', color: '#333' }}>All Files</Text>
+        <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+          <TouchableOpacity onPress={() => setSortBy('date')} style={[{ marginLeft: 8, paddingHorizontal: 10, paddingVertical: 4, borderRadius: 8, backgroundColor: '#eee' }, sortBy === 'date' && { backgroundColor: '#667eea' }]}><Text style={{ color: '#333', fontWeight: 'bold' }}>Date</Text></TouchableOpacity>
+          <TouchableOpacity onPress={() => setSortBy('name')} style={[{ marginLeft: 8, paddingHorizontal: 10, paddingVertical: 4, borderRadius: 8, backgroundColor: '#eee' }, sortBy === 'name' && { backgroundColor: '#667eea' }]}><Text style={{ color: '#333', fontWeight: 'bold' }}>Name</Text></TouchableOpacity>
+        </View>
+      </View>
+      <TextInput
+        style={{ marginHorizontal: 20, marginBottom: 10, backgroundColor: '#fff', borderRadius: 8, paddingHorizontal: 14, paddingVertical: 8, fontSize: 15, color: '#333', borderWidth: 1, borderColor: '#eee' }}
+        placeholder="Search files by name..."
+        value={search}
+        onChangeText={setSearch}
+        placeholderTextColor="#888"
+      />
       {selectionMode && selectedFiles.size > 0 && (
         <View style={styles.bulkActions}>
           <Text style={styles.selectedCount}>{selectedFiles.size} file(s) selected</Text>
@@ -221,26 +263,24 @@ const FileManagerScreen = ({ navigation }) => {
           </TouchableOpacity>
         </View>
       )}
-
       {loading ? (
         <ActivityIndicator size="large" style={{ marginTop: 40 }} />
-      ) : files.length === 0 ? (
+      ) : filteredFiles.length === 0 ? (
         <View style={styles.emptyContainer}>
           <Icon name="folder-open" size={64} color="#ccc" />
           <Text style={styles.emptyTitle}>No Delivered Files</Text>
           <Text style={styles.emptySubtitle}>
-            Only files with delivered orders are shown here.
+            Only files with delivered orders are shown here. Try searching or check your filters.
           </Text>
         </View>
       ) : (
         <FlatList
-          data={files}
+          data={filteredFiles}
           keyExtractor={item => item.id?.toString()}
           renderItem={renderItem}
           contentContainerStyle={{ paddingBottom: 40 }}
         />
       )}
-
       <CustomAlert
         visible={alertVisible}
         title={alertTitle}
@@ -254,6 +294,39 @@ const FileManagerScreen = ({ navigation }) => {
         loading={alertLoading}
         progress={alertProgress}
       />
+      {/* Preview Modal */}
+      <Modal
+        visible={previewVisible}
+        animationType="slide"
+        transparent={true}
+        onRequestClose={() => setPreviewVisible(false)}
+      >
+        <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.85)', justifyContent: 'center', alignItems: 'center' }}>
+          <TouchableOpacity style={{ position: 'absolute', top: 40, right: 30, zIndex: 2 }} onPress={() => setPreviewVisible(false)}>
+            <Icon name="close" size={32} color="#fff" />
+          </TouchableOpacity>
+          {previewFile && (() => {
+            const url = getFileUrl(previewFile);
+            const ext = getFileExt(previewFile);
+            console.log('Previewing:', url, ext, previewFile);
+            if (isImage(ext)) {
+              return <Image source={{ uri: url }} style={{ width: Dimensions.get('window').width * 0.85, height: Dimensions.get('window').height * 0.7, resizeMode: 'contain', borderRadius: 10 }} />;
+            } else if (isPDF(ext)) {
+              // Lazy load react-native-pdf
+              const Pdf = require('react-native-pdf').default;
+              return <Pdf source={{ uri: url }} style={{ width: Dimensions.get('window').width * 0.85, height: Dimensions.get('window').height * 0.7, borderRadius: 10 }} />;
+            } else {
+              return <View style={{ alignItems: 'center', justifyContent: 'center' }}>
+                <Icon name="insert-drive-file" size={60} color="#fff" style={{ marginBottom: 20 }} />
+                <Text style={{ color: '#fff', fontSize: 18, marginBottom: 10 }}>Preview not supported for this file type.</Text>
+                <TouchableOpacity onPress={() => Linking.openURL(url)} style={{ backgroundColor: '#fff', paddingHorizontal: 18, paddingVertical: 10, borderRadius: 8 }}>
+                  <Text style={{ color: '#0058A3', fontWeight: 'bold' }}>Download / Open</Text>
+                </TouchableOpacity>
+              </View>;
+            }
+          })()}
+        </View>
+      </Modal>
     </View>
   );
 };
@@ -445,6 +518,12 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(255,255,255,0.2)',
     justifyContent: 'center',
     alignItems: 'center',
+  },
+  actionBtn: {
+    marginLeft: 10,
+    padding: 8,
+    borderRadius: 20,
+    backgroundColor: '#e0f2f7',
   },
 });
 

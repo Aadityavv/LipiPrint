@@ -4,7 +4,7 @@
 export const PRODUCTION_CONFIG = {
   // API Configuration
   API: {
-    BASE_URL: 'https://lipiprint-freelance.onrender.com', // Updated to Render deployment URL
+    BASE_URL: 'http://192.168.1.4:8082', // Updated to Render deployment URL
     TIMEOUT: 30000, // 30 seconds
     RETRY_ATTEMPTS: 3,
     RETRY_DELAY: 1000, // 1 second
@@ -180,7 +180,7 @@ export const getConfig = () => {
   // Override with environment variables if available
   if (__DEV__) {
     // Development overrides
-    config.API.BASE_URL = 'https://lipiprint-freelance.onrender.com'; // Updated for development
+    config.API.BASE_URL = 'http://192.168.1.4:8082'; // Updated for development
     config.SECURITY.RATE_LIMITING.LOGIN_ATTEMPTS = 10;
     config.ANALYTICS.ENABLED = false;
     config.ERROR_REPORTING.ENABLED = false;

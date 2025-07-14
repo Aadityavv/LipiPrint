@@ -280,9 +280,14 @@ export default function AdminOrdersScreen({ navigation }) {
             </View>
             <Text style={styles.orderFileMinimal}>{fileLabel}</Text>
             <View style={styles.orderCardRowMinimal}>
-              <Text style={styles.orderUserMinimal}>{user?.name} ({user?.email || user?.phone})</Text>
-              <Text style={styles.orderAmountMinimal}>₹{item.totalAmount}</Text>
+              <View style={{ flex: 1 }}>
+                <Text style={styles.orderUserMinimal}>{user?.name}</Text>
+                {user?.email && (
+                  <Text style={[styles.orderUserMinimal, { color: '#888', fontSize: 12 }]}>{user.email}</Text>
+                )}
               </View>
+              <Text style={styles.orderAmountMinimal}>₹{item.totalAmount}</Text>
+            </View>
             <View style={styles.orderCardRowMinimal}>
               <Text style={styles.orderDateMinimal}>{item.createdAt?.slice(0, 10)}</Text>
             </View>

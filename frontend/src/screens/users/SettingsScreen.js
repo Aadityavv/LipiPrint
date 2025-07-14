@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   View, 
   Text, 
@@ -15,6 +15,7 @@ import Icon from 'react-native-vector-icons/MaterialIcons';
 import CustomAlert from '../../components/CustomAlert';
 import { useTheme } from '../../theme/ThemeContext';
 import Heading from '../../components/Heading';
+import ApiService from '../../services/api';
 
 export default function SettingsScreen({ navigation }) {
   const { theme, toggleTheme, isDark } = useTheme();
@@ -28,6 +29,25 @@ export default function SettingsScreen({ navigation }) {
   const [alertType, setAlertType] = useState('info');
   const [alertOnConfirm, setAlertOnConfirm] = useState(null);
   const [alertShowCancel, setAlertShowCancel] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+  const [deleteProgress, setDeleteProgress] = useState(0);
+  const [userInfo, setUserInfo] = useState(null);
+  const [loadingUser, setLoadingUser] = useState(true);
+
+  useEffect(() => {
+    const fetchUser = async () => {
+      setLoadingUser(true);
+      try {
+        const user = await ApiService.getCurrentUser();
+        setUserInfo(user);
+      } catch (e) {
+        setUserInfo(null);
+      } finally {
+        setLoadingUser(false);
+      }
+    };
+    fetchUser();
+  }, []);
 
   const handleLogout = () => {
     setShowLogoutModal(false);
@@ -47,18 +67,30 @@ export default function SettingsScreen({ navigation }) {
     setAlertVisible(true);
   };
 
-  const handleDeleteAccount = () => {
+  const handleDeleteAccount = async () => {
     setShowDeleteModal(false);
-    showAlert(
-      'Account Deleted',
-      'Your account has been permanently deleted.',
-      'success',
-      () => navigation.reset({
-        index: 0,
-        routes: [{ name: 'Login' }],
-      }),
-      false
-    );
+    setDeleting(true);
+    setDeleteProgress(10);
+    try {
+      await ApiService.deleteAccount();
+      setDeleteProgress(100);
+      setTimeout(() => {
+        setDeleting(false);
+        showAlert(
+          'Account Deleted',
+          'Your account has been permanently deleted.',
+          'success',
+          () => navigation.reset({
+            index: 0,
+            routes: [{ name: 'Login' }],
+          }),
+          false
+        );
+      }, 800);
+    } catch (e) {
+      setDeleting(false);
+      showAlert('Delete Failed', e.message || 'Failed to delete account.', 'error');
+    }
   };
 
   const renderSettingItem = (icon, title, subtitle, onPress, rightComponent = null) => (
@@ -124,9 +156,9 @@ export default function SettingsScreen({ navigation }) {
                   <Icon name="person" size={32} color={theme.buttonText} />
                 </View>
                 <View style={styles.profileDetails}>
-                  <Text style={[styles.profileName, { color: theme.text }]}>John Doe</Text>
-                  <Text style={[styles.profileEmail, { color: theme.text }]}>john.doe@example.com</Text>
-                  <Text style={[styles.profilePhone, { color: theme.text }]}>+91 98765 43210</Text>
+                  <Text style={[styles.profileName, { color: theme.text }]}>{loadingUser ? 'Loading...' : (userInfo?.name || 'No Name')}</Text>
+                  <Text style={[styles.profileEmail, { color: theme.text }]}>{loadingUser ? '' : (userInfo?.email || 'No Email')}</Text>
+                  <Text style={[styles.profilePhone, { color: theme.text }]}>{loadingUser ? '' : (userInfo?.phone || 'No Phone')}</Text>
                 </View>
               </View>
               <TouchableOpacity style={styles.editButton}>
@@ -344,6 +376,25 @@ export default function SettingsScreen({ navigation }) {
         </View>
       </Modal>
 
+      {/* Loader for account deletion */}
+      <Modal
+        visible={deleting}
+        transparent={true}
+        animationType="fade"
+        onRequestClose={() => {}}
+      >
+        <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.3)', justifyContent: 'center', alignItems: 'center' }}>
+          <View style={{ backgroundColor: '#fff', borderRadius: 16, padding: 32, alignItems: 'center', width: 260 }}>
+            <Icon name="delete-forever" size={40} color="#F44336" style={{ marginBottom: 16 }} />
+            <Text style={{ fontSize: 18, fontWeight: 'bold', marginBottom: 10 }}>Deleting Account...</Text>
+            <View style={{ width: '100%', height: 8, backgroundColor: '#eee', borderRadius: 4, marginBottom: 10 }}>
+              <View style={{ width: `${deleteProgress}%`, height: 8, backgroundColor: '#F44336', borderRadius: 4 }} />
+            </View>
+            <Text style={{ color: '#888', fontSize: 14 }}>Please wait</Text>
+          </View>
+        </View>
+      </Modal>
+
       <CustomAlert
         visible={alertVisible}
         title={alertTitle}
@@ -511,7 +562,8 @@ const styles = StyleSheet.create({
   },
   versionContainer: {
     alignItems: 'center',
-    paddingVertical: 20,
+    // paddingVertical: 20,
+    marginBottom:30
   },
   versionText: {
     fontSize: 16,

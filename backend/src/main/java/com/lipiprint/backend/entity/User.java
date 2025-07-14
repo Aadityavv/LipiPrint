@@ -29,6 +29,12 @@ public class User {
     private String gstin; // GSTIN for professional users
     private String userType; // 'student' or 'professional'
 
+    @OneToMany(mappedBy = "uploadedBy", cascade = CascadeType.ALL, orphanRemoval = true)
+    private java.util.List<File> files;
+
+    @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true)
+    private java.util.List<Order> orders;
+
     @PrePersist
     protected void onCreate() {
         createdAt = updatedAt = LocalDateTime.now();

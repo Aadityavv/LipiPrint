@@ -21,6 +21,9 @@ public class File {
     @JoinColumn(name = "uploaded_by")
     private User uploadedBy;
 
+    @OneToMany(mappedBy = "file", cascade = CascadeType.ALL, orphanRemoval = true)
+    private java.util.List<PrintJob> printJobs;
+
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
 

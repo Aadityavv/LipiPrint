@@ -4,6 +4,7 @@ import Icon from 'react-native-vector-icons/MaterialIcons';
 import * as Animatable from 'react-native-animatable';
 import LinearGradient from 'react-native-linear-gradient';
 import api from '../../services/api';
+import CustomAlert from '../../components/CustomAlert';
 
 export default function UpdateServicesScreen({ navigation }) {
   const [combinations, setCombinations] = useState([]);
@@ -11,6 +12,15 @@ export default function UpdateServicesScreen({ navigation }) {
   const [editPrices, setEditPrices] = useState({}); // { [id]: value }
   const [bindingOptions, setBindingOptions] = useState([]);
   const [editBinding, setEditBinding] = useState({}); // { [id]: { minPrice, perPagePrice } }
+  const [alert, setAlert] = useState({ visible: false, title: '', message: '', type: 'success' });
+
+  // Add state for new service combination
+  const [newCombo, setNewCombo] = useState({ color: '', paperSize: '', paperQuality: '', printOption: '', costPerPage: '' });
+  // Add state for new binding option
+  const [newBinding, setNewBinding] = useState({ type: '', minPrice: '', perPagePrice: '' });
+  // Add state for showing add forms
+  const [showAddCombo, setShowAddCombo] = useState(false);
+  const [showAddBinding, setShowAddBinding] = useState(false);
 
   useEffect(() => {
     api.request('/print-jobs/combinations')
@@ -40,8 +50,10 @@ export default function UpdateServicesScreen({ navigation }) {
         body: JSON.stringify(data)
       });
       setCombinations(combos => combos.map(c => c.id === id ? updated : c));
+      setAlert({ visible: true, title: 'Success', message: 'Service combination updated!', type: 'success' });
     } catch (e) {
       console.error(e);
+      setAlert({ visible: true, title: 'Error', message: 'Failed to update service combination.', type: 'error' });
     }
   };
 
@@ -52,8 +64,74 @@ export default function UpdateServicesScreen({ navigation }) {
         body: JSON.stringify(data)
       });
       setBindingOptions(opts => opts.map(o => o.id === id ? updated : o));
+      setAlert({ visible: true, title: 'Success', message: 'Binding option updated!', type: 'success' });
     } catch (e) {
       console.error(e);
+      setAlert({ visible: true, title: 'Error', message: 'Failed to update binding option.', type: 'error' });
+    }
+  };
+
+  // Add service combination
+  const addCombination = async () => {
+    try {
+      const payload = {
+        color: newCombo.color,
+        paperSize: newCombo.paperSize,
+        paperQuality: newCombo.paperQuality,
+        printOption: newCombo.printOption,
+        costPerPage: parseFloat(newCombo.costPerPage)
+      };
+      const created = await api.request('/admin/service-combinations', {
+        method: 'POST',
+        body: JSON.stringify(payload)
+      });
+      setCombinations(prev => [...prev, created]);
+      setNewCombo({ color: '', paperSize: '', paperQuality: '', printOption: '', costPerPage: '' });
+      setAlert({ visible: true, title: 'Success', message: 'Service combination added!', type: 'success' });
+    } catch (e) {
+      setAlert({ visible: true, title: 'Error', message: 'Failed to add service combination.', type: 'error' });
+    }
+  };
+
+  // Add binding option
+  const addBindingOption = async () => {
+    try {
+      const payload = {
+        type: newBinding.type,
+        minPrice: parseFloat(newBinding.minPrice),
+        perPagePrice: parseFloat(newBinding.perPagePrice)
+      };
+      const created = await api.request('/admin/binding-options', {
+        method: 'POST',
+        body: JSON.stringify(payload)
+      });
+      setBindingOptions(prev => [...prev, created]);
+      setNewBinding({ type: '', minPrice: '', perPagePrice: '' });
+      setAlert({ visible: true, title: 'Success', message: 'Binding option added!', type: 'success' });
+    } catch (e) {
+      setAlert({ visible: true, title: 'Error', message: 'Failed to add binding option.', type: 'error' });
+    }
+  };
+
+  // Delete service combination
+  const deleteCombination = async (id) => {
+    try {
+      await api.request(`/admin/service-combinations/${id}`, { method: 'DELETE' });
+      setCombinations(prev => prev.filter(c => c.id !== id));
+      setAlert({ visible: true, title: 'Deleted', message: 'Service combination deleted!', type: 'success' });
+    } catch (e) {
+      setAlert({ visible: true, title: 'Error', message: 'Failed to delete service combination.', type: 'error' });
+    }
+  };
+
+  // Delete binding option
+  const deleteBindingOption = async (id) => {
+    try {
+      await api.request(`/admin/binding-options/${id}`, { method: 'DELETE' });
+      setBindingOptions(prev => prev.filter(b => b.id !== id));
+      setAlert({ visible: true, title: 'Deleted', message: 'Binding option deleted!', type: 'success' });
+    } catch (e) {
+      setAlert({ visible: true, title: 'Error', message: 'Failed to delete binding option.', type: 'error' });
     }
   };
 
@@ -94,6 +172,25 @@ export default function UpdateServicesScreen({ navigation }) {
         </LinearGradient>
         <View style={styles.content}>
           <Text style={styles.sectionTitle}>Service Combinations</Text>
+          {/* Add Service Combination Button and Form */}
+          <TouchableOpacity style={[styles.saveButton, { marginBottom: 10, alignSelf: 'flex-end', backgroundColor: showAddCombo ? '#bbb' : '#0058A3' }]} onPress={() => setShowAddCombo(v => !v)}>
+            <Text style={{ color: 'white' }}>{showAddCombo ? 'Cancel' : 'Add New Combination'}</Text>
+          </TouchableOpacity>
+          {showAddCombo && (
+            <View style={[styles.optionRow, { backgroundColor: '#f7f7fa', borderRadius: 10, marginBottom: 12, padding: 12, flexDirection: 'column', alignItems: 'flex-start' }]}>
+              <Text style={{ fontWeight: 'bold', marginBottom: 6 }}>Add New Combination</Text>
+              <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, width: '100%' }}>
+                <TextInput placeholder="Color" value={newCombo.color} onChangeText={v => setNewCombo(c => ({ ...c, color: v }))} style={[styles.priceInput, { flex: 1, minWidth: 80 }]} placeholderTextColor="#000" />
+                <TextInput placeholder="Paper Size" value={newCombo.paperSize} onChangeText={v => setNewCombo(c => ({ ...c, paperSize: v }))} style={[styles.priceInput, { flex: 1, minWidth: 80 }]} placeholderTextColor="#000" />
+                <TextInput placeholder="Paper Quality" value={newCombo.paperQuality} onChangeText={v => setNewCombo(c => ({ ...c, paperQuality: v }))} style={[styles.priceInput, { flex: 1, minWidth: 80 }]} placeholderTextColor="#000" />
+                <TextInput placeholder="Print Option" value={newCombo.printOption} onChangeText={v => setNewCombo(c => ({ ...c, printOption: v }))} style={[styles.priceInput, { flex: 1, minWidth: 80 }]} placeholderTextColor="#000" />
+                <TextInput placeholder="Cost/Page" value={newCombo.costPerPage} onChangeText={v => setNewCombo(c => ({ ...c, costPerPage: v }))} keyboardType="numeric" style={[styles.priceInput, { flex: 1, minWidth: 80 }]} placeholderTextColor="#000" />
+              </View>
+              <TouchableOpacity style={[styles.saveButton, { marginTop: 8, alignSelf: 'flex-end' }]} onPress={addCombination}>
+                <Text style={{ color: 'white' }}>Add Combination</Text>
+              </TouchableOpacity>
+            </View>
+          )}
           {combinations.map(combo => (
             <View key={combo.id} style={styles.optionRow}>
               <View style={{ flex: 2 }}>
@@ -112,10 +209,33 @@ export default function UpdateServicesScreen({ navigation }) {
               >
                 <Text style={{ color: 'white' }}>Save</Text>
               </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.saveButton, { backgroundColor: '#E53935', marginLeft: 8 }]}
+                onPress={() => deleteCombination(combo.id)}
+              >
+                <Text style={{ color: 'white' }}>Delete</Text>
+              </TouchableOpacity>
             </View>
           ))}
 
           <Text style={[styles.sectionTitle, { marginTop: 32 }]}>Binding Options</Text>
+          {/* Add Binding Option Button and Form */}
+          <TouchableOpacity style={[styles.saveButton, { marginBottom: 10, alignSelf: 'flex-end', backgroundColor: showAddBinding ? '#bbb' : '#0058A3' }]} onPress={() => setShowAddBinding(v => !v)}>
+            <Text style={{ color: 'white' }}>{showAddBinding ? 'Cancel' : 'Add New Binding Option'}</Text>
+          </TouchableOpacity>
+          {showAddBinding && (
+            <View style={[styles.optionRow, { backgroundColor: '#f7f7fa', borderRadius: 10, marginBottom: 12, padding: 12, flexDirection: 'column', alignItems: 'flex-start' }]}>
+              <Text style={{ fontWeight: 'bold', marginBottom: 6 }}>Add New Binding Option</Text>
+              <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, width: '100%' }}>
+                <TextInput placeholder="Type (e.g. spiral)" value={newBinding.type} onChangeText={v => setNewBinding(b => ({ ...b, type: v }))} style={[styles.priceInput, { flex: 1, minWidth: 100 }]} placeholderTextColor="#000" />
+                <TextInput placeholder="Min Price" value={newBinding.minPrice} onChangeText={v => setNewBinding(b => ({ ...b, minPrice: v }))} keyboardType="numeric" style={[styles.priceInput, { flex: 1, minWidth: 100 }]} placeholderTextColor="#000" />
+                <TextInput placeholder="Per Page Price" value={newBinding.perPagePrice} onChangeText={v => setNewBinding(b => ({ ...b, perPagePrice: v }))} keyboardType="numeric" style={[styles.priceInput, { flex: 1, minWidth: 100 }]} placeholderTextColor="#000" />
+              </View>
+              <TouchableOpacity style={[styles.saveButton, { marginTop: 8, alignSelf: 'flex-end' }]} onPress={addBindingOption}>
+                <Text style={{ color: 'white' }}>Add Binding Option</Text>
+              </TouchableOpacity>
+            </View>
+          )}
           {bindingOptions.map(opt => {
             console.log('Binding option type:', opt.type, opt);
             return (
@@ -184,11 +304,24 @@ export default function UpdateServicesScreen({ navigation }) {
                 >
                   <Text style={{ color: '#fff', fontWeight: 'bold', fontSize: 16 }}>Save</Text>
                 </TouchableOpacity>
+                <TouchableOpacity
+                  style={[styles.saveButton, { backgroundColor: '#E53935', marginTop: 8 }]}
+                  onPress={() => deleteBindingOption(opt.id)}
+                >
+                  <Text style={{ color: 'white' }}>Delete</Text>
+                </TouchableOpacity>
               </View>
             );
           })}
         </View>
       </ScrollView>
+      <CustomAlert
+        visible={alert.visible}
+        title={alert.title}
+        message={alert.message}
+        type={alert.type}
+        onClose={() => setAlert(a => ({ ...a, visible: false }))}
+      />
     </KeyboardAvoidingView>
   );
 }

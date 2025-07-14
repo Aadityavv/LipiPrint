@@ -244,7 +244,11 @@ export default function AdminDashboardScreen({ navigation }) {
                       <Text style={styles.timelineAction}>{activity.action}</Text>
                     </View>
                     <Text style={styles.timelineUser}>{activity.user}</Text>
-                    <Text style={styles.timelineTime}>{activity.time}</Text>
+                    <Text style={styles.timelineTime}>{
+                      activity.time && moment(activity.time).isValid()
+                        ? moment(activity.time).format('D MMMM, YYYY')
+                        : activity.time
+                    }</Text>
                 </View>
               </View>
             ))

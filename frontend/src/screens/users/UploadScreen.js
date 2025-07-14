@@ -118,7 +118,7 @@ export default function UploadScreen({ navigation }) {
 
     // Use XMLHttpRequest for progress
     const xhr = new XMLHttpRequest();
-    xhr.open('POST', 'https://lipiprint-freelance.onrender.com/api/files/upload');
+    xhr.open('POST', 'http://192.168.1.4:8082/api/files/upload');
     xhr.setRequestHeader('Accept', 'application/json');
     // Add auth token if needed
     const token = await ApiService.getToken();
@@ -391,6 +391,9 @@ export default function UploadScreen({ navigation }) {
     setAlertVisible(true);
   };
 
+  // Helper to check if any file is uploading
+  const isUploading = uploadedFiles.some(f => f.status === 'uploading');
+
   return (
     <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
       <LinearGradient
@@ -496,17 +499,25 @@ export default function UploadScreen({ navigation }) {
         {uploadedFiles.length > 0 && (
           <Animatable.View animation="fadeInUp" delay={275} duration={500}>
             <TouchableOpacity
-              style={styles.proceedButton}
+              style={[
+                styles.proceedButton,
+                isUploading && { backgroundColor: '#43B581', opacity: 0.7 }
+              ]}
               onPress={proceedToPrint}
               activeOpacity={0.9}
+              disabled={isUploading}
             >
               <LinearGradient
-                colors={['#FF6B6B', '#FF8E53']}
+                colors={isUploading ? ['#43B581', '#43B581'] : ['#FF6B6B', '#FF8E53']}
                 style={styles.proceedGradient}
               >
-                <Text style={styles.proceedText}>Continue to Print Options</Text>
+                <Text style={styles.proceedText}>
+                  {isUploading ? 'File is getting uploaded' : 'Continue to Print Options'}
+                </Text>
                 <Text style={styles.proceedSubtext}>
-                  {uploadedFiles.length} file{uploadedFiles.length > 1 ? 's' : ''} ready • ₹{estimatedCost.toFixed(0)}
+                  {isUploading
+                    ? 'Please wait for upload to finish'
+                    : `${uploadedFiles.length} file${uploadedFiles.length > 1 ? 's' : ''} ready `}
                 </Text>
               </LinearGradient>
             </TouchableOpacity>

@@ -2,8 +2,10 @@ package com.lipiprint.backend.controller;
 
 import com.lipiprint.backend.entity.ServiceCombination;
 import com.lipiprint.backend.entity.DiscountRule;
+import com.lipiprint.backend.entity.BindingOption;
 import com.lipiprint.backend.repository.ServiceCombinationRepository;
 import com.lipiprint.backend.repository.DiscountRuleRepository;
+import com.lipiprint.backend.repository.BindingOptionRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
@@ -16,6 +18,8 @@ public class AdminServiceOptionController {
     private ServiceCombinationRepository serviceCombinationRepository;
     @Autowired
     private DiscountRuleRepository discountRuleRepository;
+    @Autowired
+    private BindingOptionRepository bindingOptionRepository;
 
     // Service Combinations CRUD
     @GetMapping("/service-combinations")
@@ -61,5 +65,29 @@ public class AdminServiceOptionController {
     @PreAuthorize("hasRole('ADMIN')")
     public void deleteDiscount(@PathVariable Long id) {
         discountRuleRepository.deleteById(id);
+    }
+
+    // Binding Options CRUD
+    @PutMapping("/binding-options/{id}")
+    @PreAuthorize("hasRole('ADMIN')")
+    public BindingOption updateBindingOption(@PathVariable Long id, @RequestBody BindingOption option) {
+        return bindingOptionRepository.findById(id)
+            .map(existing -> {
+                existing.setType(option.getType());
+                existing.setPerPagePrice(option.getPerPagePrice());
+                existing.setMinPrice(option.getMinPrice());
+                return bindingOptionRepository.save(existing);
+            })
+            .orElseThrow();
+    }
+    @PostMapping("/binding-options")
+    @PreAuthorize("hasRole('ADMIN')")
+    public BindingOption createBindingOption(@RequestBody BindingOption option) {
+        return bindingOptionRepository.save(option);
+    }
+    @DeleteMapping("/binding-options/{id}")
+    @PreAuthorize("hasRole('ADMIN')")
+    public void deleteBindingOption(@PathVariable Long id) {
+        bindingOptionRepository.deleteById(id);
     }
 } 

@@ -158,4 +158,37 @@ INSERT INTO discount_rules (color, paper_size, paper_quality, print_option, min_
 -- Binding Options (spiral binding)
 INSERT INTO binding_options (type, per_page_price, min_price) VALUES
 ('spiral', 1.00, 35.00),
-('staple', 0.50, 10.00); 
+('staple', 0.50, 10.00);
+
+-- MIGRATION: Ensure all user foreign keys have ON DELETE CASCADE
+-- FILES
+ALTER TABLE files DROP CONSTRAINT IF EXISTS files_uploaded_by_fkey;
+ALTER TABLE files ADD CONSTRAINT files_uploaded_by_fkey FOREIGN KEY (uploaded_by) REFERENCES users(id) ON DELETE CASCADE;
+
+-- PRINT JOBS
+ALTER TABLE print_jobs DROP CONSTRAINT IF EXISTS print_jobs_user_id_fkey;
+ALTER TABLE print_jobs ADD CONSTRAINT print_jobs_user_id_fkey FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE;
+
+-- ORDERS
+ALTER TABLE orders DROP CONSTRAINT IF EXISTS orders_user_id_fkey;
+ALTER TABLE orders ADD CONSTRAINT orders_user_id_fkey FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE;
+
+-- PAYMENTS
+ALTER TABLE payments DROP CONSTRAINT IF EXISTS payments_user_id_fkey;
+ALTER TABLE payments ADD CONSTRAINT payments_user_id_fkey FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE;
+
+-- USER ADDRESSES
+ALTER TABLE user_addresses DROP CONSTRAINT IF EXISTS user_addresses_user_id_fkey;
+ALTER TABLE user_addresses ADD CONSTRAINT user_addresses_user_id_fkey FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE;
+
+-- SUPPORT TICKETS
+ALTER TABLE support_tickets DROP CONSTRAINT IF EXISTS support_tickets_user_id_fkey;
+ALTER TABLE support_tickets ADD CONSTRAINT support_tickets_user_id_fkey FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE;
+
+-- NOTIFICATIONS
+ALTER TABLE notifications DROP CONSTRAINT IF EXISTS notifications_user_id_fkey;
+ALTER TABLE notifications ADD CONSTRAINT notifications_user_id_fkey FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE;
+
+-- SETTINGS
+ALTER TABLE settings DROP CONSTRAINT IF EXISTS settings_user_id_fkey;
+ALTER TABLE settings ADD CONSTRAINT settings_user_id_fkey FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE; 

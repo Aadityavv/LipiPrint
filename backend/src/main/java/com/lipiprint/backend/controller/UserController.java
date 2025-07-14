@@ -46,6 +46,13 @@ public class UserController {
         return ResponseEntity.ok(userDTO);
     }
 
+    @DeleteMapping("/profile")
+    public ResponseEntity<?> deleteOwnAccount(Authentication authentication) {
+        User user = userService.findByPhone(authentication.getName()).orElseThrow();
+        userService.deleteUser(user.getId());
+        return ResponseEntity.noContent().build();
+    }
+
     @GetMapping("/list")
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<List<UserDTO>> listUsers() {

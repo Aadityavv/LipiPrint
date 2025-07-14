@@ -3,6 +3,8 @@ import { View, Text, StyleSheet, TextInput, TouchableOpacity, ScrollView, Alert,
 import * as Animatable from 'react-native-animatable';
 import LinearGradient from 'react-native-linear-gradient';
 import Icon from 'react-native-vector-icons/MaterialIcons';
+import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
+import FontAwesome from 'react-native-vector-icons/FontAwesome';
 import ApiService from '../../services/api';
 import { useTheme } from '../../theme/ThemeContext';
 import CustomAlert from '../../components/CustomAlert';
@@ -313,13 +315,9 @@ export default function SignUpScreen({ navigation }) {
               <View style={styles.socialContainer}>
                 <Text style={[styles.socialText, { color: theme.text }]}>Or sign up with</Text>
                 <View style={styles.socialButtons}>
-                  <TouchableOpacity style={styles.socialButton} activeOpacity={0.8}>
-                    <Icon name="phone" size={24} color="#667eea" style={styles.socialIcon} />
+                  <TouchableOpacity style={styles.socialButton} activeOpacity={0.8} onPress={() => {/* TODO: Implement Google OAuth */}}>
+                    <FontAwesome name="google" size={24} color="#DB4437" style={styles.socialIcon} />
                     <Text style={[styles.socialLabel, { color: theme.text }]}>Google</Text>
-                  </TouchableOpacity>
-                  <TouchableOpacity style={styles.socialButton} activeOpacity={0.8}>
-                    <Text style={styles.socialIcon}>📘</Text>
-                    <Text style={[styles.socialLabel, { color: theme.text }]}>Facebook</Text>
                   </TouchableOpacity>
                 </View>
               </View>

@@ -34,7 +34,7 @@ export default function InvoiceDetailScreen() {
       try {
         setLoading(true);
         console.log('[InvoiceDetailScreen] orderId:', orderId);
-        const apiUrl = `${process.env.EXPO_PUBLIC_API_URL || 'https://lipiprint-freelance.onrender.com/'}api/orders/${orderId}`;
+        const apiUrl = `${process.env.EXPO_PUBLIC_API_URL || 'http://192.168.1.4:8082/'}api/orders/${orderId}`;
         console.log('[InvoiceDetailScreen] API URL:', apiUrl);
         const token = await AsyncStorage.getItem('authToken');
         console.log('[InvoiceDetailScreen] token:', token);
@@ -73,7 +73,7 @@ export default function InvoiceDetailScreen() {
       setDownloading(true);
       const { dirs } = RNBlobUtil.fs;
       const path = `${dirs.DownloadDir}/invoice-${orderId}.pdf`;
-      const apiUrl = `${process.env.EXPO_PUBLIC_API_URL || 'https://lipiprint-freelance.onrender.com/'}api/orders/${orderId}/invoice`;
+      const apiUrl = `${process.env.EXPO_PUBLIC_API_URL || 'http://192.168.1.4:8082/'}api/orders/${orderId}/invoice`;
       const token = await AsyncStorage.getItem('authToken');
       if (!token) {
         setDownloading(false);
@@ -133,7 +133,7 @@ export default function InvoiceDetailScreen() {
   const gst = order.totalAmount ? (parseFloat(subtotal) * gstRate).toFixed(2) : '0.00';
   const grandTotal = order.totalAmount ? (parseFloat(subtotal) + parseFloat(gst) + parseFloat(deliveryCharge)).toFixed(2) : '0.00';
 
-  const invoiceUrl = `${process.env.EXPO_PUBLIC_API_URL || 'https://lipiprint-freelance.onrender.com/'}api/orders/${orderId}/invoice`;
+  const invoiceUrl = `${process.env.EXPO_PUBLIC_API_URL || 'http://192.168.1.4:8082/'}api/orders/${orderId}/invoice`;
 
   // Utility to get display file name
   const getDisplayFileName = (file) => {

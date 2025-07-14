@@ -388,7 +388,7 @@ export default function PrintOptionsScreen({ navigation, route }) {
         </Animatable.View>
         <Animatable.View animation="fadeInUp" delay={1000} duration={500}>
           <Text style={styles.sectionTitle}>Binding</Text>
-          <View style={styles.paperGrid}>
+          <View style={[styles.paperGrid, { flexWrap: 'wrap' }]}> 
             {bindingOptions.map(opt => (
               <TouchableOpacity
                 key={opt.id}
