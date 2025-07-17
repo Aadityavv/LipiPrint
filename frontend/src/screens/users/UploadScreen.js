@@ -23,6 +23,7 @@ import { pick, types, isCancel } from '@react-native-documents/picker';
 import ImagePicker from 'react-native-image-crop-picker';
 import CustomAlert from '../../components/CustomAlert';
 import Heading from '../../components/Heading';
+import LottieView from 'lottie-react-native';
 
 const { width } = Dimensions.get('window');
 
@@ -118,7 +119,7 @@ export default function UploadScreen({ navigation }) {
 
     // Use XMLHttpRequest for progress
     const xhr = new XMLHttpRequest();
-    xhr.open('POST', 'http://192.168.1.4:8082/api/files/upload');
+    xhr.open('POST', 'http://192.168.1.11:8082/api/files/upload');
     xhr.setRequestHeader('Accept', 'application/json');
     // Add auth token if needed
     const token = await ApiService.getToken();
@@ -195,9 +196,15 @@ export default function UploadScreen({ navigation }) {
   };
 
   const proceedToPrint = () => {
-    const readyFiles = uploadedFiles.filter(file => file.status !== 'uploading' && file.status !== 'failed');
+    const readyFiles = uploadedFiles.filter(file => file.status === 'done' && typeof file.id === 'number' && file.id > 0);
     if (readyFiles.length === 0) {
       showAlert('No Files', 'Please upload at least one file to continue.');
+      return;
+    }
+    // Defensive: check for any file without a valid backend id
+    const invalidFiles = uploadedFiles.filter(file => file.status === 'done' && (typeof file.id !== 'number' || file.id <= 0));
+    if (invalidFiles.length > 0) {
+      showAlert('File Upload Error', 'One or more files did not upload correctly. Please re-upload those files.');
       return;
     }
     const filesWithOptions = readyFiles.map(file => ({
@@ -266,15 +273,25 @@ export default function UploadScreen({ navigation }) {
       if (!hasPermission) return;
     }
     try {
-      const [res] = await pick({
+      const res = await pick({
         type: [types.allFiles],
+        multiple: true,
       });
-      console.log(res);
-      await handleFileUpload({
-        uri: res.uri,
-        name: res.name,
-        type: res.type,
-      });
+      if (Array.isArray(res)) {
+        for (const file of res) {
+          await handleFileUpload({
+            uri: file.uri,
+            name: file.name,
+            type: file.type,
+          });
+        }
+      } else if (res) {
+        await handleFileUpload({
+          uri: res.uri,
+          name: res.name,
+          type: res.type,
+        });
+      }
     } catch (err) {
       if (isCancel(err)) {
         console.log('User canceled the picker');
@@ -310,6 +327,7 @@ export default function UploadScreen({ navigation }) {
     try {
       const images = await ImagePicker.openPicker({
         multiple: true,
+        maxFiles: 20,
         cropping: false,
         mediaType: 'photo',
       });
@@ -361,9 +379,14 @@ export default function UploadScreen({ navigation }) {
             {file.pages ? ` • ${file.pages} pages` : ''} • {file.type || file.contentType}
           </Text>
           {file.status === 'uploading' && (
-            <View style={styles.progressBarWrap}>
-              <View style={[styles.progressBarDynamic, { width: `${file.progress}%` }]} />
-              <Text style={styles.progressPercent}>{file.progress}%</Text>
+            <View style={{ alignItems: 'center', justifyContent: 'center', width: 100, height: 100 }}>
+              <LottieView
+                source={require('../../assets/animations/Uploading-to-cloud.json')}
+                autoPlay
+                loop
+                style={{ width: 80, height: 80 }}
+              />
+              <Text style={{ color: '#888', fontSize: 13, marginTop: 4 }}>{file.progress}%</Text>
             </View>
           )}
         </View>
@@ -373,14 +396,14 @@ export default function UploadScreen({ navigation }) {
           style={styles.actionButton}
           onPress={() => removeFile(file.id)}
         >
-          <Icon name="close" size={16} color="white" />
+          <Icon name="close" size={16} color="#22194f" />
         </TouchableOpacity>
-        <TouchableOpacity
+        {/* <TouchableOpacity
           style={styles.actionButton}
           onPress={() => openEnhanceModal(file)}
         >
           <Icon name="auto-fix-high" size={20} color="#667eea" />
-        </TouchableOpacity>
+        </TouchableOpacity> */}
       </View>
     </View>
   );
@@ -393,11 +416,12 @@ export default function UploadScreen({ navigation }) {
 
   // Helper to check if any file is uploading
   const isUploading = uploadedFiles.some(f => f.status === 'uploading');
+  const uploadingCount = uploadedFiles.filter(f => f.status === 'uploading').length;
 
   return (
     <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
       <LinearGradient
-        colors={['#667eea', '#764ba2']}
+        colors={['#22194f', '#22194f']}
         style={styles.headerGradient}
       >
         <Heading
@@ -465,11 +489,11 @@ export default function UploadScreen({ navigation }) {
           <Text style={styles.sectionTitle}>Quick Upload</Text>
           <View style={styles.quickUploadGrid}>
             <TouchableOpacity style={styles.quickUploadBtn} onPress={pickFromCamera}>
-              <Icon name="photo-camera" size={28} color="#667eea" />
+              <Icon name="photo-camera" size={28} color="#fff" />
               <Text style={styles.quickUploadText}>Camera</Text>
             </TouchableOpacity>
             <TouchableOpacity style={styles.quickUploadBtn} onPress={pickFromGallery}>
-              <Icon name="photo-library" size={28} color="#667eea" />
+              <Icon name="photo-library" size={28} color="#fff" />
               <Text style={styles.quickUploadText}>Gallery</Text>
             </TouchableOpacity>
           </View>
@@ -610,6 +634,25 @@ export default function UploadScreen({ navigation }) {
         message={alertMessage}
         onClose={() => setAlertVisible(false)}
       />
+      <Modal
+        visible={isUploading}
+        transparent
+        animationType="slide"
+      >
+        <View style={{ flex: 1, justifyContent: 'flex-end', alignItems: 'center', backgroundColor: 'rgba(0,0,0,0.2)' }}>
+          <View style={{ width: '100%', backgroundColor: '#fff', borderTopLeftRadius: 24, borderTopRightRadius: 24, alignItems: 'center', padding: 32, shadowColor: '#000', shadowOpacity: 0.1, shadowRadius: 12, elevation: 8 }}>
+            <LottieView
+              source={require('../../assets/animations/Uploading-to-cloud.json')}
+              autoPlay
+              loop
+              style={{ width: 120, height: 120 }}
+            />
+            <Text style={{ fontSize: 18, fontWeight: 'bold', marginTop: 16 }}>
+              Uploading {uploadingCount} file{uploadingCount > 1 ? 's' : ''}...
+            </Text>
+          </View>
+        </View>
+      </Modal>
     </ScrollView>
   );
 }
@@ -815,13 +858,13 @@ const styles = StyleSheet.create({
   quickUploadBtn: {
     alignItems: 'center',
     padding: 12,
-    backgroundColor: '#f0f4ff',
-    borderRadius: 10,
-    width: 110,
+    backgroundColor: '#22194f',
+    borderRadius: 20,
+    width: 150,
   },
   quickUploadText: {
     marginTop: 6,
-    color: '#667eea',
+    color: '#fff',
     fontWeight: 'bold',
   },
   optionsContainer: {

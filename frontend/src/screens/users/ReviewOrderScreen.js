@@ -1,33 +1,56 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Dimensions } from 'react-native';
 import * as Animatable from 'react-native-animatable';
 import LinearGradient from 'react-native-linear-gradient';
 import { useTheme } from '../../theme/ThemeContext';
 import Heading from '../../components/Heading';
+import api from '../../services/api'; // Assuming api.js is in the parent directory
 
 const { width } = Dimensions.get('window');
 
 export default function ReviewOrderScreen({ navigation, route }) {
   const { theme } = useTheme();
-  // Mock data for demonstration
-  const files = [
-    { name: 'Document1.pdf', pages: 12 },
-    { name: 'Notes.docx', pages: 8 },
-  ];
-  const printOptions = {
-    paper: 'A4',
-    printType: 'Color',
-    sides: 'Double Sided',
-  };
+  const { orderId } = route.params || {};
+  const [order, setOrder] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+
+  useEffect(() => {
+    if (!orderId) {
+      setError('No order ID provided.');
+      setLoading(false);
+      return;
+    }
+    setLoading(true);
+    setError(null);
+    api.getOrder(orderId)
+      .then(setOrder)
+      .catch(e => setError('Failed to load order.'))
+      .finally(() => setLoading(false));
+  }, [orderId]);
+
+  if (loading) {
+    return <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}><Text>Loading...</Text></View>;
+  }
+  if (error) {
+    return <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}><Text style={{ color: 'red' }}>{error}</Text></View>;
+  }
+  if (!order) {
+    return <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}><Text>No order found.</Text></View>;
+  }
+
+  // Extract data from order
+  const files = order.printJobs?.map(j => j.file) || [];
+  const printOptions = order.printJobs?.[0]?.options ? JSON.parse(order.printJobs[0].options) : {};
   const delivery = {
-    method: 'Home Delivery',
-    address: '101, Green Residency, MG Road, Bangalore',
-    phone: '9876543210',
+    method: order.deliveryType === 'PICKUP' ? 'Store Pickup' : 'Home Delivery',
+    address: order.deliveryAddress,
+    phone: order.phone,
   };
   const cost = {
-    printing: 80,
-    delivery: 30,
-    total: 110,
+    printing: order.totalAmount, // For more detailed breakdown, call api.calculatePrintCost
+    delivery: order.deliveryType === 'PICKUP' ? 0 : 30, // Or fetch from settings
+    total: order.totalAmount,
   };
 
   return (
@@ -49,9 +72,9 @@ export default function ReviewOrderScreen({ navigation, route }) {
             <Text style={styles.sectionTitle}>Files</Text>
             <View style={styles.card}>
               {files.map((file, idx) => (
-                <View key={file.name} style={styles.fileRow}>
+                <View key={file.id || file.name || idx} style={styles.fileRow}>
                   <Text style={styles.fileIcon}>📄</Text>
-                  <Text style={styles.fileName}>{file.name}</Text>
+                  <Text style={styles.fileName}>{file.originalFilename || file.name}</Text>
                   <Text style={styles.filePages}>{file.pages} pages</Text>
                 </View>
               ))}
@@ -62,9 +85,9 @@ export default function ReviewOrderScreen({ navigation, route }) {
           <Animatable.View animation="fadeInUp" delay={300} duration={500}>
             <Text style={styles.sectionTitle}>Print Options</Text>
             <View style={styles.cardRow}>
-              <View style={styles.optionCard}><Text style={styles.optionIcon}>📄</Text><Text style={styles.optionText}>{printOptions.paper}</Text></View>
-              <View style={styles.optionCard}><Text style={styles.optionIcon}>🎨</Text><Text style={styles.optionText}>{printOptions.printType}</Text></View>
-              <View style={styles.optionCard}><Text style={styles.optionIcon}>🔄</Text><Text style={styles.optionText}>{printOptions.sides}</Text></View>
+              <View style={styles.optionCard}><Text style={styles.optionIcon}>📄</Text><Text style={styles.optionText}>{printOptions.paper || printOptions.paperSize}</Text></View>
+              <View style={styles.optionCard}><Text style={styles.optionIcon}>🎨</Text><Text style={styles.optionText}>{printOptions.printType || printOptions.color}</Text></View>
+              <View style={styles.optionCard}><Text style={styles.optionIcon}>🔄</Text><Text style={styles.optionText}>{printOptions.sides || printOptions.printOption}</Text></View>
             </View>
           </Animatable.View>
 
@@ -91,7 +114,7 @@ export default function ReviewOrderScreen({ navigation, route }) {
       </ScrollView>
       {/* Proceed Button */}
       <Animatable.View animation="fadeInUp" delay={700} duration={500} style={styles.buttonContainer}>
-        <TouchableOpacity onPress={() => navigation.navigate('Checkout')} activeOpacity={0.85}>
+        <TouchableOpacity onPress={() => navigation.navigate('Checkout', { orderId })} activeOpacity={0.85}>
           <LinearGradient colors={["#667eea", "#764ba2"]} style={styles.proceedButton}>
             <Text style={styles.proceedText}>Proceed to Checkout</Text>
           </LinearGradient>

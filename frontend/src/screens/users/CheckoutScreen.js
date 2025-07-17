@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Dimensions } from 'react-native';
 import * as Animatable from 'react-native-animatable';
 import LinearGradient from 'react-native-linear-gradient';
@@ -11,34 +11,38 @@ const { width } = Dimensions.get('window');
 
 export default function CheckoutScreen({ navigation, route }) {
   const { theme } = useTheme();
-  // Mock data for demonstration
-  const order = {
-    files: [
-      { name: 'Document1.pdf', pages: 12 },
-      { name: 'Notes.docx', pages: 8 },
-    ],
-    delivery: {
-      method: 'Home Delivery',
-      address: '101, Green Residency, MG Road, Bangalore',
-      phone: '9876543210',
-    },
-    payment: {
-      method: 'UPI Payment',
-      icon: <Icon name="phone" size={24} color="#667eea" />,
-    },
-    total: 110,
-  };
+  const { orderId } = route.params || {};
+  const [order, setOrder] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [placing, setPlacing] = useState(false);
 
-  const [loading, setLoading] = React.useState(false);
-  const [error, setError] = React.useState(null);
-
-  const handlePlaceOrder = async () => {
+  useEffect(() => {
+    if (!orderId) {
+      setError('No order ID provided.');
+      setLoading(false);
+      return;
+    }
     setLoading(true);
     setError(null);
+    api.getOrder(orderId)
+      .then(setOrder)
+      .catch(e => setError('Failed to load order.'))
+      .finally(() => setLoading(false));
+  }, [orderId]);
+
+  const handlePlaceOrder = async () => {
+    setPlacing(true);
+    setError(null);
     try {
-      // Create a print job for each file
-      const printJobsPayload = order.files.map(file => ({
-        file: { id: file.id || 1 }, // Use real file id if available
+      // If order is already created, just confirm
+      if (order && order.id) {
+        navigation.navigate('OrderConfirmation', { orderId: order.id });
+        return;
+      }
+      // Otherwise, create order (should not happen in this flow)
+      const printJobsPayload = order.printJobs.map(j => ({
+        file: { id: j.file.id },
         user: { id: 1 }, // Use a mock user id for demo
         status: 'QUEUED',
         options: JSON.stringify({
@@ -49,16 +53,15 @@ export default function CheckoutScreen({ navigation, route }) {
           binding: 'None',
         }),
       }));
-      // No need to call createPrintJob for each, just send to order
-      const deliveryAddress = order.delivery.address ? order.delivery.address.trim() : '';
+      const deliveryAddress = order.deliveryAddress ? order.deliveryAddress.trim() : '';
       const orderPayload = {
         user: { id: 1 },
         printJobs: printJobsPayload,
         status: 'PENDING',
-        totalAmount: order.total,
+        totalAmount: order.totalAmount,
         deliveryType: 'DELIVERY',
         deliveryAddress: deliveryAddress,
-        phone: order.delivery.phone,
+        phone: order.phone,
       };
       const createdOrder = await api.createOrder(orderPayload);
       navigation.navigate('OrderConfirmation', { order: createdOrder });
@@ -66,9 +69,31 @@ export default function CheckoutScreen({ navigation, route }) {
       setError('Failed to place order. Please try again.');
       console.error('Order creation error:', e);
     } finally {
-      setLoading(false);
+      setPlacing(false);
     }
   };
+
+  if (loading) {
+    return <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}><Text>Loading...</Text></View>;
+  }
+  if (error) {
+    return <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}><Text style={{ color: 'red' }}>{error}</Text></View>;
+  }
+  if (!order) {
+    return <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}><Text>No order found.</Text></View>;
+  }
+
+  const files = order.printJobs?.map(j => j.file) || [];
+  const delivery = {
+    method: order.deliveryType === 'PICKUP' ? 'Store Pickup' : 'Home Delivery',
+    address: order.deliveryAddress,
+    phone: order.phone,
+  };
+  const payment = {
+    method: order.paymentMethod || 'UPI Payment',
+    icon: <Icon name="phone" size={24} color="#667eea" />,
+  };
+  const total = order.totalAmount;
 
   return (
     <View style={[styles.container, { backgroundColor: theme.background }]}>
@@ -88,10 +113,10 @@ export default function CheckoutScreen({ navigation, route }) {
           <Animatable.View animation="fadeInUp" delay={200} duration={500}>
             <Text style={styles.sectionTitle}>Files</Text>
             <View style={styles.card}>
-              {order.files.map((file, idx) => (
-                <View key={file.name} style={styles.fileRow}>
+              {files.map((file, idx) => (
+                <View key={file.id || file.name || idx} style={styles.fileRow}>
                   <Text style={styles.fileIcon}>📄</Text>
-                  <Text style={styles.fileName}>{file.name}</Text>
+                  <Text style={styles.fileName}>{file.originalFilename || file.name}</Text>
                   <Text style={styles.filePages}>{file.pages} pages</Text>
                 </View>
               ))}
@@ -102,9 +127,9 @@ export default function CheckoutScreen({ navigation, route }) {
           <Animatable.View animation="fadeInUp" delay={300} duration={500}>
             <Text style={styles.sectionTitle}>Delivery</Text>
             <View style={styles.card}>
-              <Text style={styles.deliveryMethod}>{order.delivery.method}</Text>
-              <Text style={styles.deliveryAddress}>{order.delivery.address}</Text>
-              <Text style={styles.deliveryPhone}>📞 {order.delivery.phone}</Text>
+              <Text style={styles.deliveryMethod}>{delivery.method}</Text>
+              <Text style={styles.deliveryAddress}>{delivery.address}</Text>
+              <Text style={styles.deliveryPhone}>📞 {delivery.phone}</Text>
             </View>
           </Animatable.View>
 
@@ -113,8 +138,8 @@ export default function CheckoutScreen({ navigation, route }) {
             <Text style={styles.sectionTitle}>Payment</Text>
             <View style={styles.cardRow}>
               <View style={styles.paymentCard}>
-                <Text style={styles.paymentIcon}>{order.payment.icon}</Text>
-                <Text style={styles.paymentText}>{order.payment.method}</Text>
+                <Text style={styles.paymentIcon}>{payment.icon}</Text>
+                <Text style={styles.paymentText}>{payment.method}</Text>
               </View>
             </View>
           </Animatable.View>
@@ -125,7 +150,7 @@ export default function CheckoutScreen({ navigation, route }) {
             <View style={styles.card}>
               <View style={styles.totalRow}>
                 <Text style={styles.totalLabel}>Total Amount</Text>
-                <Text style={styles.totalValue}>₹{order.total}</Text>
+                <Text style={styles.totalValue}>₹{total}</Text>
               </View>
             </View>
           </Animatable.View>
@@ -134,9 +159,9 @@ export default function CheckoutScreen({ navigation, route }) {
       {/* Place Order Button */}
       <Animatable.View animation="fadeInUp" delay={700} duration={500} style={styles.buttonContainer}>
         {error && <Text style={{ color: 'red', marginBottom: 10 }}>{error}</Text>}
-        <TouchableOpacity onPress={handlePlaceOrder} activeOpacity={0.85} disabled={loading}>
+        <TouchableOpacity onPress={handlePlaceOrder} activeOpacity={0.85} disabled={placing}>
           <LinearGradient colors={["#667eea", "#764ba2"]} style={styles.placeOrderButton}>
-            {loading ? (
+            {placing ? (
               <Text style={styles.placeOrderText}>Placing Order...</Text>
             ) : (
               <Text style={styles.placeOrderText}>Place Order</Text>

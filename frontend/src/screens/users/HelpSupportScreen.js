@@ -253,7 +253,7 @@ export default function HelpSupportScreen({ navigation }) {
   return (
     <View style={[styles.container, { backgroundColor: theme.background }]}>
       <LinearGradient
-        colors={['#667eea', '#764ba2']}
+        colors={['#22194f', '#22194f']}
         style={styles.headerGradient}
       >
         <Heading

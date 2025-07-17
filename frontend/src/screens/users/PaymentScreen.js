@@ -20,6 +20,7 @@ import Heading from '../../components/Heading';
 const { width } = Dimensions.get('window');
 
 export default function PaymentScreen({ navigation, route }) {
+  console.log('[PaymentScreen] route.params:', route.params);
   const { files, selectedOptions, deliveryType, deliveryAddress, phone, total } = route.params || {};
   
   const [processing, setProcessing] = useState(false);
@@ -42,18 +43,14 @@ export default function PaymentScreen({ navigation, route }) {
   }, []);
 
   // GST Calculation (18% on subtotal)
-  const deliveryCost = deliveryType === 'PICKUP' ? 0 : 30;
-  const printingCost = total - deliveryCost;
-  const gst = Math.round(0.18 * (printingCost + deliveryCost));
-  const subtotal = printingCost + deliveryCost;
-  const grandTotal = subtotal + gst;
+  const baseTotal = total || 0;
+  const gst = Math.round(baseTotal * 0.18);
+  const grandTotal = baseTotal + gst;
 
   const orderSummary = {
-    items: files.length,
-    pages: files.reduce((sum, file) => sum + file.pages, 0),
-    printing: printingCost,
-    delivery: deliveryCost,
-    subtotal,
+    items: files?.length || 0,
+    pages: files?.reduce((sum, file) => sum + (file.pages || 0), 0),
+    printing: baseTotal,
     gst,
     total: grandTotal,
   };
@@ -69,6 +66,12 @@ export default function PaymentScreen({ navigation, route }) {
 
   const handlePayment = async () => {
     setProcessing(true);
+    // Defensive: check for valid file IDs
+    if (!files || files.length === 0 || files.some(file => typeof file.id !== 'number' || file.id <= 0)) {
+      setProcessing(false);
+      showAlert('File Error', 'One or more files are missing or not uploaded correctly. Please re-upload your files.', 'error');
+      return;
+    }
     try {
       // 1. Build the order data (before payment)
       const printJobsPayload = files.map(file => ({
@@ -81,25 +84,14 @@ export default function PaymentScreen({ navigation, route }) {
         user: { id: user?.id },
         printJobs: printJobsPayload,
         status: 'PENDING',
-        totalAmount: orderSummary.total,
+        totalAmount: grandTotal,
         deliveryType,
         deliveryAddress,
         phone,
       };
-      // 2. Validate order before payment
-      const validationRes = await ApiService.request('/orders/validate', {
-        method: 'POST',
-        body: JSON.stringify(orderData),
-      });
-      if (!validationRes.valid) {
-        setProcessing(false);
-        showAlert('Order Error', validationRes.error || 'Order validation failed.', 'error');
-        return;
-      }
-      const validatedPrice = validationRes.price;
-      // 3. Create Razorpay order with validated price
+      // 2. Create Razorpay order with grandTotal
       const orderRes = await createRazorpayOrder({
-        amount: validatedPrice,
+        amount: grandTotal,
         currency: 'INR',
         receipt: `receipt_${Date.now()}`,
       });
@@ -128,10 +120,9 @@ export default function PaymentScreen({ navigation, route }) {
         showAlert('Order Error', 'No file selected for print job.', 'error');
         return;
       }
-      // 4. Create order after payment, passing razorpayOrderId
+      // 3. Create order after payment, passing razorpayOrderId
       const finalOrderData = {
         ...orderData,
-        totalAmount: validatedPrice,
         razorpayOrderId: orderRes.id,
       };
       const createdOrder = await ApiService.createOrder(finalOrderData);
@@ -147,7 +138,7 @@ export default function PaymentScreen({ navigation, route }) {
     <View style={{ flex: 1, backgroundColor: '#f8f9fa' }}>
       <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
         <LinearGradient
-          colors={['#667eea', '#764ba2']}
+          colors={['#22194f', '#22194f']}
           style={styles.headerGradient}
         >
           <Heading
@@ -176,11 +167,11 @@ export default function PaymentScreen({ navigation, route }) {
                 </View>
                 <View style={styles.summaryRow}>
                   <Text style={styles.summaryLabel}>Delivery</Text>
-                  <Text style={styles.summaryValue}>₹{orderSummary.delivery}</Text>
+                  <Text style={styles.summaryValue}>₹{orderSummary.gst}</Text>
                 </View>
                 <View style={styles.summaryRow}>
                   <Text style={styles.summaryLabel}>Subtotal</Text>
-                  <Text style={styles.summaryValue}>₹{orderSummary.subtotal}</Text>
+                  <Text style={styles.summaryValue}>₹{orderSummary.printing}</Text>
                 </View>
                 <View style={styles.summaryRow}>
                   <Text style={styles.summaryLabel}>GST (18%)</Text>

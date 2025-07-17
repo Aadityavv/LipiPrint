@@ -125,7 +125,7 @@ export default function TrackOrderScreen({ navigation, route }) {
     <View style={[styles.container, { backgroundColor: theme.background }]}>
       <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
         <LinearGradient
-          colors={['#667eea', '#764ba2']}
+          colors={['#22194f', '#22194f']}
           style={styles.headerGradient}
         >
           <Heading

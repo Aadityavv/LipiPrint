@@ -20,6 +20,10 @@ public class PrintJobService {
         return printJobRepository.findById(id);
     }
 
+    public Optional<PrintJob> findByIdWithFile(Long id) {
+        return Optional.ofNullable(printJobRepository.findByIdWithFile(id));
+    }
+
     public List<PrintJob> findAll() {
         return printJobRepository.findAll();
     }

@@ -126,6 +126,10 @@ public class FileService {
             } else {
                 entity.setPages(null);
             }
+            // Fallback: if pages is still null or less than 1, set to 1
+            if (entity.getPages() == null || entity.getPages() < 1) {
+                entity.setPages(1);
+            }
 
             return fileRepository.save(entity);
         } catch (Exception e) {

@@ -213,7 +213,7 @@ export default function ProfileScreen({ navigation }) {
       }
     >
       <LinearGradient
-        colors={['#667eea', '#764ba2']}
+        colors={['#22194f', '#22194f']}
         style={styles.headerGradient}
       >
         <Animatable.View animation="fadeInDown" delay={100} duration={500} style={styles.header}>

@@ -34,6 +34,7 @@ import CustomerSupportScreen from '../screens/users/CustomerSupportScreen';
 import AboutScreen from '../screens/users/AboutScreen';
 import InvoiceDetailScreen from '../screens/users/InvoiceDetailScreen';
 import FilesScreen from '../screens/users/FilesScreen';
+import NotificationsScreen from '../screens/users/NotificationsScreen';
 
 // Import admin screens
 import AdminDashboardScreen from '../screens/admin/AdminDashboardScreen';
@@ -59,7 +60,6 @@ function TabNavigator() {
           let iconName = 'home';
           if (route.name === 'Upload') iconName = 'upload-file';
           else if (route.name === 'Orders') iconName = 'history';
-          else if (route.name === 'Profile') iconName = 'person';
           return <Icon name={iconName} size={size} color={color} />;
         },
         tabBarActiveTintColor: '#0058A3',
@@ -70,7 +70,6 @@ function TabNavigator() {
       <Tab.Screen name="Home" component={HomeScreen} />
       <Tab.Screen name="Upload" component={UploadScreen} />
       <Tab.Screen name="Orders" component={OrdersScreen} />
-      <Tab.Screen name="Profile" component={ProfileScreen} />
     </Tab.Navigator>
   );
 }
@@ -120,6 +119,8 @@ export default function AppNavigator() {
         
         {/* User Screens */}
         <Stack.Screen name="MainTabs" component={TabNavigator} />
+        <Stack.Screen name="Profile" component={ProfileScreen} />
+        <Stack.Screen name="Notifications" component={NotificationsScreen} />
         <Stack.Screen name="ProfileCompletion" component={ProfileCompletionScreen} />
         <Stack.Screen name="PrintOptions" component={PrintOptionsScreen} />
         <Stack.Screen name="DeliveryOptions" component={DeliveryOptionsScreen} />

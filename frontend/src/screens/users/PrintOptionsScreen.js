@@ -8,6 +8,7 @@ import {
   TextInput,
   Dimensions,
   Modal,
+  Platform,
 } from 'react-native';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 import * as Animatable from 'react-native-animatable';
@@ -30,27 +31,23 @@ export default function PrintOptionsScreen({ navigation, route }) {
   const [total, setTotal] = useState(0);
   const [calculating, setCalculating] = useState(false);
   const [costDetails, setCostDetails] = useState(null);
-  const [available, setAvailable] = useState({}); // { color: Set, paperSize: Set, ... }
   const [errorMsg, setErrorMsg] = useState("");
   const [showErrorModal, setShowErrorModal] = useState(false);
   const [uploadedFiles, setUploadedFiles] = useState([]); // [{ name, size, pages, ... }]
   const [bindingOptions, setBindingOptions] = useState([]);
 
+  // Fetch all combinations and binding options once
   useEffect(() => {
-    // Fetch print option combinations
-    api.request('/print-jobs/combinations')
-      .then(data => {
-        setCombinations(data);
-        setLoading(false);
-      });
-    // Fetch binding options
-    api.request('/print-jobs/binding-options')
-      .then(setBindingOptions);
-    // Fetch binding options (from /services/active or a dedicated endpoint if you have one)
-    api.request('/services/active')
-      .then(data => {
-        setOptions(data.filter(opt => opt.name.split('_')[0] === 'binding'));
-      });
+    Promise.all([
+      api.request('/print-jobs/combinations'),
+      api.request('/print-jobs/binding-options'),
+      api.request('/services/active')
+    ]).then(([combos, bindingOpts, allOpts]) => {
+      setCombinations(combos);
+      setBindingOptions(bindingOpts);
+      setOptions(allOpts.filter(opt => opt.name.split('_')[0] === 'binding'));
+      setLoading(false);
+    });
   }, []);
 
   useEffect(() => {
@@ -65,6 +62,24 @@ export default function PrintOptionsScreen({ navigation, route }) {
   const uniqueQualities = Array.from(new Set(combinations.map(c => c.paperQuality)));
   const uniqueSides = Array.from(new Set(combinations.map(c => c.printOption)));
 
+  // Helper: filter available options based on current selection
+  function getAvailableOptions(type) {
+    // Filter combinations based on current selection except for the current type
+    let filtered = combinations;
+    if (type !== 'color' && selected.color) filtered = filtered.filter(c => c.color === selected.color);
+    if (type !== 'paper' && selected.paper) filtered = filtered.filter(c => c.paperSize === selected.paper);
+    if (type !== 'quality' && selected.quality) filtered = filtered.filter(c => c.paperQuality === selected.quality);
+    if (type !== 'side' && selected.side) filtered = filtered.filter(c => c.printOption === selected.side);
+    // Return available values for the current type
+    switch (type) {
+      case 'color': return Array.from(new Set(filtered.map(c => c.color)));
+      case 'paper': return Array.from(new Set(filtered.map(c => c.paperSize)));
+      case 'quality': return Array.from(new Set(filtered.map(c => c.paperQuality)));
+      case 'side': return Array.from(new Set(filtered.map(c => c.printOption)));
+      default: return [];
+    }
+  }
+
   // Helper to get selected value for binding
   const getSelectedBindingValue = () => {
     const id = selected.binding;
@@ -73,107 +88,7 @@ export default function PrintOptionsScreen({ navigation, route }) {
     return opt.name || opt.type || opt.displayName;
   };
 
-  // Fetch available options from backend whenever selection changes
-  useEffect(() => {
-    const fetchAvailable = async () => {
-      const payload = {};
-      if (selected.color) payload.color = selected.color;
-      if (selected.paper) payload.paperSize = selected.paper;
-      if (selected.quality) payload.paperQuality = selected.quality;
-      if (selected.side) payload.printOption = selected.side;
-      console.log('[API CALL] /print-jobs/available-options', payload);
-      try {
-        const res = await api.getAvailablePrintOptions(payload);
-        console.log('[API RESPONSE] /print-jobs/available-options', res);
-        setAvailable(res);
-        setSelected(prev => {
-          const next = { ...prev };
-          if (next.color && res.color && !res.color.includes(selected.color)) {
-            console.log('Resetting color:', selected.color, 'not in', res.color);
-            next.color = undefined;
-          }
-          if (next.paper && res.paperSize && !res.paperSize.includes(selected.paper)) {
-            console.log('Resetting paper:', selected.paper, 'not in', res.paperSize);
-            next.paper = undefined;
-          }
-          if (next.quality && res.paperQuality && !res.paperQuality.includes(selected.quality)) {
-            console.log('Resetting quality:', selected.quality, 'not in', res.paperQuality);
-            next.quality = undefined;
-          }
-          if (next.side && res.printOption && !res.printOption.includes(selected.side)) {
-            console.log('Resetting side:', selected.side, 'not in', res.printOption);
-            next.side = undefined;
-          }
-          return next;
-        });
-      } catch (e) {
-        setAvailable({});
-      }
-    };
-    fetchAvailable();
-    console.log('[SELECTION STATE]', selected);
-  }, [selected.color, selected.paper, selected.quality, selected.side]);
-
-  // List all possible categories
-  const allCategories = ['color', 'paper', 'quality', 'side', 'binding'];
-
-  // Map backend keys to frontend types
-  const backendKeyMap = {
-    color: 'color',
-    paper: 'paperSize',
-    quality: 'paperQuality',
-    side: 'printOption',
-    binding: null // always available
-  };
-
-  // Map frontend displayName to backend value for each category
-  const displayNameToBackend = {
-    color: {
-      'Color': 'Colour',
-      'Black & White': 'B&W',
-      'Colour': 'Colour',
-      'B&W': 'B&W',
-    },
-    paper: {
-      'Paper Size A4': 'A4',
-      'Paper Size A3': 'A3',
-      'A4': 'A4',
-      'A3': 'A3',
-    },
-    quality: {
-      '70 GSM': '70 GSM',
-      '100 GSM': '100 GSM',
-    },
-    side: {
-      'Both Side Printing': 'Double Side',
-      'One Side Printing': 'Single Side',
-      'Double Side': 'Double Side',
-      'Single Side': 'Single Side',
-    },
-    binding: {
-      'Spiral': 'spiral',
-      'Staple': 'staple',
-      // Add more if needed
-    },
-  };
-
-  // Group options by type, always include all categories
-  const grouped = allCategories.reduce((acc, type) => {
-    const opts = options.filter(opt => opt.name.split('_')[0] === type);
-    const backendKey = backendKeyMap[type];
-    const filtered = opts.filter(opt => {
-      if (backendKey && available[backendKey]) {
-        // Map displayName to backend value for comparison
-        const backendValue = displayNameToBackend[type][opt.displayName] || opt.displayName;
-        return available[backendKey].includes(backendValue);
-      }
-      return true;
-    });
-    acc[type] = filtered;
-    return acc;
-  }, {});
-
-  // Call backend to calculate total cost
+  // Call backend to calculate total cost (keep this for price calculation only)
   useEffect(() => {
     const numPages = uploadedFiles.reduce((sum, f) => sum + (f.pages || 0), 0);
     if (!selected.color || !selected.paper || !selected.quality || !selected.side || numPages === 0) {
@@ -193,10 +108,8 @@ export default function PrintOptionsScreen({ navigation, route }) {
         bindingType: selected.binding,
         bindingPages: numPages
       };
-      console.log('PAYLOAD TO BACKEND:', payload);
       try {
         const res = await api.calculatePrintCost(payload);
-        console.log('[API RESPONSE] /print-jobs/calculate-cost', res);
         setTotal(res.totalCost);
         setCostDetails(res);
         setErrorMsg("");
@@ -209,7 +122,6 @@ export default function PrintOptionsScreen({ navigation, route }) {
       }
     };
     fetchCost();
-    console.log('[SELECTION STATE]', selected);
   }, [selected.color, selected.paper, selected.quality, selected.side, selected.binding, uploadedFiles]);
 
   // Show modal when errorMsg is set
@@ -241,9 +153,16 @@ export default function PrintOptionsScreen({ navigation, route }) {
   // Add Reset button handler
   const handleReset = () => {
     setSelected({});
-    setAvailable({});
     setTotal(0);
     setCostDetails(null);
+  };
+
+  // Helper to shorten file names
+  const shortenFileName = (name, maxLength = 20) => {
+    if (!name) return '';
+    if (name.length <= maxLength) return name;
+    const ext = name.lastIndexOf('.') !== -1 ? name.substring(name.lastIndexOf('.')) : '';
+    return name.substring(0, maxLength - ext.length - 3) + '...' + ext;
   };
 
   // File picker and upload
@@ -280,7 +199,7 @@ export default function PrintOptionsScreen({ navigation, route }) {
   return (
     <ScrollView style={[styles.container, { backgroundColor: theme.background }]} showsVerticalScrollIndicator={false}>
       <LinearGradient
-        colors={['#667eea', '#764ba2']}
+        colors={['#22194f', '#22194f']}
         style={styles.headerGradient}
       >
         <Heading
@@ -318,7 +237,7 @@ export default function PrintOptionsScreen({ navigation, route }) {
           <View style={styles.filesList}>
             {uploadedFiles.map((file, idx) => (
               <View key={file.id} style={styles.fileItem}>
-                <Text style={styles.fileName}>{file.name}</Text>
+                <Text style={styles.fileName}>{shortenFileName(file.name)}</Text>
                 <Text style={styles.fileMeta}>{file.pages} pages • {file.size}</Text>
               </View>
             ))}
@@ -329,7 +248,7 @@ export default function PrintOptionsScreen({ navigation, route }) {
         <Animatable.View animation="fadeInUp" delay={200} duration={500}>
           <Text style={styles.sectionTitle}>Color</Text>
           <View style={styles.paperGrid}>
-            {uniqueColors.filter(color => !available.color || available.color.includes(color)).map(color => (
+            {getAvailableOptions('color').map(color => (
               <TouchableOpacity
                 key={color}
                 style={[styles.paperCard, selected.color === color && styles.selectedCard]}
@@ -344,7 +263,7 @@ export default function PrintOptionsScreen({ navigation, route }) {
         <Animatable.View animation="fadeInUp" delay={400} duration={500}>
           <Text style={styles.sectionTitle}>Paper Size</Text>
           <View style={styles.paperGrid}>
-            {uniquePapers.filter(paper => !available.paperSize || available.paperSize.includes(paper)).map(paper => (
+            {getAvailableOptions('paper').map(paper => (
               <TouchableOpacity
                 key={paper}
                 style={[styles.paperCard, selected.paper === paper && styles.selectedCard]}
@@ -359,7 +278,7 @@ export default function PrintOptionsScreen({ navigation, route }) {
         <Animatable.View animation="fadeInUp" delay={600} duration={500}>
           <Text style={styles.sectionTitle}>Paper Quality</Text>
           <View style={styles.paperGrid}>
-            {uniqueQualities.filter(quality => !available.paperQuality || available.paperQuality.includes(quality)).map(quality => (
+            {getAvailableOptions('quality').map(quality => (
               <TouchableOpacity
                 key={quality}
                 style={[styles.paperCard, selected.quality === quality && styles.selectedCard]}
@@ -374,7 +293,7 @@ export default function PrintOptionsScreen({ navigation, route }) {
         <Animatable.View animation="fadeInUp" delay={800} duration={500}>
           <Text style={styles.sectionTitle}>Print Option</Text>
           <View style={styles.paperGrid}>
-            {uniqueSides.filter(side => !available.printOption || available.printOption.includes(side)).map(side => (
+            {getAvailableOptions('side').map(side => (
               <TouchableOpacity
                 key={side}
                 style={[styles.paperCard, selected.side === side && styles.selectedCard]}
@@ -415,7 +334,7 @@ export default function PrintOptionsScreen({ navigation, route }) {
             >
               <View style={styles.fileSummaryCard}>
                 <View style={styles.fileSummaryInfo}>
-                  <Text style={styles.fileSummaryName}>{file.name}</Text>
+                  <Text style={styles.fileSummaryName}>{shortenFileName(file.name)}</Text>
                   <Text style={styles.fileSummaryMeta}>
                     {file.pages} pages • {file.size}
                   </Text>

@@ -39,6 +39,7 @@ import com.lipiprint.backend.service.PricingService;
 import com.openhtmltopdf.pdfboxout.PdfRendererBuilder;
 import java.nio.file.Files;
 import java.nio.file.Paths;
+import com.lipiprint.backend.repository.FileRepository;
 
 @RestController
 @RequestMapping("/api/orders")
@@ -52,9 +53,12 @@ public class OrderController {
     private PrintJobService printJobService;
     @Autowired
     private PricingService pricingService;
+    @Autowired
+    private FileRepository fileRepository;
 
     @PostMapping("")
     public ResponseEntity<OrderDTO> createOrder(@RequestBody Order order, Authentication authentication) {
+        logger.info("[OrderController] createOrder called with payload: {}", order);
         try {
             logger.info("[OrderController] Incoming order payload: {}", order);
             User user = userService.findByPhone(authentication.getName()).orElseThrow();
@@ -79,9 +83,22 @@ public class OrderController {
             saved = orderService.findById(saved.getId()).orElse(saved);
             User u = saved.getUser();
             List<PrintJob> printJobs = saved.getPrintJobs();
-            // Always fetch the full PrintJob entity if present
+            // Always fetch the full PrintJob entity with file if present
             if (printJobs != null) {
-                printJobs = printJobs.stream().map(pj -> printJobService.findById(pj.getId()).orElse(null)).collect(Collectors.toList());
+                printJobs = printJobs.stream().map(pj -> {
+                    PrintJob fullPj = printJobService.findByIdWithFile(pj.getId()).orElse(null);
+                    if (fullPj != null && fullPj.getFile() != null) {
+                        File file = fullPj.getFile();
+                        // Defensive: if file fields are missing, fetch from repository
+                        if (file.getPages() == null || file.getFilename() == null) {
+                            File dbFile = fileRepository.findById(file.getId()).orElse(null);
+                            if (dbFile != null) {
+                                fullPj.setFile(dbFile);
+                            }
+                        }
+                    }
+                    return fullPj;
+                }).collect(Collectors.toList());
             }
             List<File> files = printJobs != null ? printJobs.stream().map(PrintJob::getFile).collect(Collectors.toList()) : null;
             UserDTO userDTO = u == null ? null : new UserDTO(u.getId(), u.getName(), u.getPhone(), u.getEmail(), u.getRole() != null ? u.getRole().name() : null, u.isBlocked(), u.getCreatedAt(), u.getUpdatedAt());
@@ -131,9 +148,9 @@ public class OrderController {
                     try {
                         User u = saved.getUser();
                         List<PrintJob> printJobs = saved.getPrintJobs();
-                        // Always fetch the full PrintJob entity if present
+                        // Always fetch the full PrintJob entity with file if present
                         if (printJobs != null) {
-                            printJobs = printJobs.stream().map(pj -> printJobService.findById(pj.getId()).orElse(null)).collect(Collectors.toList());
+                            printJobs = printJobs.stream().map(pj -> printJobService.findByIdWithFile(pj.getId()).orElse(null)).collect(Collectors.toList());
                         }
                         List<File> files = printJobs != null ? printJobs.stream().map(PrintJob::getFile).collect(Collectors.toList()) : null;
                         UserDTO userDTO = u == null ? null : new UserDTO(u.getId(), u.getName(), u.getPhone(), u.getEmail(), u.getRole() != null ? u.getRole().name() : null, u.isBlocked(), u.getCreatedAt(), u.getUpdatedAt());
@@ -173,9 +190,9 @@ public class OrderController {
             .<ResponseEntity<?>>map(order -> {
                 User u = order.getUser();
                 List<PrintJob> printJobs = order.getPrintJobs();
-                // Always fetch the full PrintJob entity if present
+                // Always fetch the full PrintJob entity with file if present
                 if (printJobs != null) {
-                    printJobs = printJobs.stream().map(pj -> printJobService.findById(pj.getId()).orElse(null)).collect(Collectors.toList());
+                    printJobs = printJobs.stream().map(pj -> printJobService.findByIdWithFile(pj.getId()).orElse(null)).collect(Collectors.toList());
                 }
                 List<File> files = printJobs != null ? printJobs.stream().map(PrintJob::getFile).collect(Collectors.toList()) : null;
                 UserDTO userDTO = u == null ? null : new UserDTO(u.getId(), u.getName(), u.getPhone(), u.getEmail(), u.getRole() != null ? u.getRole().name() : null, u.isBlocked(), u.getCreatedAt(), u.getUpdatedAt());
@@ -206,9 +223,9 @@ public class OrderController {
             // Return updated order DTO
             User u = updated.getUser();
             List<PrintJob> printJobs = updated.getPrintJobs();
-            // Always fetch the full PrintJob entity if present
+            // Always fetch the full PrintJob entity with file if present
             if (printJobs != null) {
-                printJobs = printJobs.stream().map(pj -> printJobService.findById(pj.getId()).orElse(null)).collect(Collectors.toList());
+                printJobs = printJobs.stream().map(pj -> printJobService.findByIdWithFile(pj.getId()).orElse(null)).collect(Collectors.toList());
             }
             List<File> files = printJobs != null ? printJobs.stream().map(PrintJob::getFile).collect(Collectors.toList()) : null;
             UserDTO userDTO = u == null ? null : new UserDTO(u.getId(), u.getName(), u.getPhone(), u.getEmail(), u.getRole() != null ? u.getRole().name() : null, u.isBlocked(), u.getCreatedAt(), u.getUpdatedAt());
@@ -228,6 +245,7 @@ public class OrderController {
 
     @PostMapping("/create-razorpay-order")
     public ResponseEntity<?> createRazorpayOrder(@RequestBody Map<String, Object> payload, Authentication authentication) {
+        logger.info("[OrderController] createRazorpayOrder called with payload: {}", payload);
         try {
             int amount = (int) payload.getOrDefault("amount", 0);
             String currency = (String) payload.getOrDefault("currency", "INR");
@@ -238,14 +256,17 @@ public class OrderController {
                 if (user != null) userId = user.getId();
             }
             JSONObject order = orderService.createRazorpayOrder(amount, currency, receipt, userId);
+            logger.info("[OrderController] Razorpay order created: {}", order);
             return ResponseEntity.ok(order.toMap());
         } catch (RazorpayException e) {
+            logger.error("[OrderController] RazorpayException: {}", e.getMessage(), e);
             return ResponseEntity.status(500).body(Map.of("error", e.getMessage()));
         }
     }
 
     @PostMapping("/validate")
     public ResponseEntity<?> validateOrder(@RequestBody Order order, Authentication authentication) {
+        logger.info("[OrderController] validateOrder called with payload: {}", order);
         try {
             User user = userService.findByPhone(authentication.getName()).orElseThrow();
             order.setUser(user);
@@ -254,17 +275,25 @@ public class OrderController {
                 return ResponseEntity.badRequest().body(Map.of("valid", false, "error", "No print jobs attached to order."));
             }
             for (var pj : order.getPrintJobs()) {
-                if (pj.getFile() == null) {
+                if (pj.getFile() == null || pj.getFile().getId() == null) {
                     return ResponseEntity.badRequest().body(Map.of("valid", false, "error", "A print job is missing its file."));
                 }
+                // Fetch and set the full File entity (with pages)
+                var file = fileRepository.findById(pj.getFile().getId()).orElse(null);
+                if (file == null) {
+                    return ResponseEntity.badRequest().body(Map.of("valid", false, "error", "File not found for print job."));
+                }
+                pj.setFile(file);
                 if (pj.getOptions() == null || pj.getOptions().isBlank()) {
                     return ResponseEntity.badRequest().body(Map.of("valid", false, "error", "A print job is missing its printing specifications."));
                 }
             }
             // Calculate price (implement your pricing logic here)
             double price = pricingService.calculatePrice(order);
+            logger.info("[OrderController] Order validation result: valid={}, price={}", true, price);
             return ResponseEntity.ok(Map.of("valid", true, "price", price));
         } catch (Exception e) {
+            logger.error("[OrderController] Error validating order: {}", e.getMessage(), e);
             return ResponseEntity.badRequest().body(Map.of("valid", false, "error", e.getMessage()));
         }
     }

@@ -19,27 +19,6 @@ import Heading from '../../components/Heading';
 
 const { width } = Dimensions.get('window');
 
-const DELIVERY_METHODS = [
-  {
-    id: 'pickup',
-    title: 'Store Pickup',
-    description: 'Collect from our store',
-    price: 0,
-    icon: '🏪',
-    color: '#4ECDC4',
-    // time: '2-3 hours',
-  },
-  {
-    id: 'delivery',
-    title: 'Home Delivery',
-    description: 'Delivered to your address',
-    price: 30,
-    icon: '🚚',
-    color: '#FF6B6B',
-    // time: 'Same day',
-  },
-];
-
 export default function DeliveryOptionsScreen({ navigation, route }) {
   const { files, selectedOptions, selectedPaper, selectedPrint, total } = route.params || {};
   const [deliveryMethod, setDeliveryMethod] = useState('pickup');
@@ -54,7 +33,32 @@ export default function DeliveryOptionsScreen({ navigation, route }) {
   const [showNewAddress, setShowNewAddress] = useState(true);
   const [editingAddressId, setEditingAddressId] = useState(null);
   const [editFields, setEditFields] = useState({});
+  const [deliveryOptions, setDeliveryOptions] = useState([]);
+  const [loadingOptions, setLoadingOptions] = useState(true);
+  const [optionsError, setOptionsError] = useState(null);
   const { theme } = useTheme();
+
+  useEffect(() => {
+    setLoadingOptions(true);
+    setOptionsError(null);
+    api.getSettings()
+      .then(settings => {
+        // Assume settings contains delivery options/prices as a JSON string under key 'delivery_options'
+        const deliverySetting = settings.find(s => s.key === 'delivery_options');
+        let options = [
+          { id: 'pickup', title: 'Store Pickup', description: 'Collect from our store', price: 0, icon: '🏪', color: '#4ECDC4' },
+          { id: 'delivery', title: 'Home Delivery', description: 'Delivered to your address', price: 30, icon: '🚚', color: '#FF6B6B' },
+        ];
+        if (deliverySetting && deliverySetting.value) {
+          try {
+            options = JSON.parse(deliverySetting.value);
+          } catch {}
+        }
+        setDeliveryOptions(options);
+      })
+      .catch(() => setOptionsError('Failed to load delivery options.'))
+      .finally(() => setLoadingOptions(false));
+  }, []);
 
   useEffect(() => {
     api.request('/pickup-locations')
@@ -70,6 +74,12 @@ export default function DeliveryOptionsScreen({ navigation, route }) {
   }, []);
 
   useEffect(() => {
+    ApiService.getUserAddresses()
+      .then(setSavedAddresses)
+      .catch(() => setSavedAddresses([]));
+  }, []);
+
+  useEffect(() => {
     if (deliveryMethod === 'pickup' && pickupLocations.length > 0) {
       setSelectedLocation(pickupLocations[0].id);
     }
@@ -79,14 +89,8 @@ export default function DeliveryOptionsScreen({ navigation, route }) {
     }
   }, [deliveryMethod, pickupLocations]);
 
-  useEffect(() => {
-    ApiService.getUserAddresses()
-      .then(setSavedAddresses)
-      .catch(() => setSavedAddresses([]));
-  }, []);
-
   const calculateFinalTotal = () => {
-    const selectedDelivery = DELIVERY_METHODS.find(method => method.id === deliveryMethod);
+    const selectedDelivery = deliveryOptions.find(method => method.id === deliveryMethod);
     return total + (selectedDelivery ? selectedDelivery.price : 0);
   };
 
@@ -194,11 +198,18 @@ export default function DeliveryOptionsScreen({ navigation, route }) {
     }
   };
 
+  if (loadingOptions) {
+    return <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}><Text>Loading delivery options...</Text></View>;
+  }
+  if (optionsError) {
+    return <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}><Text style={{ color: 'red' }}>{optionsError}</Text></View>;
+  }
+
   return (
     <View style={[styles.container, { backgroundColor: theme.background }]}>
       <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
         <LinearGradient
-          colors={['#667eea', '#764ba2']}
+          colors={['#22194f', '#22194f']}
           style={styles.headerGradient}
         >
           <Heading
@@ -213,7 +224,7 @@ export default function DeliveryOptionsScreen({ navigation, route }) {
           <Animatable.View animation="fadeInUp" delay={200} duration={500}>
             <Text style={styles.sectionTitle}>Delivery Method</Text>
             <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.deliveryScroll}>
-              {DELIVERY_METHODS.map((method) => (
+              {deliveryOptions.map((method) => (
                 <TouchableOpacity
                   key={method.id}
                   style={[
@@ -427,7 +438,7 @@ export default function DeliveryOptionsScreen({ navigation, route }) {
               <View style={styles.summaryRow}>
                 <Text style={styles.summaryLabel}>Delivery</Text>
                 <Text style={styles.summaryValue}>
-                  ₹{DELIVERY_METHODS.find(m => m.id === deliveryMethod)?.price || 0}
+                  ₹{deliveryOptions.find(m => m.id === deliveryMethod)?.price || 0}
                 </Text>
               </View>
               <View style={styles.totalRow}>

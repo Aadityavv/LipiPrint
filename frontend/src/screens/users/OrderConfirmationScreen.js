@@ -45,13 +45,15 @@ export default function OrderConfirmationScreen({ navigation, route }) {
 
   // Fallback for breakdown if not present
   const files = order?.printJobs ? order.printJobs.map(pj => pj.file) : [];
+  const totalPages = files.reduce((sum, f) => sum + (f.pages || 0), 0);
 
   const orderDetails = {
     orderId: order?.id ? `LP${order.id}` : 'N/A',
     status: order?.status || 'Confirmed',
     estimatedTime: '2-3 hours',
     totalAmount: order?.totalAmount ? `₹${order.totalAmount}` : 'N/A',
-    items: files.map(f => ({ name: f.filename, pages: f.pages, price: '' })),
+    items: files.map(f => ({ name: f.filename, pages: f.pages })),
+    totalPages,
   };
 
   const steps = [
@@ -64,7 +66,7 @@ export default function OrderConfirmationScreen({ navigation, route }) {
     <View style={[styles.container, { backgroundColor: theme.background }]}>
       <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
         <LinearGradient
-          colors={['#667eea', '#764ba2']}
+          colors={['#22194f', '#22194f']}
           style={styles.headerGradient}
         >
           <Heading
@@ -99,10 +101,13 @@ export default function OrderConfirmationScreen({ navigation, route }) {
                       <Text style={styles.itemName}>{item.filename}</Text>
                       <Text style={styles.itemPages}>{item.pages} pages</Text>
                     </View>
-                    <Text style={styles.itemPrice}>{item.price}</Text>
                   </View>
                 </Animatable.View>
               ))}
+              <View style={styles.totalRow}>
+                <Text style={styles.totalLabel}>Total Pages</Text>
+                <Text style={styles.totalAmount}>{orderDetails.totalPages}</Text>
+              </View>
               <View style={styles.totalRow}>
                 <Text style={styles.totalLabel}>Total Amount</Text>
                 <Text style={styles.totalAmount}>{orderDetails.totalAmount}</Text>

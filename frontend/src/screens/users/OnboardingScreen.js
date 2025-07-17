@@ -1,49 +1,58 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Image } from 'react-native';
 import LinearGradient from 'react-native-linear-gradient';
 import * as Animatable from 'react-native-animatable';
 import Icon from 'react-native-vector-icons/MaterialIcons';
-
-const slides = [
-  {
-    key: 'welcome',
-    title: 'Welcome to LipiPrint!',
-    description: 'Your smart, easy, and fast printing solution.',
-    icon: 'print',
-  },
-  {
-    key: 'upload',
-    title: 'Upload Any Document',
-    description: 'PDF, DOC, PPT, images and more. Upload from your phone, camera, or cloud.',
-    icon: 'cloud-upload',
-  },
-  {
-    key: 'customize',
-    title: 'Customize Your Print',
-    description: 'Choose paper, color, copies, and advanced options.',
-    icon: 'tune',
-  },
-  {
-    key: 'track',
-    title: 'Track & Pickup',
-    description: 'Track your order in real-time and pick up at your convenience.',
-    icon: 'track-changes',
-  },
-  {
-    key: 'support',
-    title: '24/7 Support',
-    description: 'Get help anytime with our in-app support and FAQs.',
-    icon: 'support-agent',
-  },
-];
+import api from '../../services/api';
 
 export default function OnboardingScreen({ navigation }) {
-  const [current, setCurrent] = React.useState(0);
+  const [slides, setSlides] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [current, setCurrent] = useState(0);
+
+  useEffect(() => {
+    setLoading(true);
+    setError(null);
+    api.getSettings()
+      .then(settings => {
+        const onboardingSetting = settings.find(s => s.key === 'onboarding_slides');
+        if (onboardingSetting && onboardingSetting.value) {
+          try {
+            setSlides(JSON.parse(onboardingSetting.value));
+          } catch {
+            setSlides([]);
+            setError('Failed to parse onboarding slides.');
+          }
+        } else {
+          // fallback to static
+          setSlides([
+            { key: 'welcome', title: 'Welcome to LipiPrint!', description: 'Your smart, easy, and fast printing solution.', icon: 'print' },
+            { key: 'upload', title: 'Upload Any Document', description: 'PDF, DOC, PPT, images and more. Upload from your phone, camera, or cloud.', icon: 'cloud-upload' },
+            { key: 'customize', title: 'Customize Your Print', description: 'Choose paper, color, copies, and advanced options.', icon: 'tune' },
+            { key: 'track', title: 'Track & Pickup', description: 'Track your order in real-time and pick up at your convenience.', icon: 'track-changes' },
+            { key: 'support', title: '24/7 Support', description: 'Get help anytime with our in-app support and FAQs.', icon: 'support-agent' },
+          ]);
+        }
+      })
+      .catch(() => setError('Failed to load onboarding slides.'))
+      .finally(() => setLoading(false));
+  }, []);
 
   const nextSlide = () => {
     if (current < slides.length - 1) setCurrent(current + 1);
     else navigation.replace('Login');
   };
+
+  if (loading) {
+    return <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}><Text>Loading...</Text></View>;
+  }
+  if (error) {
+    return <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}><Text style={{ color: 'red' }}>{error}</Text></View>;
+  }
+  if (!slides.length) {
+    return <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}><Text>No onboarding slides found.</Text></View>;
+  }
 
   return (
     <LinearGradient colors={['#667eea', '#764ba2']} style={styles.container}>

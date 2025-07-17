@@ -91,7 +91,7 @@ export default function FilesScreen({ navigation }) {
   return (
     <View style={styles.container}>
       <LinearGradient
-        colors={['#667eea', '#764ba2']}
+        colors={['#22194f', '#22194f']}
         style={styles.headerGradient}
       >
         <Heading

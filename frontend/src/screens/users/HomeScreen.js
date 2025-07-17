@@ -15,6 +15,7 @@ import ApiService from '../../services/api';
 import { useTheme } from '../../theme/ThemeContext';
 import StoreClosedBanner from '../../components/StoreClosedBanner';
 import Heading from '../../components/Heading';
+import BannerImage from '../../assets/banner/banner.png';
 
 const { width } = Dimensions.get('window');
 
@@ -46,11 +47,12 @@ export default function HomeScreen({ navigation }) {
       .catch(() => setAcceptingOrders(true));
   }, []);
 
+  // Add Profile back to quickActions
   const quickActions = [
     { title: 'Upload Files', icon: <Icon name="cloud-upload" size={42} color="#FFFFFF" />, color: 'linear-gradient(90deg, #ff9966 0%, #ff5e62 100%)', onPress: () => navigation.navigate('Upload') },
-    { title: 'My Orders', icon: <Icon name="assignment" size={42} color="#FFFFFF" />, color: 'linear-gradient(90deg, #36d1c4 0%, #1e90ff 100%)', onPress: () => navigation.navigate('Orders') },
+    // { title: 'My Orders', icon: <Icon name="assignment" size={42} color="#FFFFFF" />, color: 'linear-gradient(90deg, #36d1c4 0%, #1e90ff 100%)', onPress: () => navigation.navigate('Orders') },
     { title: 'Print Options', icon: <Icon name="print" size={42} color="#FFFFFF" />, color: 'linear-gradient(90deg, #f7971e 0%, #ffd200 100%)', onPress: () => navigation.navigate('PrintOptions') },
-    { title: 'Profile', icon: <Icon name="person" size={42} color="#FFFFFF" />, color: 'linear-gradient(90deg, #43cea2 0%, #185a9d 100%)', onPress: () => navigation.navigate('Profile') },
+    // { title: 'Profile', icon: <Icon name="person" size={42} color="#FFFFFF" />, color: 'linear-gradient(90deg, #43cea2 0%, #185a9d 100%)', onPress: () => navigation.navigate('Profile') },
   ];
 
   const getStatusColor = (status) => {
@@ -95,11 +97,19 @@ export default function HomeScreen({ navigation }) {
     return <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}><Text>{error}</Text></View>;
   }
 
+  // Sort orders descending by createdAt (or id as fallback)
+  const sortedOrders = [...orders].sort((a, b) => {
+    if (a.createdAt && b.createdAt) {
+      return new Date(b.createdAt) - new Date(a.createdAt);
+    }
+    return (b.id || 0) - (a.id || 0);
+  });
+
   return (
     <ScrollView style={[styles.container, { backgroundColor: theme.background }]} showsVerticalScrollIndicator={false}>
       {!acceptingOrders && <StoreClosedBanner />}
       <LinearGradient
-        colors={['#667eea', '#764ba2']}
+        colors={['#22194f', '#22194f']}
         style={styles.headerGradient}
       >
         <View style={{flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', minHeight: 44}}>
@@ -111,12 +121,25 @@ export default function HomeScreen({ navigation }) {
               Ready to print something amazing?
             </Text>
           </View>
-          <TouchableOpacity style={styles.notificationButton} onPress={() => navigation.navigate('Notifications')}>
-            <Icon name="notifications" size={20} color="white" />
-            <View style={styles.badge} />
-          </TouchableOpacity>
+          <View style={{flexDirection: 'row', alignItems: 'center', gap: 12}}>
+            <TouchableOpacity style={styles.notificationButton} onPress={() => navigation.navigate('Notifications')}>
+              <Icon name="notifications" size={20} color="white" />
+              <View style={styles.badge} />
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.notificationButton} onPress={() => navigation.navigate('Profile')}>
+              <Icon name="person" size={22} color="white" />
+            </TouchableOpacity>
+          </View>
         </View>
       </LinearGradient>
+
+      {/* App Banner */}
+      <Image
+        source={BannerImage}
+        style={{ width: width, height: width * 0.6685, resizeMode: 'contain', marginTop:-2 }}
+        accessible={true}
+        accessibilityLabel="LipiPrint app banner: Welcome to LipiPrint! Fast & Easy A3, A4 Printing."
+      />
 
       <View style={styles.content}>
         {/* Quick Actions */}
@@ -159,7 +182,7 @@ export default function HomeScreen({ navigation }) {
               <Text style={styles.viewAllText}>View All</Text>
             </TouchableOpacity>
           </View>
-          {orders.slice(0, 3).map((order, index) => (
+          {sortedOrders.slice(0, 3).map((order, index) => (
             <Animatable.View
               key={order.id}
               animation="slideInRight"
@@ -184,7 +207,7 @@ export default function HomeScreen({ navigation }) {
         </Animatable.View>
 
         {/* Upload CTA */}
-        <Animatable.View animation="fadeInUp" delay={600} duration={500}>
+        {/* <Animatable.View animation="fadeInUp" delay={600} duration={500}>
           <TouchableOpacity
             style={styles.uploadCTA}
             onPress={() => navigation.navigate('Upload')}
@@ -199,7 +222,7 @@ export default function HomeScreen({ navigation }) {
               <Text style={styles.uploadSubtitle}>Get your documents printed in minutes</Text>
             </LinearGradient>
           </TouchableOpacity>
-        </Animatable.View>
+        </Animatable.View> */}
       </View>
     </ScrollView>
   );

@@ -14,9 +14,12 @@ import java.util.Map;
 import com.lipiprint.backend.entity.Payment;
 import com.lipiprint.backend.repository.PaymentRepository;
 import com.lipiprint.backend.service.UserService;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 @Service
 public class OrderService {
+    private static final Logger logger = LoggerFactory.getLogger(OrderService.class);
     @Autowired
     private OrderRepository orderRepository;
 
@@ -33,13 +36,16 @@ public class OrderService {
     private String razorpayKeySecret;
 
     public Order save(Order order, String razorpayOrderId) {
+        logger.info("[OrderService] save called with order: {}, razorpayOrderId: {}", order, razorpayOrderId);
         Order savedOrder = orderRepository.save(order);
         if (razorpayOrderId != null) {
             paymentRepository.findByRazorpayOrderId(razorpayOrderId).ifPresent(payment -> {
                 payment.setOrder(savedOrder);
                 paymentRepository.save(payment);
+                logger.info("[OrderService] Linked payment {} to order {}", payment.getId(), savedOrder.getId());
             });
         }
+        logger.info("[OrderService] Order saved: {}", savedOrder);
         return savedOrder;
     }
 
@@ -63,6 +69,7 @@ public class OrderService {
 
     // Razorpay order creation
     public JSONObject createRazorpayOrder(int amount, String currency, String receipt, Long userId) throws RazorpayException {
+        logger.info("[OrderService] createRazorpayOrder called with amount={}, currency={}, receipt={}, userId={}", amount, currency, receipt, userId);
         RazorpayClient razorpay = new RazorpayClient(razorpayKeyId, razorpayKeySecret);
         JSONObject orderRequest = new JSONObject();
         orderRequest.put("amount", amount); // amount in paise
@@ -70,6 +77,7 @@ public class OrderService {
         orderRequest.put("receipt", receipt);
         orderRequest.put("payment_capture", 1);
         JSONObject razorpayOrder = razorpay.orders.create(orderRequest).toJson();
+        logger.info("[OrderService] Razorpay order created: {}", razorpayOrder);
         // Create Payment record
         Payment payment = new Payment();
         payment.setRazorpayOrderId(razorpayOrder.getString("id"));
@@ -79,6 +87,7 @@ public class OrderService {
             userService.findById(userId).ifPresent(payment::setUser);
         }
         paymentRepository.save(payment);
+        logger.info("[OrderService] Payment record created: {}", payment);
         return razorpayOrder;
     }
 

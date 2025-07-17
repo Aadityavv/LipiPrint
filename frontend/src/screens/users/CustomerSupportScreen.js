@@ -11,7 +11,7 @@ export default function CustomerSupportScreen({ navigation }) {
 
   return (
     <View style={[styles.container, { backgroundColor: theme.background }]}>
-      <LinearGradient colors={['#667eea', '#764ba2']} style={{paddingTop: 40, paddingBottom: 20, paddingHorizontal: 20}}>
+      <LinearGradient colors={['#22194f', '#22194f']} style={{paddingTop: 40, paddingBottom: 20, paddingHorizontal: 20}}>
         <View style={{flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', minHeight: 44}}>
           <TouchableOpacity style={{padding: 6}} onPress={() => navigation.goBack()}>
             <Icon name="arrow-back" size={24} color="white" />

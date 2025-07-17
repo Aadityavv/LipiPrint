@@ -76,6 +76,7 @@ public class PrintJobController {
 
     @PostMapping("/calculate-cost")
     public ResponseEntity<Map<String, Object>> calculateCost(@RequestBody Map<String, Object> payload) {
+        logger.info("[PrintJobController] calculateCost called with payload: {}", payload);
         // Support both old and new payloads
         Object filesObj = payload.get("files");
         if (filesObj instanceof List filesList && !filesList.isEmpty()) {
@@ -106,6 +107,7 @@ public class PrintJobController {
             Map<String, Object> result = new java.util.HashMap<>();
             result.put("breakdown", breakdown);
             result.put("totalCost", total);
+            logger.info("[PrintJobController] Cost calculation result: {}", result);
             return ResponseEntity.ok(result);
         } else {
             // Old: single job
@@ -123,8 +125,10 @@ public class PrintJobController {
                 result.put("printCost", printCost);
                 result.put("bindingCost", bindingCost);
                 result.put("totalCost", printCost.add(bindingCost));
+                logger.info("[PrintJobController] Cost calculation result: {}", result);
                 return ResponseEntity.ok(result);
             } catch (RuntimeException e) {
+                logger.error("[PrintJobController] Error in calculateCost: {}", e.getMessage(), e);
                 return ResponseEntity.status(400).body(Map.of("error", -1, "message", e.getMessage()));
             }
         }
@@ -132,6 +136,7 @@ public class PrintJobController {
 
     @PostMapping("/available-options")
     public ResponseEntity<Map<String, Object>> getAvailableOptions(@RequestBody Map<String, Object> payload) {
+        logger.info("[PrintJobController] getAvailableOptions called with payload: {}", payload);
         // Accepts any subset of: color, paperSize, paperQuality, printOption
         String color = (String) payload.get("color");
         String paperSize = (String) payload.get("paperSize");
@@ -157,6 +162,7 @@ public class PrintJobController {
         result.put("paperSize", paperSizes);
         result.put("paperQuality", paperQualities);
         result.put("printOption", printOptions);
+        logger.info("[PrintJobController] Available options result: {}", result);
         return ResponseEntity.ok(result);
     }
 
