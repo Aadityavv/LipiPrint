@@ -138,6 +138,31 @@ public class FileService {
         }
     }
 
+    public File saveUploadedFileWithPrintOptions(MultipartFile file, User user, String color, String paper, String quality, String side, String binding) {
+        // Save the file as before
+        File savedFile = saveUploadedFile(file, user);
+        // Create a PrintJob with the provided options and link to the file and user
+        try {
+            PrintJob printJob = new PrintJob();
+            printJob.setFile(savedFile);
+            printJob.setUser(user);
+            printJob.setStatus(PrintJob.Status.QUEUED);
+            // Store print options as JSON string
+            com.fasterxml.jackson.databind.ObjectMapper mapper = new com.fasterxml.jackson.databind.ObjectMapper();
+            java.util.Map<String, Object> opts = new java.util.HashMap<>();
+            if (color != null) opts.put("color", color);
+            if (paper != null) opts.put("paper", paper);
+            if (quality != null) opts.put("quality", quality);
+            if (side != null) opts.put("side", side);
+            if (binding != null) opts.put("binding", binding);
+            printJob.setOptions(mapper.writeValueAsString(opts));
+            printJobService.save(printJob);
+        } catch (Exception e) {
+            logger.error("Failed to create PrintJob with print options", e);
+        }
+        return savedFile;
+    }
+
     public Resource loadFileAsResource(Long fileId) {
         File file = fileRepository.findById(fileId).orElseThrow(() -> new RuntimeException("File not found"));
         // Return a dummy resource for now

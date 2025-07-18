@@ -40,6 +40,8 @@ import com.openhtmltopdf.pdfboxout.PdfRendererBuilder;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import com.lipiprint.backend.repository.FileRepository;
+import jakarta.validation.Valid;
+import com.lipiprint.backend.dto.MessageResponse;
 
 @RestController
 @RequestMapping("/api/orders")
@@ -57,71 +59,64 @@ public class OrderController {
     private FileRepository fileRepository;
 
     @PostMapping("")
-    public ResponseEntity<OrderDTO> createOrder(@RequestBody Order order, Authentication authentication) {
-        logger.info("[OrderController] createOrder called with payload: {}", order);
+    public ResponseEntity<?> createOrder(@Valid @RequestBody OrderDTO orderDTO, Authentication authentication) {
+        logger.info("[OrderController] createOrder called with payload: {}", orderDTO);
         try {
-            logger.info("[OrderController] Incoming order payload: {}", order);
+            // Validate user
             User user = userService.findByPhone(authentication.getName()).orElseThrow();
+            if (orderDTO.getPrintJobs() == null || orderDTO.getPrintJobs().isEmpty()) {
+                return ResponseEntity.badRequest().body(new MessageResponse("At least one print job is required."));
+            }
+            if (orderDTO.getDeliveryType() == null || orderDTO.getDeliveryType().isBlank()) {
+                return ResponseEntity.badRequest().body(new MessageResponse("Delivery type is required."));
+            }
+            if (orderDTO.getDeliveryAddress() == null || orderDTO.getDeliveryAddress().isBlank()) {
+                return ResponseEntity.badRequest().body(new MessageResponse("Delivery address is required."));
+            }
+            // Map DTO to entity
+            Order order = new Order();
             order.setUser(user);
-            // Map deliveryType and deliveryAddress from request body
-            order.setDeliveryType(order.getDeliveryType());
-            order.setDeliveryAddress(order.getDeliveryAddress());
-            // For each print job, set the order reference
-            if (order.getPrintJobs() != null) {
-                for (PrintJob pj : order.getPrintJobs()) {
-                    pj.setOrder(order);
-                }
-            }
-            // Try to get razorpayOrderId from request (if present)
-            String razorpayOrderId = null;
-            if (order instanceof Map) {
-                Object rpo = ((Map<?,?>)order).get("razorpayOrderId");
-                if (rpo instanceof String) razorpayOrderId = (String) rpo;
-            }
-            Order saved = orderService.save(order, razorpayOrderId);
-            // Fetch the order again to ensure all relationships are loaded
-            saved = orderService.findById(saved.getId()).orElse(saved);
-            User u = saved.getUser();
-            List<PrintJob> printJobs = saved.getPrintJobs();
-            // Always fetch the full PrintJob entity with file if present
-            if (printJobs != null) {
-                printJobs = printJobs.stream().map(pj -> {
-                    PrintJob fullPj = printJobService.findByIdWithFile(pj.getId()).orElse(null);
-                    if (fullPj != null && fullPj.getFile() != null) {
-                        File file = fullPj.getFile();
-                        // Defensive: if file fields are missing, fetch from repository
-                        if (file.getPages() == null || file.getFilename() == null) {
-                            File dbFile = fileRepository.findById(file.getId()).orElse(null);
-                            if (dbFile != null) {
-                                fullPj.setFile(dbFile);
-                            }
-                        }
+            order.setDeliveryType(orderDTO.getDeliveryType());
+            order.setDeliveryAddress(orderDTO.getDeliveryAddress());
+            order.setStatus(Order.Status.PENDING);
+            order.setTotalAmount(orderDTO.getTotalAmount());
+            // Map print jobs
+            if (orderDTO.getPrintJobs() != null) {
+                var printJobs = new java.util.ArrayList<com.lipiprint.backend.entity.PrintJob>();
+                for (var pjDTO : orderDTO.getPrintJobs()) {
+                    var pj = new com.lipiprint.backend.entity.PrintJob();
+                    if (pjDTO.getFile() == null || pjDTO.getFile().getId() == null) {
+                        return ResponseEntity.badRequest().body(new MessageResponse("Each print job must have a file with a valid ID."));
                     }
-                    return fullPj;
-                }).collect(Collectors.toList());
+                    var file = fileRepository.findById(pjDTO.getFile().getId()).orElse(null);
+                    if (file == null) {
+                        return ResponseEntity.badRequest().body(new MessageResponse("File not found for print job."));
+                    }
+                    pj.setFile(file);
+                    pj.setUser(user);
+                    pj.setStatus(com.lipiprint.backend.entity.PrintJob.Status.QUEUED);
+                    pj.setOptions(pjDTO.getOptions());
+                    pj.setOrder(order);
+                    printJobs.add(pj);
+                }
+                order.setPrintJobs(printJobs);
             }
-            List<File> files = printJobs != null ? printJobs.stream().map(PrintJob::getFile).collect(Collectors.toList()) : null;
+            // Save order and link payment if razorpayOrderId is present
+            String razorpayOrderId = orderDTO.getRazorpayOrderId();
+            Order saved = orderService.save(order, razorpayOrderId);
+            saved = orderService.findById(saved.getId()).orElse(saved);
+            // Map to DTO for response
+            User u = saved.getUser();
+            var printJobs = saved.getPrintJobs();
+            var fileDTOs = printJobs != null ? printJobs.stream().map(pj -> new FileDTO(pj.getFile().getId(), pj.getFile().getFilename(), pj.getFile().getOriginalFilename(), pj.getFile().getContentType(), pj.getFile().getSize(), pj.getFile().getUrl(), null, pj.getFile().getCreatedAt(), pj.getFile().getUpdatedAt(), pj.getFile().getPages())).toList() : null;
+            var printJobDTOs = printJobs != null ? printJobs.stream().map(pj -> new PrintJobDTO(pj.getId(), new FileDTO(pj.getFile().getId(), pj.getFile().getFilename(), pj.getFile().getOriginalFilename(), pj.getFile().getContentType(), pj.getFile().getSize(), pj.getFile().getUrl(), null, pj.getFile().getCreatedAt(), pj.getFile().getUpdatedAt(), pj.getFile().getPages()), null, pj.getStatus() != null ? pj.getStatus().name() : null, pj.getOptions(), pj.getCreatedAt(), pj.getUpdatedAt())).toList() : null;
             UserDTO userDTO = u == null ? null : new UserDTO(u.getId(), u.getName(), u.getPhone(), u.getEmail(), u.getRole() != null ? u.getRole().name() : null, u.isBlocked(), u.getCreatedAt(), u.getUpdatedAt());
-            List<FileDTO> fileDTOs = files != null ? files.stream().map(f -> new FileDTO(f.getId(), f.getFilename(), f.getOriginalFilename(), f.getContentType(), f.getSize(), f.getUrl(), null, f.getCreatedAt(), f.getUpdatedAt(), f.getPages())).collect(Collectors.toList()) : null;
-            List<PrintJobDTO> printJobDTOs = printJobs != null ? printJobs.stream().map(pj -> {
-                User pjUser = pj.getUser();
-                UserDTO pjUserDTO = pjUser == null ? null : new UserDTO(pjUser.getId(), pjUser.getName(), pjUser.getPhone(), pjUser.getEmail(), pjUser.getRole() != null ? pjUser.getRole().name() : null, pjUser.isBlocked(), pjUser.getCreatedAt(), pjUser.getUpdatedAt());
-                return new PrintJobDTO(
-                    pj.getId(),
-                    new FileDTO(pj.getFile().getId(), pj.getFile().getFilename(), pj.getFile().getOriginalFilename(), pj.getFile().getContentType(), pj.getFile().getSize(), pj.getFile().getUrl(), null, pj.getFile().getCreatedAt(), pj.getFile().getUpdatedAt(), pj.getFile().getPages()),
-                    pjUserDTO,
-                    pj.getStatus() != null ? pj.getStatus().name() : null,
-                    pj.getOptions(),
-                    pj.getCreatedAt(),
-                    pj.getUpdatedAt()
-                );
-            }).collect(Collectors.toList()) : null;
-            OrderDTO dto = new OrderDTO(saved.getId(), userDTO, printJobDTOs, saved.getStatus() != null ? saved.getStatus().name() : null, saved.getTotalAmount(), saved.getCreatedAt(), saved.getUpdatedAt(), saved.getDeliveryType(), saved.getDeliveryAddress());
+            OrderDTO dto = new OrderDTO(saved.getId(), userDTO, printJobDTOs, saved.getStatus() != null ? saved.getStatus().name() : null, saved.getTotalAmount(), saved.getCreatedAt(), saved.getUpdatedAt(), saved.getDeliveryType(), saved.getDeliveryAddress(), razorpayOrderId);
             logger.info("[OrderController] Created order DTO: {}", dto);
             return ResponseEntity.ok(dto);
         } catch (Exception e) {
             logger.error("[OrderController] Error creating order: ", e);
-            return ResponseEntity.status(500).body(null);
+            return ResponseEntity.status(500).body(new MessageResponse("Failed to create order: " + e.getMessage()));
         }
     }
 

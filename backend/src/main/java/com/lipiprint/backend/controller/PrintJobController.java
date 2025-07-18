@@ -82,32 +82,32 @@ public class PrintJobController {
         if (filesObj instanceof List filesList && !filesList.isEmpty()) {
             // New: per-file pricing
             List<Map<String, Object>> files = (List<Map<String, Object>>) filesObj;
-            List<Map<String, Object>> breakdown = new java.util.ArrayList<>();
-            java.math.BigDecimal total = java.math.BigDecimal.ZERO;
+            List<PrintJob> printJobs = new java.util.ArrayList<>();
             for (Map<String, Object> file : files) {
-                String color = (String) file.get("color");
-                String paperSize = (String) file.get("paperSize");
-                String paperQuality = (String) file.get("paperQuality");
-                String printOption = (String) file.get("printOption");
-                int numPages = ((Number) file.get("numPages")).intValue();
-                String bindingType = (String) file.get("bindingType");
-                int bindingPages = file.get("bindingPages") != null ? ((Number) file.get("bindingPages")).intValue() : numPages;
-                java.math.BigDecimal printCost = pricingService.calculatePrintCost(color, paperSize, paperQuality, printOption, numPages);
-                java.math.BigDecimal bindingCost = bindingType != null ? pricingService.calculateBindingCost(bindingType, bindingPages) : java.math.BigDecimal.ZERO;
-                java.math.BigDecimal fileTotal = printCost.add(bindingCost);
-                total = total.add(fileTotal);
-                Map<String, Object> fileResult = new java.util.HashMap<>();
-                fileResult.put("fileName", file.get("fileName"));
-                fileResult.put("printCost", printCost);
-                fileResult.put("bindingCost", bindingCost);
-                fileResult.put("totalCost", fileTotal);
-                fileResult.put("numPages", numPages);
-                breakdown.add(fileResult);
+                PrintJob pj = new PrintJob();
+                // Simulate a File entity with pages
+                com.lipiprint.backend.entity.File f = new com.lipiprint.backend.entity.File();
+                f.setPages(file.get("numPages") != null ? ((Number) file.get("numPages")).intValue() : 1);
+                pj.setFile(f);
+                // Store options as JSON
+                try {
+                    com.fasterxml.jackson.databind.ObjectMapper mapper = new com.fasterxml.jackson.databind.ObjectMapper();
+                    java.util.Map<String, Object> opts = new java.util.HashMap<>();
+                    if (file.get("color") != null) opts.put("color", file.get("color"));
+                    if (file.get("paper") != null) opts.put("paper", file.get("paper"));
+                    if (file.get("quality") != null) opts.put("quality", file.get("quality"));
+                    if (file.get("side") != null) opts.put("side", file.get("side"));
+                    if (file.get("binding") != null) opts.put("binding", file.get("binding"));
+                    pj.setOptions(mapper.writeValueAsString(opts));
+                } catch (Exception e) {
+                    pj.setOptions(null);
+                }
+                printJobs.add(pj);
             }
+            double total = pricingService.calculateTotalPriceForPrintJobs(printJobs);
             Map<String, Object> result = new java.util.HashMap<>();
-            result.put("breakdown", breakdown);
-            result.put("totalCost", total);
-            logger.info("[PrintJobController] Cost calculation result: {}", result);
+            result.put("total", total);
+            // Optionally, add breakdown per file
             return ResponseEntity.ok(result);
         } else {
             // Old: single job

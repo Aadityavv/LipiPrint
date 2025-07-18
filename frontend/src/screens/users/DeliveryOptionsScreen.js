@@ -20,7 +20,7 @@ import Heading from '../../components/Heading';
 const { width } = Dimensions.get('window');
 
 export default function DeliveryOptionsScreen({ navigation, route }) {
-  const { files, selectedOptions, selectedPaper, selectedPrint, total } = route.params || {};
+  const { files, selectedOptions, selectedPaper, selectedPrint, total, totalPrice, priceBreakdown } = route.params || {};
   const [deliveryMethod, setDeliveryMethod] = useState('pickup');
   const [selectedLocation, setSelectedLocation] = useState(null);
   const [pickupLocations, setPickupLocations] = useState([]);
@@ -113,7 +113,7 @@ export default function DeliveryOptionsScreen({ navigation, route }) {
       }
     }
     navigation.navigate('Payment', {
-      files,
+      files, // Pass files with pages
       selectedOptions,
       selectedPaper,
       selectedPrint,
@@ -128,6 +128,8 @@ export default function DeliveryOptionsScreen({ navigation, route }) {
       phone: showNewAddress ? phone : savedAddresses.find(a => a.id === selectedAddressId)?.phone,
       total: calculateFinalTotal(),
       selectedLocation,
+      totalPrice,
+      priceBreakdown,
     });
   };
 
@@ -220,6 +222,14 @@ export default function DeliveryOptionsScreen({ navigation, route }) {
         </LinearGradient>
 
         <View style={styles.content}>
+          {(totalPrice !== undefined && totalPrice !== null) && (
+            <View style={{ marginBottom: 12 }}>
+              <Text style={{ fontWeight: 'bold', fontSize: 16 }}>Total Price: ₹{totalPrice}</Text>
+              {Array.isArray(priceBreakdown) && priceBreakdown.length > 0 && priceBreakdown.map((b, i) => (
+                <Text key={i} style={{ fontSize: 13, color: '#888' }}>{b.fileName}: ₹{b.totalCost}</Text>
+              ))}
+            </View>
+          )}
           {/* Delivery Methods */}
           <Animatable.View animation="fadeInUp" delay={200} duration={500}>
             <Text style={styles.sectionTitle}>Delivery Method</Text>

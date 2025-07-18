@@ -1,6 +1,6 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
-const baseUrl = 'http://192.168.1.11:8082/api'; // Ensure no trailing slash
+const baseUrl = 'http://10.142.175.104:8082/api'; // Ensure no trailing slash
 class ApiService {
     constructor() {
         this.baseURL = baseUrl;
@@ -302,6 +302,15 @@ class ApiService {
         return await this.request('/print-jobs/calculate-cost', {
             method: 'POST',
             body: JSON.stringify({ files }),
+        });
+    }
+
+    // Calculate total price for multiple print jobs/files
+    async calculatePrintJobsCost(payload) {
+        // POST to /print-jobs/calculate-cost
+        return await this.request('/print-jobs/calculate-cost', {
+            method: 'POST',
+            body: JSON.stringify(payload),
         });
     }
 

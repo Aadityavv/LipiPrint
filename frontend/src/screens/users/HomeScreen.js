@@ -16,6 +16,7 @@ import { useTheme } from '../../theme/ThemeContext';
 import StoreClosedBanner from '../../components/StoreClosedBanner';
 import Heading from '../../components/Heading';
 import BannerImage from '../../assets/banner/banner.png';
+import CustomAlert from '../../components/CustomAlert';
 
 const { width } = Dimensions.get('window');
 
@@ -26,6 +27,9 @@ export default function HomeScreen({ navigation }) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [acceptingOrders, setAcceptingOrders] = useState(true);
+  const [alertVisible, setAlertVisible] = useState(false);
+  const [alertTitle, setAlertTitle] = useState('');
+  const [alertMessage, setAlertMessage] = useState('');
 
   useEffect(() => {
     setLoading(true);
@@ -49,10 +53,22 @@ export default function HomeScreen({ navigation }) {
 
   // Add Profile back to quickActions
   const quickActions = [
-    { title: 'Upload Files', icon: <Icon name="cloud-upload" size={42} color="#FFFFFF" />, color: 'linear-gradient(90deg, #ff9966 0%, #ff5e62 100%)', onPress: () => navigation.navigate('Upload') },
-    // { title: 'My Orders', icon: <Icon name="assignment" size={42} color="#FFFFFF" />, color: 'linear-gradient(90deg, #36d1c4 0%, #1e90ff 100%)', onPress: () => navigation.navigate('Orders') },
-    { title: 'Print Options', icon: <Icon name="print" size={42} color="#FFFFFF" />, color: 'linear-gradient(90deg, #f7971e 0%, #ffd200 100%)', onPress: () => navigation.navigate('PrintOptions') },
-    // { title: 'Profile', icon: <Icon name="person" size={42} color="#FFFFFF" />, color: 'linear-gradient(90deg, #43cea2 0%, #185a9d 100%)', onPress: () => navigation.navigate('Profile') },
+    {
+      title: 'Documentation A4 and A3',
+      icon: <Icon name="cloud-upload" size={42} color="#FFFFFF" />,
+      color: ['#4e54c8', '#8f94fb'],
+      onPress: () => navigation.navigate('Upload'),
+    },
+    {
+      title: 'Many more options to come',
+      icon: <Icon name="print" size={42} color="#FFFFFF" />,
+      color: ['#ff512f', '#dd2476'],
+      onPress: () => {
+        setAlertTitle('Heads up');
+        setAlertMessage('Yet to come');
+        setAlertVisible(true);
+      },
+    },
   ];
 
   const getStatusColor = (status) => {
@@ -77,14 +93,10 @@ export default function HomeScreen({ navigation }) {
 
   function getGradientColors(title) {
     switch (title) {
-      case 'Upload Files':
-        return ['#ff9966', '#ff5e62'];
-      case 'My Orders':
-        return ['#36d1c4', '#1e90ff'];
-      case 'Print Options':
-        return ['#f7971e', '#ffd200'];
-      case 'Profile':
-        return ['#43cea2', '#185a9d'];
+      case 'Documentation A4 and A3':
+        return ['#4e54c8', '#8f94fb'];
+      case 'Many more options to come':
+        return ['#ff512f', '#dd2476'];
       default:
         return ['#667eea', '#764ba2'];
     }
@@ -142,10 +154,10 @@ export default function HomeScreen({ navigation }) {
       />
 
       <View style={styles.content}>
-        {/* Quick Actions */}
+        {/* Quick Actions - now vertical stack */}
         <Animatable.View animation="fadeInUp" delay={200} duration={500}>
           <Text style={styles.sectionTitle}>Quick Actions</Text>
-          <View style={styles.quickActionsGrid}>
+          <View style={styles.quickActionsColumn}>
             {quickActions.map((action, index) => (
               <Animatable.View
                 key={action.title}
@@ -154,9 +166,9 @@ export default function HomeScreen({ navigation }) {
                 duration={400}
               >
                 <TouchableOpacity
-                  style={[styles.actionCard, { overflow: 'hidden' }]}
+                  style={[styles.actionCardVertical, { overflow: 'hidden' }]}
                   onPress={action.onPress}
-                  activeOpacity={0.8}
+                  activeOpacity={0.85}
                 >
                   <LinearGradient
                     colors={getGradientColors(action.title)}
@@ -164,21 +176,24 @@ export default function HomeScreen({ navigation }) {
                     end={{ x: 1, y: 0 }}
                     style={StyleSheet.absoluteFill}
                   />
-                  <View style={{ zIndex: 1, alignItems: 'center' }}>
-                    <Text style={styles.actionIcon}>{action.icon}</Text>
-                    <Text style={styles.actionTitle}>{action.title}</Text>
+                  <View style={{ zIndex: 1, alignItems: 'center', justifyContent: 'center' }}>
+                    {action.icon}
+                    <Text style={styles.actionTitleVertical}>{action.title}</Text>
                   </View>
                 </TouchableOpacity>
               </Animatable.View>
             ))}
           </View>
+          {orders.length === 0 && (
+            <Text style={{ color: '#888', textAlign: 'center', marginTop: 16 }}>No recent orders found.</Text>
+          )}
         </Animatable.View>
 
         {/* Recent Orders */}
         <Animatable.View animation="fadeInUp" delay={400} duration={500} style={styles.recentSection}>
           <View style={styles.sectionHeader}>
             <Text style={styles.sectionTitle}>Recent Orders</Text>
-            <TouchableOpacity onPress={() => navigation.navigate('Orders')}>
+            <TouchableOpacity onPress={() => navigation.navigate('OrdersScreen')}>
               <Text style={styles.viewAllText}>View All</Text>
             </TouchableOpacity>
           </View>
@@ -224,6 +239,12 @@ export default function HomeScreen({ navigation }) {
           </TouchableOpacity>
         </Animatable.View> */}
       </View>
+      <CustomAlert
+        visible={alertVisible}
+        title={alertTitle}
+        message={alertMessage}
+        onClose={() => setAlertVisible(false)}
+      />
     </ScrollView>
   );
 }
@@ -403,5 +424,32 @@ const styles = StyleSheet.create({
     borderWidth: 2,
     borderColor: 'white',
     zIndex: 2,
+  },
+  quickActionsColumn: {
+    flexDirection: 'column',
+    alignItems: 'stretch',
+    gap: 24,
+    marginBottom: 30,
+  },
+  actionCardVertical: {
+    width: '100%',
+    height: 90,
+    borderRadius: 18,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 0,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.12,
+    shadowRadius: 10,
+    elevation: 5,
+  },
+  actionTitleVertical: {
+    fontSize: 17,
+    fontWeight: '700',
+    color: 'white',
+    textAlign: 'center',
+    marginTop: 8,
+    letterSpacing: 0.2,
   },
 });

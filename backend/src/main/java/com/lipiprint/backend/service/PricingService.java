@@ -4,6 +4,7 @@ import com.lipiprint.backend.entity.ServiceCombination;
 import com.lipiprint.backend.entity.DiscountRule;
 import com.lipiprint.backend.entity.BindingOption;
 import com.lipiprint.backend.entity.Order;
+import com.lipiprint.backend.entity.PrintJob;
 import com.lipiprint.backend.repository.ServiceCombinationRepository;
 import com.lipiprint.backend.repository.DiscountRuleRepository;
 import com.lipiprint.backend.repository.BindingOptionRepository;
@@ -125,6 +126,39 @@ public class PricingService {
             }
         }
         logger.info("[PricingService] Total order price: {}", total);
+        return total;
+    }
+
+    // Add a method to calculate total price for a list of print jobs (files with options)
+    public double calculateTotalPriceForPrintJobs(List<PrintJob> printJobs) {
+        logger.info("[PricingService] calculateTotalPriceForPrintJobs called");
+        if (printJobs == null || printJobs.isEmpty()) {
+            logger.warn("[PricingService] printJobs is null/empty");
+            return 0.0;
+        }
+        double total = 0.0;
+        for (var pj : printJobs) {
+            if (pj.getFile() == null) continue;
+            Integer numPages = pj.getFile().getPages();
+            if (numPages == null || numPages == 0) continue;
+            if (pj.getOptions() == null || pj.getOptions().isBlank()) continue;
+            try {
+                com.fasterxml.jackson.databind.ObjectMapper mapper = new com.fasterxml.jackson.databind.ObjectMapper();
+                java.util.Map<String, Object> opts = mapper.readValue(pj.getOptions(), java.util.Map.class);
+                String color = (String) opts.getOrDefault("color", null);
+                String paper = (String) opts.getOrDefault("paper", null);
+                String quality = (String) opts.getOrDefault("quality", null);
+                String side = (String) opts.getOrDefault("side", null);
+                String binding = (String) opts.getOrDefault("binding", null);
+                java.math.BigDecimal printCost = calculatePrintCost(color, paper, quality, side, numPages);
+                java.math.BigDecimal bindingCost = (binding != null && !binding.isBlank()) ? calculateBindingCost(binding, numPages) : java.math.BigDecimal.ZERO;
+                total += printCost.add(bindingCost).doubleValue();
+            } catch (Exception e) {
+                logger.error("[PricingService] Error parsing print job options or calculating cost: {} (pj id: {})", e.getMessage(), pj.getId(), e);
+                continue;
+            }
+        }
+        logger.info("[PricingService] Total price for print jobs: {}", total);
         return total;
     }
 } 

@@ -21,7 +21,7 @@ const { width } = Dimensions.get('window');
 
 export default function PaymentScreen({ navigation, route }) {
   console.log('[PaymentScreen] route.params:', route.params);
-  const { files, selectedOptions, deliveryType, deliveryAddress, phone, total } = route.params || {};
+  const { files, selectedOptions, deliveryType, deliveryAddress, phone, total, totalPrice, priceBreakdown } = route.params || {};
   
   const [processing, setProcessing] = useState(false);
   const [user, setUser] = useState(null);
@@ -43,13 +43,13 @@ export default function PaymentScreen({ navigation, route }) {
   }, []);
 
   // GST Calculation (18% on subtotal)
-  const baseTotal = total || 0;
+  const baseTotal = (totalPrice !== undefined && totalPrice !== null) ? totalPrice : (total || 0);
   const gst = Math.round(baseTotal * 0.18);
   const grandTotal = baseTotal + gst;
 
   const orderSummary = {
     items: files?.length || 0,
-    pages: files?.reduce((sum, file) => sum + (file.pages || 0), 0),
+    pages: files?.reduce((sum, fileObj) => sum + (fileObj.file?.pages || 0), 0),
     printing: baseTotal,
     gst,
     total: grandTotal,
@@ -67,18 +67,18 @@ export default function PaymentScreen({ navigation, route }) {
   const handlePayment = async () => {
     setProcessing(true);
     // Defensive: check for valid file IDs
-    if (!files || files.length === 0 || files.some(file => typeof file.id !== 'number' || file.id <= 0)) {
+    if (!files || files.length === 0 || files.some(fileObj => !fileObj.file || typeof fileObj.file.id !== 'number' || fileObj.file.id <= 0)) {
       setProcessing(false);
       showAlert('File Error', 'One or more files are missing or not uploaded correctly. Please re-upload your files.', 'error');
       return;
     }
     try {
       // 1. Build the order data (before payment)
-      const printJobsPayload = files.map(file => ({
-        file: { id: file.id },
+      const printJobsPayload = files.map(fileObj => ({
+        file: { id: fileObj.file.id },
         user: { id: user?.id },
         status: 'QUEUED',
-        options: JSON.stringify(selectedOptions),
+        options: JSON.stringify(fileObj.printOptions || selectedOptions),
       }));
       const orderData = {
         user: { id: user?.id },
@@ -188,6 +188,15 @@ export default function PaymentScreen({ navigation, route }) {
               </View>
             </View>
           </Animatable.View>
+
+          {(totalPrice !== undefined && totalPrice !== null) && (
+            <View style={{ marginBottom: 12 }}>
+              <Text style={{ fontWeight: 'bold', fontSize: 16 }}>Total Price: ₹{totalPrice}</Text>
+              {Array.isArray(priceBreakdown) && priceBreakdown.length > 0 && priceBreakdown.map((b, i) => (
+                <Text key={i} style={{ fontSize: 13, color: '#888' }}>{b.fileName}: ₹{b.totalCost}</Text>
+              ))}
+            </View>
+          )}
 
           {/* Payment Method - Only Razorpay */}
           <Animatable.View animation="fadeInUp" delay={300} duration={500}>

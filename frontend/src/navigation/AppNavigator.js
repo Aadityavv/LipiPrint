@@ -59,7 +59,7 @@ function TabNavigator() {
         tabBarIcon: ({ color, size }) => {
           let iconName = 'home';
           if (route.name === 'Upload') iconName = 'upload-file';
-          else if (route.name === 'Orders') iconName = 'history';
+          // Remove Orders icon
           return <Icon name={iconName} size={size} color={color} />;
         },
         tabBarActiveTintColor: '#0058A3',
@@ -69,7 +69,7 @@ function TabNavigator() {
     >
       <Tab.Screen name="Home" component={HomeScreen} />
       <Tab.Screen name="Upload" component={UploadScreen} />
-      <Tab.Screen name="Orders" component={OrdersScreen} />
+      {/* Orders tab removed from bottom nav */}
     </Tab.Navigator>
   );
 }

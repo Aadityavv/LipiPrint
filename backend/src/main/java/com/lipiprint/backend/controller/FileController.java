@@ -29,10 +29,17 @@ public class FileController {
     private UserService userService;
 
     @PostMapping("/upload")
-    public ResponseEntity<FileDTO> uploadFile(@RequestParam("file") MultipartFile file, Authentication authentication) {
+    public ResponseEntity<FileDTO> uploadFile(
+        @RequestParam("file") MultipartFile file,
+        @RequestParam(value = "color", required = false) String color,
+        @RequestParam(value = "paper", required = false) String paper,
+        @RequestParam(value = "quality", required = false) String quality,
+        @RequestParam(value = "side", required = false) String side,
+        @RequestParam(value = "binding", required = false) String binding,
+        Authentication authentication) {
         User user = userService.findByPhone(authentication.getName()).orElseThrow();
-        // File storage logic should be implemented in FileService
-        File savedFile = fileService.saveUploadedFile(file, user);
+        // Save file and print options
+        File savedFile = fileService.saveUploadedFileWithPrintOptions(file, user, color, paper, quality, side, binding);
         FileDTO fileDTO = new FileDTO(savedFile.getId(), savedFile.getFilename(), savedFile.getOriginalFilename(), savedFile.getContentType(), savedFile.getSize(), savedFile.getUrl(), null, savedFile.getCreatedAt(), savedFile.getUpdatedAt(), savedFile.getPages());
         return ResponseEntity.ok(fileDTO);
     }
