@@ -186,6 +186,42 @@ export default function AdminOrderDetailScreen() {
     }
   };
 
+  // Group print jobs by bindingGroups if present, else by print options
+  function groupPrintJobsByBindingOrOptions(printJobs, bindingGroups) {
+    if (bindingGroups && Array.isArray(bindingGroups) && bindingGroups.length > 0) {
+      // Group by bindingGroups (array of arrays of file IDs)
+      return bindingGroups.map((group, idx) => {
+        const jobs = printJobs.filter(pj => group.includes(pj.file?.id));
+        return { groupLabel: `Binding Group ${idx + 1}`, jobs, options: jobs[0]?.options };
+      });
+    } else {
+      // Fallback: group by print options
+      const seen = new Map();
+      printJobs.forEach(pj => {
+        let optionsKey = '';
+        try {
+          const opts = typeof pj.options === 'string' ? JSON.parse(pj.options) : pj.options;
+          optionsKey = JSON.stringify(opts, Object.keys(opts).sort());
+        } catch {
+          optionsKey = String(pj.options);
+        }
+        if (!seen.has(optionsKey)) {
+          seen.set(optionsKey, { options: pj.options, jobs: [pj] });
+        } else {
+          seen.get(optionsKey).jobs.push(pj);
+        }
+      });
+      return Array.from(seen.values()).map((g, idx) => ({ groupLabel: `Print Group ${idx + 1}`, jobs: g.jobs, options: g.options }));
+    }
+  }
+
+  // Parse bindingGroups from order (may be stringified JSON)
+  let bindingGroups = order.bindingGroups;
+  if (typeof bindingGroups === 'string') {
+    try { bindingGroups = JSON.parse(bindingGroups); } catch { bindingGroups = []; }
+  }
+  const printJobGroups = groupPrintJobsByBindingOrOptions(printJobs, bindingGroups);
+
   return (
     <ScrollView style={{ flex: 1, backgroundColor: '#f5f6fa' }} contentContainerStyle={{ padding: 0 }}>
       {/* HEADER */}
@@ -263,32 +299,54 @@ export default function AdminOrderDetailScreen() {
             </View>
           ))}
         </View>
-      {/* PRINTING SPECS */}
+      {/* GROUPED PRINT JOBS */}
       <View style={styles.sectionCard}>
         <View style={styles.sectionHeaderRow}>
-          <Icon name="settings" size={20} color="#667eea" style={styles.sectionIcon} />
-            <Text style={styles.sectionTitle}>Printing Specifications</Text>
+          <Icon name="layers" size={20} color="#667eea" style={styles.sectionIcon} />
+          <Text style={styles.sectionTitle}>Print Job Groups</Text>
         </View>
-        {printJobs.length === 0 ? (
-          <Text style={styles.emptyText}>No specifications</Text>
+        {printJobGroups.length === 0 ? (
+          <Text style={styles.emptyText}>No print jobs</Text>
         ) : (
-          printJobs.map((pj, idx) => {
-            const specs = getSpecs(pj.options);
+          printJobGroups.map((group, gidx) => {
+            let specs;
+            try {
+              specs = typeof group.options === 'string' ? JSON.parse(group.options) : group.options;
+            } catch { specs = {}; }
             return (
-              <View key={pj.id || idx} style={{ marginBottom: 10 }}>
-                <Text style={{ fontWeight: 'bold', color: '#333', marginBottom: 2 }}>{pj.file?.originalFilename || `File #${idx + 1}`}</Text>
-                {specs ? (
-                  Object.entries(specs).map(([key, value]) => (
-                    <Text style={styles.specText} key={key}>{key.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}: {value}</Text>
-                  ))
-                ) : (
-                  <Text style={styles.emptyText}>No specifications</Text>
-                )}
+              <View key={gidx} style={{ marginBottom: 18, backgroundColor: '#f8f9fa', borderRadius: 12, padding: 12, borderWidth: 1, borderColor: '#e0e0e0' }}>
+                <Text style={{ fontWeight: 'bold', color: '#764ba2', fontSize: 16, marginBottom: 4 }}>{group.groupLabel}</Text>
+                <Text style={{ fontWeight: 'bold', color: '#667eea', fontSize: 15, marginBottom: 2 }}>Print Options:</Text>
+                <View style={{ marginBottom: 8, marginLeft: 8 }}>
+                  {specs && Object.entries(specs).map(([key, value]) => (
+                    <Text key={key} style={{ color: '#333', fontSize: 14 }}>
+                      {key.replace(/_/g, ' ').replace(/^./, c => c.toUpperCase())}: {String(value)}
+                    </Text>
+                  ))}
+                </View>
+                <Text style={{ fontWeight: 'bold', color: '#764ba2', fontSize: 15, marginBottom: 2 }}>Files:</Text>
+                {group.jobs.map((pj, fidx) => (
+                  <View key={fidx} style={{ marginLeft: 12, marginBottom: 2 }}>
+                    <Text style={{ color: '#22194f', fontWeight: 'bold', fontSize: 14 }}>{pj.file?.originalFilename || pj.file?.name}</Text>
+                    <Text style={{ color: '#888', fontSize: 13 }}>Pages: {pj.file?.pages || '-'}</Text>
+                    <Text style={{ color: '#888', fontSize: 13 }}>Uploaded: {pj.file?.createdAt?.split('T')[0] || '-'}</Text>
+                  </View>
+                ))}
               </View>
             );
           })
         )}
       </View>
+      {/* ORDER NOTE */}
+      {order.orderNote && (
+        <View style={styles.sectionCard}>
+          <View style={styles.sectionHeaderRow}>
+            <Icon name="sticky-note-2" size={20} color="#667eea" style={styles.sectionIcon} />
+            <Text style={styles.sectionTitle}>Order Note</Text>
+          </View>
+          <Text style={{ color: '#333', fontSize: 15 }}>{order.orderNote}</Text>
+        </View>
+      )}
       {/* ORDER STATUS */}
       <View style={styles.sectionCard}>
         <View style={styles.sectionHeaderRow}>

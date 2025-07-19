@@ -1,6 +1,6 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
-const baseUrl = 'http://10.125.114.121:8082/api'; // Ensure no trailing slash
+const baseUrl = 'https://lipiprint-freelance.onrender.com/api'; // Ensure no trailing slash
 class ApiService {
     constructor() {
         this.baseURL = baseUrl;

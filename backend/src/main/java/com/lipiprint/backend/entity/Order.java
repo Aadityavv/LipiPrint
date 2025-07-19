@@ -34,6 +34,12 @@ public class Order {
     private String deliveryType;
     private String deliveryAddress;
 
+    @Column(columnDefinition = "TEXT")
+    private String bindingGroups; // Store as JSON string
+    private String orderNote;
+
+    private String razorpayOrderId;
+
     @PrePersist
     protected void onCreate() {
         createdAt = updatedAt = LocalDateTime.now();
@@ -73,6 +79,14 @@ public class Order {
 
     public java.util.List<PrintJob> getPrintJobs() { return printJobs; }
     public void setPrintJobs(java.util.List<PrintJob> printJobs) { this.printJobs = printJobs; }
+
+    public String getBindingGroups() { return bindingGroups; }
+    public void setBindingGroups(String bindingGroups) { this.bindingGroups = bindingGroups; }
+    public String getOrderNote() { return orderNote; }
+    public void setOrderNote(String orderNote) { this.orderNote = orderNote; }
+
+    public String getRazorpayOrderId() { return razorpayOrderId; }
+    public void setRazorpayOrderId(String razorpayOrderId) { this.razorpayOrderId = razorpayOrderId; }
 
     public Map<String, Object> toActivityMap() {
         Map<String, Object> map = new HashMap<>();

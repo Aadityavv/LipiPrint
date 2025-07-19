@@ -15,6 +15,8 @@ import LinearGradient from 'react-native-linear-gradient';
 import * as Animatable from 'react-native-animatable';
 import ApiService from '../../services/api';
 import { useTheme } from '../../theme/ThemeContext';
+import LottieView from 'lottie-react-native';
+import DataAnalysisLottie from '../../assets/animations/Isometric data analysis.json';
 
 const { width } = Dimensions.get('window');
 
@@ -153,9 +155,15 @@ export default function ProfileScreen({ navigation }) {
 
   if (loading) {
     return (
-      <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="#667eea" />
-        <Text style={styles.loadingText}>Loading profile...</Text>
+      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: theme.background }}>
+        <LottieView
+          source={DataAnalysisLottie}
+          autoPlay
+          loop
+          speed={1.2}
+          style={{ width: 200, height: 200 }}
+        />
+        <Text style={{ color: '#22194f', fontWeight: 'bold', fontSize: 18, marginTop: 18 }}>Loading profile...</Text>
       </View>
     );
   }

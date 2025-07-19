@@ -34,7 +34,7 @@ export default function InvoiceDetailScreen() {
       try {
         setLoading(true);
         console.log('[InvoiceDetailScreen] orderId:', orderId);
-        const apiUrl = `${process.env.EXPO_PUBLIC_API_URL || 'http://10.125.114.121:8082/'}api/orders/${orderId}`;
+        const apiUrl = `${process.env.EXPO_PUBLIC_API_URL || 'https://lipiprint-freelance.onrender.com/'}api/orders/${orderId}`;
         console.log('[InvoiceDetailScreen] API URL:', apiUrl);
         const token = await AsyncStorage.getItem('authToken');
         console.log('[InvoiceDetailScreen] token:', token);
@@ -73,7 +73,7 @@ export default function InvoiceDetailScreen() {
       setDownloading(true);
       const { dirs } = RNBlobUtil.fs;
       const path = `${dirs.DownloadDir}/invoice-${orderId}.pdf`;
-      const apiUrl = `${process.env.EXPO_PUBLIC_API_URL || 'http://10.125.114.121:8082/'}api/orders/${orderId}/invoice`;
+      const apiUrl = `${process.env.EXPO_PUBLIC_API_URL || 'https://lipiprint-freelance.onrender.com/'}api/orders/${orderId}/invoice`;
       const token = await AsyncStorage.getItem('authToken');
       if (!token) {
         setDownloading(false);
@@ -133,7 +133,7 @@ export default function InvoiceDetailScreen() {
   const gst = order.totalAmount ? (parseFloat(subtotal) * gstRate).toFixed(2) : '0.00';
   const grandTotal = order.totalAmount ? (parseFloat(subtotal) + parseFloat(gst) + parseFloat(deliveryCharge)).toFixed(2) : '0.00';
 
-  const invoiceUrl = `${process.env.EXPO_PUBLIC_API_URL || 'http://10.125.114.121:8082/'}api/orders/${orderId}/invoice`;
+  const invoiceUrl = `${process.env.EXPO_PUBLIC_API_URL || 'https://lipiprint-freelance.onrender.com/'}api/orders/${orderId}/invoice`;
 
   // Utility to get display file name
   const getDisplayFileName = (file) => {
@@ -146,6 +146,32 @@ export default function InvoiceDetailScreen() {
     }
     return name;
   };
+
+  // Group print jobs by print options
+  function groupPrintJobsByOptions(printJobs) {
+    if (!printJobs) return [];
+    const groups = [];
+    const seen = new Map();
+    printJobs.forEach(pj => {
+      let optionsKey = '';
+      try {
+        const opts = typeof pj.options === 'string' ? JSON.parse(pj.options) : pj.options;
+        optionsKey = JSON.stringify(opts, Object.keys(opts).sort());
+      } catch {
+        optionsKey = String(pj.options);
+      }
+      if (!seen.has(optionsKey)) {
+        seen.set(optionsKey, { options: pj.options, files: [pj.file], createdAts: [pj.file?.createdAt] });
+      } else {
+        const group = seen.get(optionsKey);
+        group.files.push(pj.file);
+        group.createdAts.push(pj.file?.createdAt);
+      }
+    });
+    return Array.from(seen.values());
+  }
+
+  const printJobGroups = groupPrintJobsByOptions(order.printJobs);
 
   if (showPdf) {
     // Minimum spinner time logic
@@ -220,35 +246,37 @@ export default function InvoiceDetailScreen() {
             <Icon name="description" size={18} color="#667eea" style={styles.sectionIcon} />
             <Text style={styles.sectionTitle}>Print Jobs</Text>
           </View>
-          {order.printJobs && order.printJobs.length > 0 ? (
-            order.printJobs.map((pj, idx) => (
-              <View key={pj.id || idx} style={{ marginBottom: 10 }}>
-                <Text style={{ fontWeight: 'bold', color: '#764ba2' }}>File: {getDisplayFileName(pj.file)}</Text>
-                <Text>Pages: {pj.file?.pages || '-'}</Text>
-                <Text>Ordered On: {pj.file?.createdAt?.split('T')[0] || '-'}</Text>
-                {/* Print Specifications */}
-                {pj.options && (() => {
-                  let specs;
-                  try {
-                    specs = typeof pj.options === 'string' ? JSON.parse(pj.options) : pj.options;
-                  } catch (e) {
-                    return <Text style={{ color: 'red' }}>Print Specs: [Invalid format]</Text>;
-                  }
-                  return Object.keys(specs).length > 0 ? (
-                    <View style={{ marginTop: 4 }}>
-                      <Text style={{ fontWeight: 'bold', color: '#667eea', marginBottom: 2 }}>Print Specifications:</Text>
-                      {Object.entries(specs).map(([key, value]) => (
-                        <Text key={key} style={{ marginLeft: 8 }}>
-                          {key.replace(/_/g, ' ').replace(/^./, c => c.toUpperCase())}: {String(value)}
-                        </Text>
-                      ))}
+          {printJobGroups.length > 0 ? (
+            printJobGroups.map((group, idx) => {
+              let specs;
+              try {
+                specs = typeof group.options === 'string' ? JSON.parse(group.options) : group.options;
+              } catch {
+                specs = {};
+              }
+              return (
+                <View key={idx} style={{ marginBottom: 18, backgroundColor: '#f8f9fa', borderRadius: 12, padding: 12, borderWidth: 1, borderColor: '#e0e0e0' }}>
+                  <Text style={{ fontWeight: 'bold', color: '#764ba2', fontSize: 16, marginBottom: 4 }}>Print Options:</Text>
+                  <View style={{ marginBottom: 8, marginLeft: 8 }}>
+                    {Object.entries(specs).map(([key, value]) => (
+                      <Text key={key} style={{ color: '#333', fontSize: 14 }}>
+                        {key.replace(/_/g, ' ').replace(/^./, c => c.toUpperCase())}: {String(value)}
+                      </Text>
+                    ))}
+                  </View>
+                  <Text style={{ fontWeight: 'bold', color: '#667eea', fontSize: 15, marginBottom: 2 }}>Files:</Text>
+                  {group.files.map((file, fidx) => (
+                    <View key={fidx} style={{ marginLeft: 12, marginBottom: 2 }}>
+                      <Text style={{ color: '#22194f', fontWeight: 'bold', fontSize: 14 }}>{getDisplayFileName(file)}</Text>
+                      <Text style={{ color: '#888', fontSize: 13 }}>Pages: {file?.pages || '-'}</Text>
+                      <Text style={{ color: '#888', fontSize: 13 }}>Ordered On: {file?.createdAt?.split('T')[0] || '-'}</Text>
                     </View>
-                  ) : null;
-                })()}
-              </View>
-            ))
+                  ))}
+                </View>
+              );
+            })
           ) : (
-            <Text>No print jobs found.</Text>
+            <Text style={{ color: '#888', marginTop: 8 }}>No print jobs found.</Text>
           )}
         </View>
         <View style={styles.section}>

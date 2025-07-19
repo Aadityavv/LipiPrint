@@ -29,4 +29,6 @@ public class OrderDTO {
     private String deliveryAddress;
     // Add razorpayOrderId for payment linking
     private String razorpayOrderId;
+    private List<List<Long>> bindingGroups;
+    private String orderNote;
 } 

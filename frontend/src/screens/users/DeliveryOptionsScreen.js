@@ -16,6 +16,8 @@ import Icon from 'react-native-vector-icons/MaterialIcons';
 import ApiService from '../../services/api';
 import { useTheme } from '../../theme/ThemeContext';
 import Heading from '../../components/Heading';
+import LottieView from 'lottie-react-native';
+import LoadingWorld from '../../assets/animations/loading-world.json';
 
 const { width } = Dimensions.get('window');
 
@@ -208,7 +210,16 @@ export default function DeliveryOptionsScreen({ navigation, route }) {
   };
 
   if (loadingOptions) {
-    return <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}><Text>Loading delivery options...</Text></View>;
+    return <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+      <LottieView
+        source={LoadingWorld}
+        autoPlay
+        loop
+        speed={1.2}
+        style={{ width: 180, height: 180 }}
+      />
+      <Text style={{ color: '#22194f', fontWeight: 'bold', fontSize: 18, marginTop: 18 }}>Loading delivery options...</Text>
+    </View>;
   }
   if (optionsError) {
     return <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}><Text style={{ color: 'red' }}>{optionsError}</Text></View>;

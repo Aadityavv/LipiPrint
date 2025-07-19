@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Modal, Dimensions, ActivityIndicator } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Modal, Dimensions, ActivityIndicator, TextInput, FlatList, Alert } from 'react-native';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 import LinearGradient from 'react-native-linear-gradient';
 import { pick, types, isCancel } from '@react-native-documents/picker';
@@ -32,6 +32,11 @@ export default function UploadScreen({ navigation }) {
   const [alertType, setAlertType] = useState('info'); // 'info', 'error', 'success'
   const [totalPrice, setTotalPrice] = useState(null);
   const [priceBreakdown, setPriceBreakdown] = useState([]);
+
+  // Add state for binding groups and order note
+  const [bindingGroups, setBindingGroups] = useState([]); // Array of arrays of file indices
+  const [selectedFiles, setSelectedFiles] = useState([]); // For current group selection
+  const [orderNote, setOrderNote] = useState('');
 
   function showCustomAlert(title, message, type = 'info') {
     setAlertTitle(title);
@@ -333,6 +338,61 @@ const handleProceedToCheckout = async () => {
     return opts;
   };
 
+  // Helper to add a new binding group
+  const addBindingGroup = () => {
+    if (selectedFiles.length < 2) {
+      Alert.alert('Select at least 2 files to bind together.');
+      return;
+    }
+    setBindingGroups([...bindingGroups, selectedFiles]);
+    setSelectedFiles([]);
+  };
+
+  // Helper to remove a file from all groups
+  const removeFileFromGroups = (fileIdx) => {
+    setBindingGroups(bindingGroups.map(group => group.filter(idx => idx !== fileIdx)).filter(g => g.length > 0));
+  };
+
+  // UI for selecting files to bind together
+  const renderFileSelector = () => (
+    <View style={styles.bindingSection}>
+      <Text style={styles.bindingTitle}>Group Binding</Text>
+      <Text style={styles.bindingDesc}>Select files to bind together, then tap 'Add Group'.</Text>
+      <FlatList
+        data={uploadedFiles}
+        keyExtractor={(_, idx) => idx.toString()}
+        horizontal
+        renderItem={({ item, index }) => (
+          <TouchableOpacity
+            style={[styles.fileChip, selectedFiles.includes(index) && styles.fileChipSelected]}
+            onPress={() => {
+              setSelectedFiles(selectedFiles.includes(index)
+                ? selectedFiles.filter(i => i !== index)
+                : [...selectedFiles, index]);
+            }}
+          >
+            <Text style={styles.fileChipText}>{item.file.originalFilename || item.file.name}</Text>
+          </TouchableOpacity>
+        )}
+      />
+      <TouchableOpacity style={styles.addGroupBtn} onPress={addBindingGroup}>
+        <Text style={styles.addGroupBtnText}>Add Group</Text>
+      </TouchableOpacity>
+      <View style={styles.groupsList}>
+        {bindingGroups.map((group, gidx) => (
+          <View key={gidx} style={styles.groupRow}>
+            <Text style={styles.groupLabel}>Group {gidx + 1}:</Text>
+            {group.map(idx => (
+              <View key={idx} style={styles.groupFileChip}>
+                <Text style={styles.groupFileChipText}>{uploadedFiles[idx]?.file.originalFilename || uploadedFiles[idx]?.file.name}</Text>
+              </View>
+            ))}
+          </View>
+        ))}
+      </View>
+    </View>
+  );
+
   return (
     <ScrollView style={styles.container} contentContainerStyle={{ paddingBottom: 40 }}>
       {isUploading && (
@@ -418,6 +478,17 @@ const handleProceedToCheckout = async () => {
             </TouchableOpacity>
           </View>
         )}
+      </View>
+      {renderFileSelector()}
+      <View style={styles.orderNoteSection}>
+        <Text style={styles.orderNoteLabel}>Order Note (optional):</Text>
+        <TextInput
+          style={styles.orderNoteInput}
+          value={orderNote}
+          onChangeText={setOrderNote}
+          placeholder="Leave a note for the admin..."
+          multiline
+        />
       </View>
       {/* Print Options Modal */}
       <Modal visible={showPrintOptionsModal} transparent animationType="slide" onRequestClose={() => setShowPrintOptionsModal(false)}>
@@ -550,4 +621,20 @@ const styles = StyleSheet.create({
   uploadMoreBtn: { backgroundColor: '#43B581', paddingHorizontal: 20, paddingVertical: 10, borderRadius: 8 },
   uploadMoreBtnAlt: { backgroundColor: '#ff512f', paddingHorizontal: 20, paddingVertical: 10, borderRadius: 8 },
   uploadMoreBtnText: { color: 'white', fontWeight: 'bold' },
+  bindingSection: { marginVertical: 16, padding: 12, backgroundColor: '#f8f9fa', borderRadius: 10 },
+  bindingTitle: { fontWeight: 'bold', fontSize: 16, color: '#764ba2', marginBottom: 4 },
+  bindingDesc: { color: '#888', fontSize: 13, marginBottom: 8 },
+  fileChip: { padding: 8, borderRadius: 8, backgroundColor: '#e0e0e0', marginRight: 8 },
+  fileChipSelected: { backgroundColor: '#667eea' },
+  fileChipText: { color: '#333' },
+  addGroupBtn: { marginTop: 8, backgroundColor: '#667eea', borderRadius: 8, padding: 8, alignItems: 'center' },
+  addGroupBtnText: { color: '#fff', fontWeight: 'bold' },
+  groupsList: { marginTop: 8 },
+  groupRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 4 },
+  groupLabel: { color: '#764ba2', fontWeight: 'bold', marginRight: 4 },
+  groupFileChip: { backgroundColor: '#e0e0e0', borderRadius: 6, paddingHorizontal: 6, marginRight: 4 },
+  groupFileChipText: { color: '#333' },
+  orderNoteSection: { marginVertical: 16 },
+  orderNoteLabel: { fontWeight: 'bold', color: '#764ba2', marginBottom: 4 },
+  orderNoteInput: { backgroundColor: '#f8f9fa', borderRadius: 8, padding: 8, minHeight: 40, color: '#333' },
 });
