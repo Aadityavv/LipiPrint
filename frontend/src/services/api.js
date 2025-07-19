@@ -1,6 +1,6 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
-const baseUrl = 'http://10.142.175.104:8082/api'; // Ensure no trailing slash
+const baseUrl = 'http://10.125.114.121:8082/api'; // Ensure no trailing slash
 class ApiService {
     constructor() {
         this.baseURL = baseUrl;
@@ -147,9 +147,7 @@ class ApiService {
     }
 
     // File Management
-    async uploadFile(fileData) {
-        const formData = new FormData();
-        formData.append('file', fileData);
+    async uploadFile(formData) {
         return await this.request('/files/upload', {
             method: 'POST',
             body: formData,
@@ -199,6 +197,22 @@ class ApiService {
             method: 'POST',
             body: JSON.stringify(orderData),
         });
+    }
+
+    // Fetch only the top N recent orders (default 3)
+    async getRecentOrders(limit = 3) {
+        try {
+            // If backend supports ?limit=3, use it:
+            const orders = await this.request(`/orders?limit=${limit}`);
+            if (Array.isArray(orders)) return orders;
+            // Fallback: fetch all and slice
+            const allOrders = await this.getOrders();
+            return Array.isArray(allOrders) ? allOrders.slice(0, limit) : [];
+        } catch (e) {
+            // Fallback: fetch all and slice
+            const allOrders = await this.getOrders();
+            return Array.isArray(allOrders) ? allOrders.slice(0, limit) : [];
+        }
     }
 
     async getOrders() {

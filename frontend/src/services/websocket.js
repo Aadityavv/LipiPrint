@@ -13,7 +13,7 @@ class WebSocketService {
     connect(userId) {
         return new Promise((resolve, reject) => {
             try {
-                const socket = new SockJS('http://10.142.175.104:8082/ws');
+                const socket = new SockJS('http://10.125.114.121:8082/ws');
                 this.stompClient = Stomp.over(socket);
 
                 this.stompClient.connect(

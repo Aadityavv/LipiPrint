@@ -67,6 +67,7 @@ export default function PaymentScreen({ navigation, route }) {
   const handlePayment = async () => {
     setProcessing(true);
     // Defensive: check for valid file IDs
+    console.log('[PaymentScreen] files array before payment:', files);
     if (!files || files.length === 0 || files.some(fileObj => !fileObj.file || typeof fileObj.file.id !== 'number' || fileObj.file.id <= 0)) {
       setProcessing(false);
       showAlert('File Error', 'One or more files are missing or not uploaded correctly. Please re-upload your files.', 'error');
@@ -115,7 +116,7 @@ export default function PaymentScreen({ navigation, route }) {
       };
       const result = await launchRazorpay(options);
       // Payment succeeded, now create order in backend
-      if (!files[0]?.id) {
+      if (!files[0]?.file?.id) {
         setProcessing(false);
         showAlert('Order Error', 'No file selected for print job.', 'error');
         return;

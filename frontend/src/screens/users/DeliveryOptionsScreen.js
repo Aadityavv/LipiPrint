@@ -112,19 +112,26 @@ export default function DeliveryOptionsScreen({ navigation, route }) {
         }
       }
     }
+    let deliveryAddress = '';
+    if (deliveryMethod === 'pickup') {
+      const location = pickupLocations.find(loc => loc.id === selectedLocation);
+      deliveryAddress = location ? `${location.name}, ${location.address}` : 'Store Pickup';
+    } else {
+      deliveryAddress = showNewAddress
+        ? [addressLine1, addressLine2, addressLine3].filter(Boolean).join(' ').trim()
+        : [
+            savedAddresses.find(a => a.id === selectedAddressId)?.line1,
+            savedAddresses.find(a => a.id === selectedAddressId)?.line2,
+            savedAddresses.find(a => a.id === selectedAddressId)?.line3
+          ].filter(Boolean).join(' ').trim();
+    }
     navigation.navigate('Payment', {
       files, // Pass files with pages
       selectedOptions,
       selectedPaper,
       selectedPrint,
       deliveryType: deliveryMethod ? deliveryMethod.toUpperCase() : undefined,
-      deliveryAddress: showNewAddress
-        ? [addressLine1, addressLine2, addressLine3].filter(Boolean).join(' ').trim()
-        : [
-            savedAddresses.find(a => a.id === selectedAddressId)?.line1,
-            savedAddresses.find(a => a.id === selectedAddressId)?.line2,
-            savedAddresses.find(a => a.id === selectedAddressId)?.line3
-          ].filter(Boolean).join(' ').trim(),
+      deliveryAddress,
       phone: showNewAddress ? phone : savedAddresses.find(a => a.id === selectedAddressId)?.phone,
       total: calculateFinalTotal(),
       selectedLocation,

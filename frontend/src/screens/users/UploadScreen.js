@@ -7,6 +7,7 @@ import ImagePicker from 'react-native-image-crop-picker';
 import ApiService from '../../services/api';
 import Heading from '../../components/Heading';
 import RNBlobUtil from 'react-native-blob-util';
+import LottieView from 'lottie-react-native';
 
 const { width } = Dimensions.get('window');
 
@@ -190,62 +191,47 @@ export default function UploadScreen({ navigation }) {
     setShowPrintOptionsModal(false);
     setIsUploading(true);
     console.log('[LOG] Saving print options:', options);
-    // Upload file with options
-    const formData = new FormData();
-    let file = currentFile;
-    if (Array.isArray(file)) {
-      file = file[0];
-      console.log('[LOG] Picked file was an array, using first file:', file);
-    }
-    let fileToUpload = await prepareFileForUpload(file);
-    // Defensive: ensure name and type
-    if (!fileToUpload.name) {
-      let ext = '';
-      if (fileToUpload.type && fileToUpload.type.includes('/')) {
-        ext = '.' + fileToUpload.type.split('/')[1];
-      } else {
-        ext = '.jpg';
-      }
-      fileToUpload = { ...fileToUpload, name: `upload_${Date.now()}${ext}` };
-    }
-    if (!fileToUpload.type) {
-      fileToUpload = { ...fileToUpload, type: 'application/octet-stream' };
-    }
-    console.log('[LOG] Prepared file for upload:', fileToUpload);
-    formData.append('file', fileToUpload);
-    formData.append('color', options.color);
-    formData.append('paper', options.paper);
-    formData.append('quality', options.quality);
-    formData.append('side', options.side);
-    formData.append('binding', options.binding);
-    const token = await ApiService.getToken();
-    const xhr = new XMLHttpRequest();
-    xhr.open('POST', 'https://lipiprint-freelance.onrender.com/api/files/upload');
-    xhr.setRequestHeader('Accept', 'application/json');
-    if (token) xhr.setRequestHeader('Authorization', `Bearer ${token}`);
-    xhr.onload = () => {
+    // File validation before upload
+    if (!currentFile) {
       setIsUploading(false);
-      console.log('[LOG] xhr.onload status:', xhr.status);
-      console.log('[LOG] xhr.responseText:', xhr.responseText);
-      if (xhr.status >= 200 && xhr.status < 300) {
-        let response = {};
-        try { response = JSON.parse(xhr.responseText); } catch {}
-        setUploadedFiles(prev => [...prev, { file: response, printOptions: options }]);
-        setLastPrintOptions(options);
-        setShowUploadMorePrompt(true);
-        console.log('[LOG] Upload success:', response);
-      } else {
-        showCustomAlert('Upload Failed', 'Could not upload file.', 'error');
-        console.log('[LOG] Upload failed:', xhr.status, xhr.responseText);
-      }
-    };
-    xhr.onerror = () => {
+      showCustomAlert('File Error', 'No file selected.', 'error');
+      return;
+    }
+    const allowedTypes = ['pdf', 'doc', 'docx', 'ppt', 'pptx', 'jpg', 'jpeg', 'png']; // Example allowed types
+    const maxSize = 10 * 1024 * 1024; // 10MB in bytes
+    const ext = currentFile.name ? currentFile.name.split('.').pop().toLowerCase() : '';
+    if (!allowedTypes.includes(ext)) {
       setIsUploading(false);
-      console.log('[LOG] xhr.onerror triggered');
-      showCustomAlert('Upload Failed', 'Could not upload file.', 'error');
-      console.log('[LOG] Upload error');
-    };
-    xhr.send(formData);
+      showCustomAlert('File Error', `File type not allowed. Allowed: ${allowedTypes.join(', ')}`, 'error');
+      return;
+    }
+    if (currentFile.size && currentFile.size > maxSize) {
+      setIsUploading(false);
+      showCustomAlert('File Error', `File size exceeds ${(maxSize / (1024 * 1024)).toFixed(0)}MB limit.`, 'error');
+      return;
+    }
+    try {
+      // Upload file with options
+      const formData = new FormData();
+      formData.append('file', currentFile);
+      const printOptions = buildPrintOptions(options);
+      if (printOptions.color) formData.append('color', printOptions.color);
+      if (printOptions.paper) formData.append('paper', printOptions.paper);
+      if (printOptions.quality) formData.append('quality', printOptions.quality);
+      if (printOptions.side) formData.append('side', printOptions.side);
+      if (printOptions.binding) formData.append('binding', printOptions.binding);
+      const response = await ApiService.uploadFile(formData);
+      if (response && response.id) {
+        setUploadedFiles(prev => [...prev, { file: response, printOptions }]);
+        setLastPrintOptions(printOptions);
+      } else {
+        showCustomAlert('Upload Error', 'File upload failed. Please try again.', 'error');
+      }
+      setIsUploading(false);
+    } catch (e) {
+      setIsUploading(false);
+      showCustomAlert('Upload Error', e.message || 'Failed to upload file.', 'error');
+    }
   };
 
   // Upload more prompt
@@ -308,28 +294,15 @@ const handleProceedToCheckout = async () => {
     options: JSON.stringify(item.printOptions),
     status: 'QUEUED',
   }));
-  const orderPayload = {
+
+  navigation.navigate('DeliveryOptions', {
     printJobs,
-    // Add any other required fields if needed (e.g., deliveryType, user info, etc.)
-  };
-  try {
-    console.log('[LOG] Creating order with payload:', orderPayload);
-    const order = await ApiService.createOrder(orderPayload);
-    console.log('[LOG] Created order:', order);
-    if (order && order.id) {
-      navigation.navigate('DeliveryOptions', {
-        orderId: order.id,
-        totalPrice,
-        priceBreakdown,
-        files: uploadedFiles, // Pass files with pages
-      });
-    } else {
-      showCustomAlert('Order Error', 'Order was created but no order ID was returned.', 'error');
-    }
-  } catch (e) {
-    console.log('[LOG] Order creation error:', e);
-    showCustomAlert('Order Error', 'Failed to create order. Please try again.', 'error');
-  }
+    total: totalPrice, // Pass total for order summary
+    totalPrice,
+    priceBreakdown,
+    files: uploadedFiles, // Pass files with pages
+    // Add any other order-related data here if needed
+  });
 };
 
   // Add remove file handler
@@ -350,8 +323,47 @@ const handleProceedToCheckout = async () => {
     );
   };
 
+  // When building print options for upload, only include binding if not 'None'
+  const buildPrintOptions = (options) => {
+    const { color, paper, quality, side, binding } = options;
+    const opts = { color, paper, quality, side };
+    if (binding && binding !== 'None') {
+      opts.binding = binding;
+    }
+    return opts;
+  };
+
   return (
     <ScrollView style={styles.container} contentContainerStyle={{ paddingBottom: 40 }}>
+      {isUploading && (
+        <View style={{
+          position: 'absolute', left: 0, top: 0, right: 0, bottom: 0,
+          backgroundColor: 'rgba(0,0,0,0.35)', justifyContent: 'center', alignItems: 'center', zIndex: 10
+        }}>
+          <View style={{
+            backgroundColor: '#fff',
+            borderRadius: 32,
+            padding: 36,
+            alignItems: 'center',
+            shadowColor: '#000',
+            shadowOpacity: 0.18,
+            shadowRadius: 24,
+            elevation: 12,
+            minWidth: 260,
+            maxWidth: 320
+          }}>
+            <LottieView
+              source={require('../../assets/animations/Man-using-printing-machine.json')}
+              autoPlay
+              loop
+              style={{ width: 180, height: 180, marginBottom: 10 }}
+              speed={2}
+            />
+            <Text style={{ color: '#22194f', fontWeight: 'bold', fontSize: 22, marginTop: 10, marginBottom: 10, textAlign: 'center' }}>Uploading your file...</Text>
+            <ActivityIndicator size="large" color="#667eea" style={{ marginTop: 8 }} />
+          </View>
+        </View>
+      )}
       <LinearGradient colors={['#22194f', '#22194f']} style={styles.headerGradient}>
         <Heading title="Upload Files" subtitle="Select files to print" variant="primary" />
       </LinearGradient>
@@ -397,8 +409,12 @@ const handleProceedToCheckout = async () => {
                 ))}
               </View>
             )}
-            <TouchableOpacity style={styles.checkoutBtn} onPress={handleProceedToCheckout}>
-              <Text style={styles.checkoutBtnText}>Proceed to Checkout</Text>
+            <TouchableOpacity 
+              style={[styles.checkoutBtn, totalPrice === null && { opacity: 0.5 }]}
+              onPress={handleProceedToCheckout}
+              disabled={totalPrice === null}
+            >
+              <Text style={styles.checkoutBtnText}>Choose Delivery Options</Text>
             </TouchableOpacity>
           </View>
         )}

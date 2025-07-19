@@ -111,7 +111,7 @@ public class OrderController {
             var fileDTOs = printJobs != null ? printJobs.stream().map(pj -> new FileDTO(pj.getFile().getId(), pj.getFile().getFilename(), pj.getFile().getOriginalFilename(), pj.getFile().getContentType(), pj.getFile().getSize(), pj.getFile().getUrl(), null, pj.getFile().getCreatedAt(), pj.getFile().getUpdatedAt(), pj.getFile().getPages())).toList() : null;
             var printJobDTOs = printJobs != null ? printJobs.stream().map(pj -> new PrintJobDTO(pj.getId(), new FileDTO(pj.getFile().getId(), pj.getFile().getFilename(), pj.getFile().getOriginalFilename(), pj.getFile().getContentType(), pj.getFile().getSize(), pj.getFile().getUrl(), null, pj.getFile().getCreatedAt(), pj.getFile().getUpdatedAt(), pj.getFile().getPages()), null, pj.getStatus() != null ? pj.getStatus().name() : null, pj.getOptions(), pj.getCreatedAt(), pj.getUpdatedAt())).toList() : null;
             UserDTO userDTO = u == null ? null : new UserDTO(u.getId(), u.getName(), u.getPhone(), u.getEmail(), u.getRole() != null ? u.getRole().name() : null, u.isBlocked(), u.getCreatedAt(), u.getUpdatedAt());
-            OrderDTO dto = new OrderDTO(saved.getId(), userDTO, printJobDTOs, saved.getStatus() != null ? saved.getStatus().name() : null, saved.getTotalAmount(), saved.getCreatedAt(), saved.getUpdatedAt(), saved.getDeliveryType(), saved.getDeliveryAddress(), razorpayOrderId);
+            OrderDTO dto = new OrderDTO(saved.getId(), userDTO, printJobDTOs, saved.getStatus() != null ? saved.getStatus().name() : null, saved.getTotalAmount(), saved.getCreatedAt(), saved.getUpdatedAt(), saved.getDeliveryType(), saved.getDeliveryAddress(), null);
             logger.info("[OrderController] Created order DTO: {}", dto);
             return ResponseEntity.ok(dto);
         } catch (Exception e) {
@@ -121,7 +121,11 @@ public class OrderController {
     }
 
     @GetMapping("")
-    public ResponseEntity<List<OrderDTO>> listOrders(Authentication authentication, @RequestParam(required = false) String status) {
+    public ResponseEntity<List<OrderDTO>> listOrders(
+        Authentication authentication,
+        @RequestParam(required = false) String status,
+        @RequestParam(required = false) Integer limit
+    ) {
         try {
             User user = userService.findByPhone(authentication.getName()).orElseThrow();
             boolean isAdmin = authentication.getAuthorities().stream().map(GrantedAuthority::getAuthority).anyMatch(a -> a.equals("ROLE_ADMIN"));
@@ -136,6 +140,14 @@ public class OrderController {
                 orderList = orderService.findAll().stream()
                     .filter(o -> o.getUser() != null && o.getUser().getId().equals(user.getId()))
                     .toList();
+            }
+            // Sort by createdAt descending
+            orderList = orderList.stream()
+                .sorted((a, b) -> b.getCreatedAt().compareTo(a.getCreatedAt()))
+                .toList();
+            // Apply limit if present
+            if (limit != null && limit > 0 && limit < orderList.size()) {
+                orderList = orderList.subList(0, limit);
             }
             logger.info("[OrderController] listOrders: found {} orders", orderList.size());
             List<OrderDTO> orders = orderList.stream()
@@ -163,7 +175,7 @@ public class OrderController {
                                 pj.getUpdatedAt()
                             );
                         }).collect(Collectors.toList()) : null;
-                        return new OrderDTO(saved.getId(), userDTO, printJobDTOs, saved.getStatus() != null ? saved.getStatus().name() : null, saved.getTotalAmount(), saved.getCreatedAt(), saved.getUpdatedAt(), saved.getDeliveryType(), saved.getDeliveryAddress());
+                        return new OrderDTO(saved.getId(), userDTO, printJobDTOs, saved.getStatus() != null ? saved.getStatus().name() : null, saved.getTotalAmount(), saved.getCreatedAt(), saved.getUpdatedAt(), saved.getDeliveryType(), saved.getDeliveryAddress(), null);
                     } catch (Exception e) {
                         logger.error("[OrderController] Error mapping order to DTO (order id: {}): {}", saved.getId(), e.getMessage(), e);
                         return null;
@@ -197,7 +209,7 @@ public class OrderController {
                     UserDTO pjUserDTO = pjUser == null ? null : new UserDTO(pjUser.getId(), pjUser.getName(), pjUser.getPhone(), pjUser.getEmail(), pjUser.getRole() != null ? pjUser.getRole().name() : null, pjUser.isBlocked(), pjUser.getCreatedAt(), pjUser.getUpdatedAt());
                     return new PrintJobDTO(pj.getId(), new FileDTO(pj.getFile().getId(), pj.getFile().getFilename(), pj.getFile().getOriginalFilename(), pj.getFile().getContentType(), pj.getFile().getSize(), pj.getFile().getUrl(), null, pj.getFile().getCreatedAt(), pj.getFile().getUpdatedAt(), pj.getFile().getPages()), pjUserDTO, pj.getStatus() != null ? pj.getStatus().name() : null, pj.getOptions(), pj.getCreatedAt(), pj.getUpdatedAt());
                 }).collect(Collectors.toList()) : null;
-                OrderDTO dto = new OrderDTO(order.getId(), userDTO, printJobDTOs, order.getStatus() != null ? order.getStatus().name() : null, order.getTotalAmount(), order.getCreatedAt(), order.getUpdatedAt(), order.getDeliveryType(), order.getDeliveryAddress());
+                OrderDTO dto = new OrderDTO(order.getId(), userDTO, printJobDTOs, order.getStatus() != null ? order.getStatus().name() : null, order.getTotalAmount(), order.getCreatedAt(), order.getUpdatedAt(), order.getDeliveryType(), order.getDeliveryAddress(), null);
                 return ResponseEntity.ok(dto);
             })
             .orElseGet(() -> ResponseEntity.status(404).body(Map.of("error", "Order not found")));
@@ -230,7 +242,7 @@ public class OrderController {
                 UserDTO pjUserDTO = pjUser == null ? null : new UserDTO(pjUser.getId(), pjUser.getName(), pjUser.getPhone(), pjUser.getEmail(), pjUser.getRole() != null ? pjUser.getRole().name() : null, pjUser.isBlocked(), pjUser.getCreatedAt(), pjUser.getUpdatedAt());
                 return new PrintJobDTO(pj.getId(), new FileDTO(pj.getFile().getId(), pj.getFile().getFilename(), pj.getFile().getOriginalFilename(), pj.getFile().getContentType(), pj.getFile().getSize(), pj.getFile().getUrl(), null, pj.getFile().getCreatedAt(), pj.getFile().getUpdatedAt(), pj.getFile().getPages()), pjUserDTO, pj.getStatus() != null ? pj.getStatus().name() : null, pj.getOptions(), pj.getCreatedAt(), pj.getUpdatedAt());
             }).collect(Collectors.toList()) : null;
-            OrderDTO dto = new OrderDTO(updated.getId(), userDTO, printJobDTOs, updated.getStatus() != null ? updated.getStatus().name() : null, updated.getTotalAmount(), updated.getCreatedAt(), updated.getUpdatedAt(), updated.getDeliveryType(), updated.getDeliveryAddress());
+            OrderDTO dto = new OrderDTO(updated.getId(), userDTO, printJobDTOs, updated.getStatus() != null ? updated.getStatus().name() : null, updated.getTotalAmount(), updated.getCreatedAt(), updated.getUpdatedAt(), updated.getDeliveryType(), updated.getDeliveryAddress(), null);
             return ResponseEntity.ok(dto);
         } catch (Exception e) {
             logger.error("[OrderController] Error updating order status: ", e);

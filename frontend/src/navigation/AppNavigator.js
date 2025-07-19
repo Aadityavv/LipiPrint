@@ -2,6 +2,7 @@ import React from 'react';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { NavigationContainer } from '@react-navigation/native';
+import { createNavigationContainerRef } from '@react-navigation/native';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 
 // Import common screens
@@ -59,6 +60,7 @@ function TabNavigator() {
         tabBarIcon: ({ color, size }) => {
           let iconName = 'home';
           if (route.name === 'Upload') iconName = 'upload-file';
+          if (route.name === 'OrdersScreen') iconName = 'assignment';
           // Remove Orders icon
           return <Icon name={iconName} size={size} color={color} />;
         },
@@ -69,6 +71,7 @@ function TabNavigator() {
     >
       <Tab.Screen name="Home" component={HomeScreen} />
       <Tab.Screen name="Upload" component={UploadScreen} />
+      <Tab.Screen name="OrdersScreen" component={OrdersScreen} options={{ tabBarLabel: 'Orders' }} />
       {/* Orders tab removed from bottom nav */}
     </Tab.Navigator>
   );
@@ -101,10 +104,12 @@ function AdminTabNavigator() {
   );
 }
 
+export const navigationRef = createNavigationContainerRef();
+
 // Main Stack Navigator
 export default function AppNavigator() {
   return (
-    <NavigationContainer>
+    <NavigationContainer ref={navigationRef}>
       <Stack.Navigator
         initialRouteName="Splash"
         screenOptions={{

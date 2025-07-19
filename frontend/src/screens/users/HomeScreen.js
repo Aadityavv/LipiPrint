@@ -7,6 +7,7 @@ import {
   TouchableOpacity,
   Dimensions,
   Image,
+  ActivityIndicator,
 } from 'react-native';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 import * as Animatable from 'react-native-animatable';
@@ -17,6 +18,9 @@ import StoreClosedBanner from '../../components/StoreClosedBanner';
 import Heading from '../../components/Heading';
 import BannerImage from '../../assets/banner/banner.png';
 import CustomAlert from '../../components/CustomAlert';
+import LottieView from 'lottie-react-native';
+import { navigationRef } from '../../navigation/AppNavigator';
+import { CommonActions } from '@react-navigation/native';
 
 const { width } = Dimensions.get('window');
 
@@ -24,6 +28,7 @@ export default function HomeScreen({ navigation }) {
   const { theme } = useTheme();
   const [user, setUser] = useState(null);
   const [orders, setOrders] = useState([]);
+  const [ordersLoading, setOrdersLoading] = useState(true);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [acceptingOrders, setAcceptingOrders] = useState(true);
@@ -33,16 +38,23 @@ export default function HomeScreen({ navigation }) {
 
   useEffect(() => {
     setLoading(true);
-    Promise.all([
-      ApiService.getCurrentUser(),
-      ApiService.getOrders()
-    ])
-      .then(([userData, ordersData]) => {
+    ApiService.getCurrentUser()
+      .then(userData => {
         setUser(userData);
-        setOrders(Array.isArray(ordersData) ? ordersData : []);
+        setLoading(false);
       })
-      .catch(() => setError('Failed to load data'))
-      .finally(() => setLoading(false));
+      .catch(() => {
+        setError('Failed to load user');
+        setLoading(false);
+      });
+  }, []);
+
+  useEffect(() => {
+    setOrdersLoading(true);
+    ApiService.getRecentOrders(3)
+      .then(ordersData => setOrders(Array.isArray(ordersData) ? ordersData : []))
+      .catch(() => setOrders([]))
+      .finally(() => setOrdersLoading(false));
   }, []);
 
   useEffect(() => {
@@ -103,7 +115,19 @@ export default function HomeScreen({ navigation }) {
   }
 
   if (loading) {
-    return <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}><Text>Loading...</Text></View>;
+    return (
+      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#f8f9fa' }}>
+        <LottieView
+          source={require('../../assets/animations/Man-using-printing-machine.json')}
+          autoPlay
+          loop
+          speed={1.5}
+          style={{ width: 180, height: 180 }}
+        />
+        <Text style={{ color: '#22194f', fontWeight: 'bold', fontSize: 18, marginTop: 18 }}>Loading your dashboard...</Text>
+        <ActivityIndicator size="large" color="#667eea" style={{ marginTop: 12 }} />
+      </View>
+    );
   }
   if (error) {
     return <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}><Text>{error}</Text></View>;
@@ -184,38 +208,49 @@ export default function HomeScreen({ navigation }) {
               </Animatable.View>
             ))}
           </View>
-          {orders.length === 0 && (
-            <Text style={{ color: '#888', textAlign: 'center', marginTop: 16 }}>No recent orders found.</Text>
-          )}
         </Animatable.View>
 
         {/* Recent Orders */}
         <Animatable.View animation="fadeInUp" delay={400} duration={500} style={styles.recentSection}>
           <View style={styles.sectionHeader}>
             <Text style={styles.sectionTitle}>Recent Orders</Text>
-            <TouchableOpacity onPress={() => navigation.navigate('OrdersScreen')}>
+            <TouchableOpacity onPress={() => navigationRef.current?.dispatch(CommonActions.navigate({ name: 'OrdersScreen' }))}>
               <Text style={styles.viewAllText}>View All</Text>
             </TouchableOpacity>
           </View>
-          {sortedOrders.slice(0, 3).map((order, index) => (
-            <Animatable.View
-              key={order.id}
-              animation="slideInRight"
-              delay={500 + index * 150}
-              duration={400}
-            >
-              <TouchableOpacity style={styles.orderCard} activeOpacity={0.8} onPress={() => navigation.navigate('InvoiceDetailScreen', { orderId: order.id, navigation })}>
-                <View style={styles.orderInfo}>
-                  <Text style={styles.orderTitle}>{order.title || `Order #${order.id}`}</Text>
-                  <Text style={styles.orderStatus}>{order.status}</Text>
-                  <Text style={styles.orderDate}>{order.createdAt ? new Date(order.createdAt).toLocaleString() : ''}</Text>
-                </View>
-                <View style={styles.orderPrice}>
-                  <Text style={styles.priceText}>{order.totalAmount ? `\u20b9${order.totalAmount}` : ''}</Text>
-                </View>
-              </TouchableOpacity>
-            </Animatable.View>
-          ))}
+          {ordersLoading ? (
+            <View style={{ alignItems: 'center', marginVertical: 24 }}>
+              <LottieView
+                source={require('../../assets/animations/Man-using-printing-machine.json')}
+                autoPlay
+                loop
+                speed={1.5}
+                style={{ width: 120, height: 120 }}
+              />
+              <Text style={{ color: '#22194f', fontWeight: 'bold', fontSize: 16, marginTop: 10 }}>Loading orders...</Text>
+              <ActivityIndicator size="small" color="#667eea" style={{ marginTop: 8 }} />
+            </View>
+          ) : (
+            orders.map((order, index) => (
+              <Animatable.View
+                key={order.id}
+                animation="slideInRight"
+                delay={500 + index * 150}
+                duration={400}
+              >
+                <TouchableOpacity style={styles.orderCard} activeOpacity={0.8} onPress={() => navigation.navigate('InvoiceDetailScreen', { orderId: order.id, navigation })}>
+                  <View style={styles.orderInfo}>
+                    <Text style={styles.orderTitle}>{order.title || `Order #${order.id}`}</Text>
+                    <Text style={styles.orderStatus}>{order.status}</Text>
+                    <Text style={styles.orderDate}>{order.createdAt ? new Date(order.createdAt).toLocaleString() : ''}</Text>
+                  </View>
+                  <View style={styles.orderPrice}>
+                    <Text style={styles.priceText}>{order.totalAmount ? `\u20b9${order.totalAmount}` : ''}</Text>
+                  </View>
+                </TouchableOpacity>
+              </Animatable.View>
+            ))
+          )}
           {orders.length === 0 && (
             <Text style={{ color: '#888', textAlign: 'center', marginTop: 16 }}>No recent orders found.</Text>
           )}

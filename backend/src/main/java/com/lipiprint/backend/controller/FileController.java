@@ -29,7 +29,7 @@ public class FileController {
     private UserService userService;
 
     @PostMapping("/upload")
-    public ResponseEntity<FileDTO> uploadFile(
+    public ResponseEntity<?> uploadFile(
         @RequestParam("file") MultipartFile file,
         @RequestParam(value = "color", required = false) String color,
         @RequestParam(value = "paper", required = false) String paper,
@@ -38,10 +38,35 @@ public class FileController {
         @RequestParam(value = "binding", required = false) String binding,
         Authentication authentication) {
         User user = userService.findByPhone(authentication.getName()).orElseThrow();
-        // Save file and print options
-        File savedFile = fileService.saveUploadedFileWithPrintOptions(file, user, color, paper, quality, side, binding);
-        FileDTO fileDTO = new FileDTO(savedFile.getId(), savedFile.getFilename(), savedFile.getOriginalFilename(), savedFile.getContentType(), savedFile.getSize(), savedFile.getUrl(), null, savedFile.getCreatedAt(), savedFile.getUpdatedAt(), savedFile.getPages());
-        return ResponseEntity.ok(fileDTO);
+        // File validation
+        if (file == null || file.isEmpty()) {
+            return ResponseEntity.badRequest().body(Map.of("error", "No file uploaded."));
+        }
+        String originalFilename = file.getOriginalFilename();
+        String contentType = file.getContentType();
+        long maxSize = 50 * 1024 * 1024; // 50MB
+        String[] allowedTypes = {"pdf", "doc", "docx", "txt", "jpg", "jpeg", "png"};
+        boolean allowed = false;
+        if (originalFilename != null) {
+            String ext = originalFilename.substring(originalFilename.lastIndexOf('.') + 1).toLowerCase();
+            for (String t : allowedTypes) {
+                if (ext.equals(t)) { allowed = true; break; }
+            }
+        }
+        if (!allowed) {
+            return ResponseEntity.badRequest().body(Map.of("error", "File type not allowed. Allowed: pdf, doc, docx, txt, jpg, jpeg, png."));
+        }
+        if (file.getSize() > maxSize) {
+            return ResponseEntity.badRequest().body(Map.of("error", "File size exceeds 50MB limit."));
+        }
+        try {
+            // Save file and print options
+            File savedFile = fileService.saveUploadedFileWithPrintOptions(file, user, color, paper, quality, side, binding);
+            FileDTO fileDTO = new FileDTO(savedFile.getId(), savedFile.getFilename(), savedFile.getOriginalFilename(), savedFile.getContentType(), savedFile.getSize(), savedFile.getUrl(), null, savedFile.getCreatedAt(), savedFile.getUpdatedAt(), savedFile.getPages());
+            return ResponseEntity.ok(fileDTO);
+        } catch (Exception e) {
+            return ResponseEntity.status(500).body(Map.of("error", "Failed to upload file: " + e.getMessage()));
+        }
     }
 
     @GetMapping("")
