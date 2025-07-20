@@ -182,6 +182,22 @@ public class PricingService {
             this.total = total;
             this.printOptions = printOptions;
         }
+        public String getDescription() { return description; }
+        public void setDescription(String description) { this.description = description; }
+        public int getQuantity() { return quantity; }
+        public void setQuantity(int quantity) { this.quantity = quantity; }
+        public String getHsn() { return hsn; }
+        public void setHsn(String hsn) { this.hsn = hsn; }
+        public double getRate() { return rate; }
+        public void setRate(double rate) { this.rate = rate; }
+        public double getAmount() { return amount; }
+        public void setAmount(double amount) { this.amount = amount; }
+        public double getDiscount() { return discount; }
+        public void setDiscount(double discount) { this.discount = discount; }
+        public double getTotal() { return total; }
+        public void setTotal(double total) { this.total = total; }
+        public String getPrintOptions() { return printOptions; }
+        public void setPrintOptions(String printOptions) { this.printOptions = printOptions; }
     }
 
     public static class PriceSummary {
@@ -207,6 +223,10 @@ public class PricingService {
         int totalPages = 0;
         String color = null, paper = null, quality = null, side = null;
         java.util.List<BreakdownItem> breakdown = new java.util.ArrayList<>();
+
+        // Group print jobs by print options
+        java.util.Map<String, java.util.List<PrintJob>> groups = new java.util.LinkedHashMap<>();
+        java.util.Map<String, String> groupOptionsStr = new java.util.HashMap<>();
         for (var pj : printJobs) {
             if (pj.getFile() == null) continue;
             Integer numPages = pj.getFile().getPages();
@@ -219,50 +239,74 @@ public class PricingService {
                 paper = (String) opts.getOrDefault("paper", null);
                 quality = (String) opts.getOrDefault("quality", null);
                 side = (String) opts.getOrDefault("side", null);
-                ServiceCombination combo = serviceCombinationRepository.findByColorAndPaperSizeAndPaperQualityAndPrintOption(
-                    color, paper, quality, side
-                ).orElseThrow(() -> new RuntimeException("No price found for selected options"));
-                double basePricePerPage = combo.getCostPerPage().doubleValue();
-                double basePrintCost = basePricePerPage * numPages;
-                // Binding cost
-                double bindingCost = 0.0;
                 String binding = (String) opts.getOrDefault("binding", null);
+                // Build group key
+                String groupKey = (color + "," + paper + "," + quality + "," + side + "," + (binding != null ? binding : "")).toLowerCase();
+                // Build print options string
+                StringBuilder printOptionsStr = new StringBuilder();
+                if (color != null) printOptionsStr.append("<b>Color:</b> ").append(color).append("<br>");
+                if (paper != null) printOptionsStr.append("<b>Paper:</b> ").append(paper).append("<br>");
+                if (quality != null) printOptionsStr.append("<b>Quality:</b> ").append(quality).append("<br>");
+                if (side != null) printOptionsStr.append("<b>Side:</b> ").append(side).append("<br>");
+                if (binding != null) printOptionsStr.append("<b>Binding:</b> ").append(binding).append("<br>");
+                groups.computeIfAbsent(groupKey, k -> new java.util.ArrayList<>()).add(pj);
+                groupOptionsStr.put(groupKey, printOptionsStr.toString());
+            } catch (Exception e) {
+                continue;
+            }
+        }
+
+        // For each group, calculate totals
+        for (var entry : groups.entrySet()) {
+            java.util.List<PrintJob> groupJobs = entry.getValue();
+            if (groupJobs.isEmpty()) continue;
+            PrintJob first = groupJobs.get(0);
+            com.fasterxml.jackson.databind.ObjectMapper mapper = new com.fasterxml.jackson.databind.ObjectMapper();
+            java.util.Map<String, Object> opts;
+            try { opts = mapper.readValue(first.getOptions(), java.util.Map.class); } catch (Exception e) { opts = new java.util.HashMap<>(); }
+            color = (String) opts.getOrDefault("color", null);
+            paper = (String) opts.getOrDefault("paper", null);
+            quality = (String) opts.getOrDefault("quality", null);
+            side = (String) opts.getOrDefault("side", null);
+            String binding = (String) opts.getOrDefault("binding", null);
+            ServiceCombination combo = serviceCombinationRepository.findByColorAndPaperSizeAndPaperQualityAndPrintOption(
+                color, paper, quality, side
+            ).orElseThrow(() -> new RuntimeException("No price found for selected options"));
+            double basePricePerPage = combo.getCostPerPage().doubleValue();
+            int groupPages = 0;
+            java.util.List<String> fileNames = new java.util.ArrayList<>();
+            double groupPrintCost = 0.0;
+            double groupBindingCost = 0.0;
+            for (var pj : groupJobs) {
+                int numPages = pj.getFile().getPages();
+                groupPages += numPages;
+                fileNames.add(pj.getFile().getOriginalFilename() != null ? pj.getFile().getOriginalFilename() : pj.getFile().getFilename());
+                groupPrintCost += basePricePerPage * numPages;
                 if (binding != null && !binding.isBlank()) {
                     BindingOption bindingOpt = bindingOptionRepository.findByType(binding).orElse(null);
                     if (bindingOpt != null) {
                         double perPage = bindingOpt.getPerPagePrice().doubleValue();
                         double min = bindingOpt.getMinPrice().doubleValue();
-                        bindingCost = Math.max(perPage * numPages, min);
+                        groupBindingCost += Math.max(perPage * numPages, min);
                     }
                 }
-                double amount = basePrintCost + bindingCost;
-                subtotal += amount;
-                totalPages += numPages;
-                // For now, apply discount at order level, but you can also apply per-file if needed
-                // Build print options string
-                StringBuilder printOptionsStr = new StringBuilder();
-                if (color != null) printOptionsStr.append("Color: ").append(color).append(", ");
-                if (paper != null) printOptionsStr.append("Paper: ").append(paper).append(", ");
-                if (quality != null) printOptionsStr.append("Quality: ").append(quality).append(", ");
-                if (side != null) printOptionsStr.append("Side: ").append(side).append(", ");
-                if (binding != null) printOptionsStr.append("Binding: ").append(binding).append(", ");
-                if (printOptionsStr.length() > 2) printOptionsStr.setLength(printOptionsStr.length() - 2); // Remove trailing comma
-                breakdown.add(new BreakdownItem(
-                    pj.getFile().getOriginalFilename() != null ? pj.getFile().getOriginalFilename() : pj.getFile().getFilename(),
-                    numPages,
-                    "4911",
-                    basePricePerPage,
-                    amount,
-                    0.0, // will fill later if per-file discount
-                    amount, // will fill later if per-file discount
-                    printOptionsStr.toString()
-                ));
-                logger.info("[PricingService] PrintJob: color={}, paper={}, quality={}, side={}, binding={}, numPages={}, basePricePerPage={}, basePrintCost={}, bindingCost={}, subtotalSoFar={}", color, paper, quality, side, binding, numPages, basePricePerPage, basePrintCost, bindingCost, subtotal);
-            } catch (Exception e) {
-                logger.error("[PricingService] Error parsing print job options or calculating cost: {}", e.getMessage(), e);
-                continue;
             }
+            double amount = groupPrintCost + groupBindingCost;
+            subtotal += amount;
+            totalPages += groupPages;
+            String description = fileNames.size() > 1 ? ("Multiple files: " + String.join(", ", fileNames)) : fileNames.get(0);
+            breakdown.add(new BreakdownItem(
+                description,
+                groupPages,
+                "4911",
+                basePricePerPage,
+                amount,
+                0.0, // will fill later if per-group discount
+                amount, // will fill later if per-group discount
+                groupOptionsStr.get(entry.getKey())
+            ));
         }
+
         // Find best discount for the whole order (by options and totalPages)
         List<DiscountRule> discounts = discountRuleRepository.findByColorAndPaperSizeAndPaperQualityAndPrintOptionAndMinPagesLessThanEqualOrderByMinPagesDesc(
             color, paper, quality, side, totalPages
@@ -275,7 +319,7 @@ public class PricingService {
         double discountedSubtotal = subtotal - discount;
         double gst = Math.round(discountedSubtotal * 0.18 * 100.0) / 100.0;
         double grandTotal = Math.round((discountedSubtotal + gst) * 100.0) / 100.0;
-        // Distribute discount proportionally to each file
+        // Distribute discount proportionally to each group
         if (discount > 0 && subtotal > 0) {
             for (BreakdownItem item : breakdown) {
                 double prop = item.amount / subtotal;

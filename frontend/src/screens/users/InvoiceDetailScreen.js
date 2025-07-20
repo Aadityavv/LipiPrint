@@ -214,7 +214,7 @@ export default function InvoiceDetailScreen() {
         <title>Invoice - LipiPrint</title>
         <style>
           body { font-family: 'Inter', 'Segoe UI', Arial, sans-serif; margin: 0; padding: 0; background: #f7f9fb; color: #222; }
-          .container { max-width: 800px; margin: 40px auto; background: #fff; border-radius: 16px; box-shadow: 0 4px 24px #0001; padding: 36px 32px; }
+          .container { max-width: 800px; margin: 0px auto 0px auto; background: #fff; border-radius: 16px; box-shadow: 0 4px 24px #0001; padding: 36px 32px; }
           .header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 32px; }
           .company-info { font-size: 15px; line-height: 1.6; margin-top: 10px; color: #555; }
           .invoice-meta { text-align: right; font-size: 15px; }
