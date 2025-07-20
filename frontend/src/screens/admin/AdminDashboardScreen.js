@@ -56,6 +56,13 @@ export default function AdminDashboardScreen({ navigation }) {
       onPress: () => navigation.navigate('UpdateServices')
     },
     {
+      title: 'Manage Discounts',
+      icon: <Icon name="local-offer" size={22} color="#fff" />, 
+      color: '#00B8D4',
+      iconBg: '#00B8D4',
+      onPress: () => navigation.navigate('AdminDiscountScreen')
+    },
+    {
       title: 'Settings',
       icon: <Icon name="settings" size={22} color="#fff" />, 
       color: '#7B1FA2',

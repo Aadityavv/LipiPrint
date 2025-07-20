@@ -48,6 +48,7 @@ import UpdateServicesScreen from '../screens/admin/UpdateServicesScreen';
 import AdminOrderDetailScreen from '../screens/admin/AdminOrderDetailScreen';
 import AdminReconciliationScreen from '../screens/admin/AdminReconciliationScreen';
 import FileManagerScreen from '../screens/admin/FileManagerScreen';
+import AdminDiscountScreen from '../screens/admin/AdminDiscountScreen';
 
 const Tab = createBottomTabNavigator();
 const Stack = createNativeStackNavigator();
@@ -153,6 +154,7 @@ export default function AppNavigator() {
         <Stack.Screen name="AdminOrderDetailScreen" component={AdminOrderDetailScreen} options={{ headerShown: false }} />
         <Stack.Screen name="AdminReconciliationScreen" component={AdminReconciliationScreen} />
         <Stack.Screen name="FileManagerScreen" component={FileManagerScreen} />
+        <Stack.Screen name="AdminDiscountScreen" component={AdminDiscountScreen} />
       </Stack.Navigator>
     </NavigationContainer>
   );

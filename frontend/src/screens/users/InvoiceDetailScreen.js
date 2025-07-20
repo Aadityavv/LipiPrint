@@ -14,6 +14,7 @@ import LottieView from 'lottie-react-native';
 import searchForInvoiceAnim from '../../assets/animations/search for invoice.json';
 import RNHTMLtoPDF from 'react-native-html-to-pdf';
 import { Platform, PermissionsAndroid } from 'react-native';
+import ApiService from '../../services/api';
 
 export default function InvoiceDetailScreen() {
   const route = useRoute();
@@ -32,6 +33,16 @@ export default function InvoiceDetailScreen() {
   const [pdfLoading, setPdfLoading] = useState(true);
   const [pdfLoadStart, setPdfLoadStart] = useState(Date.now());
   const [downloading, setDownloading] = useState(false);
+  const [combinations, setCombinations] = useState([]);
+  const [bindingOptions, setBindingOptions] = useState([]);
+  const [discountRules, setDiscountRules] = useState([]);
+  // Remove backend price calculation state and use order fields directly
+  const [backendTotal, setBackendTotal] = useState(null);
+  const [backendBreakdown, setBackendBreakdown] = useState([]);
+  const [backendSubtotal, setBackendSubtotal] = useState(null);
+  const [backendGst, setBackendGst] = useState(null);
+  const [backendGrandTotal, setBackendGrandTotal] = useState(null);
+  const [backendDiscount, setBackendDiscount] = useState(null);
 
   useEffect(() => {
     const fetchOrder = async () => {
@@ -72,40 +83,189 @@ export default function InvoiceDetailScreen() {
     fetchOrder();
   }, [orderId]);
 
+  useEffect(() => {
+    // Fetch combinations, binding options, and discount rules
+    const fetchPricingData = async () => {
+      try {
+        const [combos, bindings, discounts] = await Promise.all([
+          ApiService.request('/print-jobs/combinations'),
+          ApiService.request('/print-jobs/binding-options'),
+          ApiService.request('/print-jobs/discount-rules'),
+        ]);
+        setCombinations(combos);
+        setBindingOptions(bindings);
+        setDiscountRules(discounts);
+      } catch (e) {
+        // Handle error (optional)
+      }
+    };
+    fetchPricingData();
+  }, []);
+
+  useEffect(() => {
+    if (!order || !order.printJobs) return;
+    // Build filesPayload for backend price calculation
+    const filesPayload = order.printJobs.map(pj => {
+      let opts = {};
+      try { opts = typeof pj.options === 'string' ? JSON.parse(pj.options) : pj.options; } catch {}
+      return {
+        color: opts.color,
+        paper: opts.paper,
+        quality: opts.quality,
+        side: opts.side,
+        binding: opts.binding,
+        numPages: pj.file?.pages || 1,
+        fileName: pj.file?.originalFilename || pj.file?.filename,
+      };
+    });
+    ApiService.calculatePrintJobsCost({ files: filesPayload })
+      .then(res => {
+        setBackendSubtotal(res.subtotal);
+        setBackendGst(res.gst);
+        setBackendGrandTotal(res.grandTotal);
+        setBackendDiscount(res.discount || null); // If backend returns discount
+      })
+      .catch(() => {
+        setBackendSubtotal(null);
+        setBackendGst(null);
+        setBackendGrandTotal(null);
+        setBackendDiscount(null);
+      });
+  }, [order]);
+
   // Helper to build invoice HTML (premium, professional, with public logo URL)
-  function buildInvoiceHtml(order, printJobGroups, subtotal, gst, deliveryCharge, grandTotal) {
+  function buildInvoiceHtml(order, printJobGroups) {
     // Company and customer info
-    const companyName = 'LipiPrint';
-    const companyAddress = '123 Printing Street, Saharanpur, Uttar Pradesh, India';
+    const companyName = 'NAGPAL PRINT HOUSE';
+    const companyAddress = 'Near Civil Court Sadar Thana Road, Saharanpur';
+    const companyGSTIN = '09AJ0PN3715E1Z3';
     const companyEmail = 'support@lipiprint.in';
     const companyPhone = '+91 12345 67890';
-    // Use backend-served logo for invoice
-    const apiBase = process.env.EXPO_PUBLIC_API_URL || 'http://192.168.1.11:8082/';
-    const logoUrl = apiBase + 'api/files/logo';
-    const orderId = order.id;
-    const orderDate = order.createdAt ? order.createdAt.split('T')[0] : '-';
-    const orderStatus = order.status || '-';
-    const deliveryType = order.deliveryType || '-';
+    const invoiceNo = order.id ? `LP${order.id}` : '-';
+    const invoiceDate = order.createdAt ? order.createdAt.split('T')[0] : '-';
     const customerName = order.user?.name || '-';
+    const customerAddress = order.deliveryAddress || '-';
     const customerEmail = order.user?.email || '-';
     const customerPhone = order.user?.phone || '-';
-    const customerAddress = order.deliveryAddress || '-';
-    const paidBadge = (orderStatus.toLowerCase() === 'paid' || orderStatus.toLowerCase() === 'completed')
-      ? `<span class='badge paid'>PAID</span>`
-      : `<span class='badge unpaid'>UNPAID</span>`;
-    // Print job groups block
-    const printJobGroupsBlock = printJobGroups.map((group, gidx) => {
-      let specs;
-      try { specs = typeof group.options === 'string' ? JSON.parse(group.options) : group.options; } catch { specs = {}; }
-      return `<tr>
-        <td style='padding:8px 6px; border-bottom:1px solid #f0f0f0;'>${group.files.map(file => file.originalFilename || file.filename || '-').join('<br>')}</td>
-        <td style='padding:8px 6px; border-bottom:1px solid #f0f0f0;'>${Object.entries(specs).map(([key, value]) => `<div><b>${key.replace(/_/g, ' ').replace(/^./, c => c.toUpperCase())}:</b> ${String(value)}</div>`).join('')}</td>
-        <td style='padding:8px 6px; border-bottom:1px solid #f0f0f0;'>${group.files.map(file => file.pages || '-').join('<br>')}</td>
-        <td style='padding:8px 6px; border-bottom:1px solid #f0f0f0;'>${group.files.map(file => file.createdAt ? file.createdAt.split('T')[0] : '-').join('<br>')}</td>
-      </tr>`;
-    }).join('');
-    // Order note block
-    const orderNoteBlock = order.orderNote ? `<div class='order-note-block'><b>Order Note:</b> ${order.orderNote}</div>` : '';
+    const customerGSTIN = order.user?.gstin || '-';
+    const printDate = new Date().toLocaleString();
+    // Group print jobs by print options (including binding)
+    const groupedJobs = {};
+    if (order.printJobs && order.printJobs.length > 0) {
+      order.printJobs.forEach((pj) => {
+        let opts = {};
+        try {
+          opts = typeof pj.options === 'string' ? JSON.parse(pj.options) : pj.options;
+        } catch {}
+        // Create a key from all print options (including binding)
+        const key = JSON.stringify({
+          color: opts.color || '',
+          paper: opts.paper || '',
+          quality: opts.quality || '',
+          side: opts.side || '',
+          binding: opts.binding || '',
+        });
+        if (!groupedJobs[key]) {
+          groupedJobs[key] = {
+            files: [],
+            totalPages: 0,
+            printOptions: opts,
+          };
+        }
+        groupedJobs[key].files.push(pj.file);
+        groupedJobs[key].totalPages += pj.file?.pages || 1;
+      });
+    }
+    // Build order items rows from grouped jobs
+    let sNo = 1;
+    let totalAmount = 0;
+    let totalCGST = 0;
+    let totalSGST = 0;
+    let totalIGST = 0;
+    let totalQty = 0;
+    let orderItemsRows = '';
+    Object.values(groupedJobs).forEach((group) => {
+      const fileNames = group.files.map(f => f.originalFilename || f.filename || '-').join(', ');
+      const description = group.files.length > 1 ? `Multiple files: ${fileNames}` : fileNames;
+      const quantity = group.totalPages;
+      const opts = group.printOptions || {};
+      // Find matching combination
+      const combo = combinations.find(c =>
+        c.color === opts.color &&
+        c.paperSize === opts.paper &&
+        c.paperQuality === opts.quality &&
+        c.printOption === opts.side
+      );
+      let pricePerPage = combo ? parseFloat(combo.costPerPage) : 0;
+      // Find best discount rule
+      let bestDiscount = 0;
+      discountRules.forEach(rule => {
+        if (
+          (!rule.color || rule.color === opts.color) &&
+          (!rule.paperSize || rule.paperSize === opts.paper) &&
+          (!rule.paperQuality || rule.paperQuality === opts.quality) &&
+          (!rule.printOption || rule.printOption === opts.side) &&
+          quantity >= rule.minPages
+        ) {
+          if (parseFloat(rule.amountOff) > bestDiscount) {
+            bestDiscount = parseFloat(rule.amountOff);
+          }
+        }
+      });
+      pricePerPage = Math.max(0, pricePerPage - bestDiscount);
+      // Print cost
+      const printCost = pricePerPage * quantity;
+      // Binding cost
+      let bindingCost = 0;
+      if (opts.binding && opts.binding !== 'None') {
+        const binding = bindingOptions.find(b => b.type === opts.binding);
+        if (binding) {
+          const perPage = parseFloat(binding.perPagePrice);
+          const min = parseFloat(binding.minPrice);
+          bindingCost = Math.max(perPage * quantity, min);
+        }
+      }
+      const amount = printCost;
+      const cgst = (amount * 0.09).toFixed(2);
+      const sgst = (amount * 0.09).toFixed(2);
+      const igst = '0.00'; // Assuming intra-state
+      const total = (amount + bindingCost + parseFloat(cgst) + parseFloat(sgst)).toFixed(2);
+      totalAmount += amount + bindingCost;
+      totalCGST += parseFloat(cgst);
+      totalSGST += parseFloat(sgst);
+      totalIGST += parseFloat(igst);
+      totalQty += quantity;
+      // Print options string
+      const printOptionsStr = Object.entries(opts)
+        .map(([key, value]) => `<b>${key.replace(/_/g, ' ').replace(/^./, c => c.toUpperCase())}:</b> ${String(value)}`)
+        .join('<br>');
+      orderItemsRows += `
+        <tr>
+          <td style='padding:6px 4px;text-align:center;'>${sNo++}</td>
+          <td style='padding:6px 4px;'>${description}</td>
+          <td style='padding:6px 4px;text-align:center;'>${quantity}</td>
+          <td style='padding:6px 4px;text-align:center;'>4911</td>
+          <td style='padding:6px 4px;text-align:right;'>${pricePerPage.toFixed(2)}</td>
+          <td style='padding:6px 4px;text-align:right;'>${amount.toFixed(2)}</td>
+          <td style='padding:6px 4px;text-align:right;'>${cgst}</td>
+          <td style='padding:6px 4px;text-align:right;'>${sgst}</td>
+          <td style='padding:6px 4px;text-align:right;'>${igst}</td>
+          <td style='padding:6px 4px;text-align:right;'>${total}</td>
+        </tr>
+        <tr>
+          <td></td>
+          <td colspan='9' style='font-size:13px;color:#555;padding-bottom:8px;'>${printOptionsStr}</td>
+        </tr>
+      `;
+    });
+    const grandTotalAll = (totalAmount + totalCGST + totalSGST + totalIGST).toFixed(2);
+    // --- FIXED SUMMARY CALCULATION ---
+    // Use backend summary for all monetary values
+    const summarySubtotal = order.subtotal !== undefined && order.subtotal !== null ? order.subtotal.toFixed(2) : '0.00';
+    const summaryDiscount = order.discount !== undefined && order.discount !== null ? order.discount.toFixed(2) : '0.00';
+    const summaryGST = order.gst !== undefined && order.gst !== null ? order.gst.toFixed(2) : '0.00';
+    const summaryDelivery = order.delivery !== undefined && order.delivery !== null ? order.delivery.toFixed(2) : '0.00';
+    const summaryGrandTotal = order.grandTotal !== undefined && order.grandTotal !== null ? order.grandTotal.toFixed(2) : '0.00';
     // HTML template
     return `
       <!DOCTYPE html>
@@ -113,51 +273,45 @@ export default function InvoiceDetailScreen() {
       <head>
         <meta charset='UTF-8' />
         <title>Invoice - LipiPrint</title>
-        <link href='https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap' rel='stylesheet'>
         <style>
           body { font-family: 'Inter', 'Segoe UI', Arial, sans-serif; margin: 0; padding: 0; background: #f7f9fb; color: #222; }
-          .container { max-width: 720px; margin: 40px auto; background: #fff; border-radius: 16px; box-shadow: 0 4px 24px #0001; padding: 36px 32px; }
+          .container { max-width: 800px; margin: 40px auto; background: #fff; border-radius: 16px; box-shadow: 0 4px 24px #0001; padding: 36px 32px; }
           .header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 32px; }
-          .logo { height: 64px; border-radius: 8px; }
           .company-info { font-size: 15px; line-height: 1.6; margin-top: 10px; color: #555; }
           .invoice-meta { text-align: right; font-size: 15px; }
-          .invoice-title { font-size: 32px; font-weight: 700; color: #2d6cdf; margin-bottom: 8px; letter-spacing: 1px; }
-          .badge { display: inline-block; padding: 4px 16px; border-radius: 16px; font-size: 14px; font-weight: 600; margin-top: 8px; }
-          .badge.paid { background: #e6fbe6; color: #1aaf1a; border: 1px solid #1aaf1a; }
-          .badge.unpaid { background: #fff0f0; color: #e74c3c; border: 1px solid #e74c3c; }
-          .section { margin-top: 38px; }
-          .section-title { font-size: 20px; font-weight: 600; color: #4a4a4a; margin-bottom: 16px; letter-spacing: 0.5px; }
+          .invoice-title { font-size: 28px; font-weight: 700; color: #2d6cdf; margin-bottom: 8px; letter-spacing: 1px; }
+          .section { margin-top: 28px; }
+          .section-title { font-size: 18px; font-weight: 600; color: #4a4a4a; margin-bottom: 12px; letter-spacing: 0.5px; }
           .info-table { width: 100%; border-collapse: collapse; }
           .info-table td { padding: 4px 0; font-size: 15px; }
           .order-table { width: 100%; border-collapse: collapse; margin-top: 10px; }
-          .order-table th { background: #f0f4ff; color: #22194f; font-size: 15px; font-weight: 700; padding: 10px 6px; border-bottom: 2px solid #e0e7ef; }
-          .order-table td { font-size: 15px; color: #333; }
-          .order-note-block { background: #fffbe6; border-left: 4px solid #ffe066; border-radius: 8px; padding: 12px 14px; margin-top: 18px; color: #7a5d00; font-size: 15px; }
-          .totals { margin-top: 24px; width: 100%; border-collapse: collapse; }
+          .order-table th, .order-table td { border: 1px solid #e0e0e0; }
+          .order-table th { background: #f0f4ff; color: #22194f; font-size: 15px; font-weight: 700; padding: 8px 4px; }
+          .order-table td { font-size: 15px; color: #333; padding: 6px 4px; }
+          .totals { margin-top: 18px; width: 100%; border-collapse: collapse; }
           .totals td { font-size: 16px; padding: 8px 0; }
           .totals .label { text-align: right; color: #666; font-weight: 600; }
           .totals .value { text-align: right; font-weight: 700; }
-          .grand-total { font-size: 22px; color: #2d6cdf; font-weight: 700; border-top: 2px solid #eee; padding-top: 12px; }
-          .footer { margin-top: 48px; text-align: center; color: #888; font-size: 15px; border-top: 1px solid #eee; padding-top: 18px; letter-spacing: 0.2px; }
-          @media (max-width: 800px) { .container { padding: 18px 4vw; } }
+          .grand-total { font-size: 20px; color: #2d6cdf; font-weight: 700; border-top: 2px solid #eee; padding-top: 10px; }
+          .footer { margin-top: 40px; text-align: center; color: #888; font-size: 14px; border-top: 1px solid #eee; padding-top: 16px; background: #fff; }
+          .highlight { background: #eaf6ff; border-radius: 8px; padding: 12px 10px; margin-bottom: 10px; }
         </style>
       </head>
       <body>
       <div class='container'>
         <div class='header'>
           <div>
-            <img src='${logoUrl}' alt='LipiPrint Logo' class='logo' />
             <div class='company-info'>
               <b>${companyName}</b><br />
               ${companyAddress}<br />
+              <b>GSTIN:</b> ${companyGSTIN}<br />
               ${companyEmail} | ${companyPhone}
             </div>
           </div>
           <div class='invoice-meta'>
             <div class='invoice-title'>INVOICE</div>
-            <div>Invoice #: <b>LP${orderId}</b></div>
-            <div>Date: <b>${orderDate}</b></div>
-            <div>Status: <b>${orderStatus}</b> ${paidBadge}</div>
+            <div>Invoice No.: <b>${invoiceNo}</b></div>
+            <div>Date: <b>${invoiceDate}</b></div>
           </div>
         </div>
         <div class='section'>
@@ -167,33 +321,53 @@ export default function InvoiceDetailScreen() {
             <tr><td><b>Email:</b></td><td>${customerEmail}</td></tr>
             <tr><td><b>Phone:</b></td><td>${customerPhone}</td></tr>
             <tr><td><b>Address:</b></td><td>${customerAddress}</td></tr>
+            <tr><td><b>GSTIN:</b></td><td>${customerGSTIN}</td></tr>
           </table>
         </div>
         <div class='section'>
           <div class='section-title'>Order Items</div>
           <table class='order-table'>
             <tr>
-              <th>File(s)</th>
-              <th>Print Options</th>
-              <th>Pages</th>
-              <th>Date</th>
+              <th>S.No</th>
+              <th>Description</th>
+              <th>Quantity</th>
+              <th>HSN</th>
+              <th>Rate</th>
+              <th>Amount</th>
+              <th>CGST</th>
+              <th>SGST</th>
+              <th>IGST</th>
+              <th>Total</th>
             </tr>
-            ${printJobGroupsBlock}
+            ${orderItemsRows}
+            <tr style='font-weight:bold;background:#f8f9fa;'>
+              <td colspan='2' style='text-align:right;'>Total</td>
+              <td style='text-align:center;'>${totalQty}</td>
+              <td></td>
+              <td></td>
+              <td style='text-align:right;'>${totalAmount.toFixed(2)}</td>
+              <td style='text-align:right;'>${totalCGST.toFixed(2)}</td>
+              <td style='text-align:right;'>${totalSGST.toFixed(2)}</td>
+              <td style='text-align:right;'>${totalIGST.toFixed(2)}</td>
+              <td style='text-align:right;'>${grandTotalAll}</td>
+            </tr>
           </table>
         </div>
-        ${orderNoteBlock}
         <div class='section'>
           <div class='section-title'>Summary</div>
           <table class='totals'>
-            <tr><td class='label'>Subtotal</td><td class='value'>INR ${subtotal}</td></tr>
-            <tr><td class='label'>GST (18%)</td><td class='value'>INR ${gst}</td></tr>
-            <tr><td class='label'>Delivery</td><td class='value'>INR ${deliveryCharge}</td></tr>
-            <tr><td class='label grand-total'>Grand Total</td><td class='value grand-total'>INR ${grandTotal}</td></tr>
+            <tr><td class='label'>Subtotal</td><td class='value'>INR ${summarySubtotal}</td></tr>
+            <tr><td class='label'>Discount</td><td class='value'>INR ${summaryDiscount}</td></tr>
+            <tr><td class='label'>GST</td><td class='value'>INR ${summaryGST}</td></tr>
+            <tr><td class='label'>Delivery</td><td class='value'>INR ${summaryDelivery}</td></tr>
+            <tr><td class='label grand-total'>Grand Total</td><td class='value grand-total'>INR ${summaryGrandTotal}</td></tr>
           </table>
         </div>
         <div class='footer'>
-          Thank you for choosing <b>LipiPrint</b>! For support, contact <a href='mailto:support@lipiprint.in'>support@lipiprint.in</a><br>
-          <span style='font-size:13px; color:#bbb;'>This is a computer-generated invoice and does not require a signature.</span>
+          All subject to Saharanpur Jurisdiction only<br>
+          Our responsibility ceases the moment the goods leave from office.<br>
+          Certified that particulars given above are true and correct.<br>
+          This is computer generated invoice. Printed on ${printDate}
         </div>
       </div>
       </body>
@@ -230,7 +404,7 @@ export default function InvoiceDetailScreen() {
         return;
       }
       // Build invoice HTML
-      const html = buildInvoiceHtml(order, printJobGroups, subtotal, gst, deliveryCharge, grandTotal);
+      const html = buildInvoiceHtml(order, printJobGroups);
       const file = await RNHTMLtoPDF.convert({
         html,
         fileName: `invoice-${order.id}`,
@@ -261,7 +435,7 @@ export default function InvoiceDetailScreen() {
   const handleShare = async () => {
     try {
       await Share.share({
-        message: `LipiPrint Invoice\nOrder ID: LP${order.id}\nTotal: INR ${grandTotal}`
+        message: `LipiPrint Invoice\nOrder ID: LP${order.id}\nTotal: INR ${order.grandTotal}`
       });
     } catch (e) {
       showAlert('Share Failed', 'Could not share invoice.', 'error');

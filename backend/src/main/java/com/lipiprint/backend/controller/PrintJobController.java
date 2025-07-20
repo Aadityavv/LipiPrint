@@ -18,6 +18,7 @@ import java.util.HashSet;
 import java.util.Set;
 import java.util.HashMap;
 import com.lipiprint.backend.repository.BindingOptionRepository;
+import com.lipiprint.backend.repository.DiscountRuleRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -33,6 +34,8 @@ public class PrintJobController {
     private PricingService pricingService;
     @Autowired
     private BindingOptionRepository bindingOptionRepository;
+    @Autowired
+    private DiscountRuleRepository discountRuleRepository;
 
     @PostMapping("")
     public ResponseEntity<PrintJobDTO> createPrintJob(@RequestBody PrintJob printJob, Authentication authentication) {
@@ -104,9 +107,12 @@ public class PrintJobController {
                 }
                 printJobs.add(pj);
             }
-            double total = pricingService.calculateTotalPriceForPrintJobs(printJobs);
+            PricingService.PriceSummary summary = pricingService.calculatePriceSummaryForPrintJobs(printJobs);
             Map<String, Object> result = new java.util.HashMap<>();
-            result.put("total", total);
+            result.put("subtotal", summary.subtotal);
+            result.put("discount", summary.discount);
+            result.put("gst", summary.gst);
+            result.put("grandTotal", summary.grandTotal);
             // Optionally, add breakdown per file
             return ResponseEntity.ok(result);
         } else {
@@ -174,5 +180,10 @@ public class PrintJobController {
     @GetMapping("/binding-options")
     public ResponseEntity<List<com.lipiprint.backend.entity.BindingOption>> getBindingOptions() {
         return ResponseEntity.ok(bindingOptionRepository.findAll());
+    }
+
+    @GetMapping("/discount-rules")
+    public ResponseEntity<List<com.lipiprint.backend.entity.DiscountRule>> getDiscountRules() {
+        return ResponseEntity.ok(discountRuleRepository.findAll());
     }
 } 

@@ -102,6 +102,17 @@ public class OrderController {
                 }
                 order.setPrintJobs(printJobs);
             }
+            // Calculate and store price summary at order placement
+            if (order.getPrintJobs() != null && !order.getPrintJobs().isEmpty()) {
+                PricingService.PriceSummary summary = pricingService.calculatePriceSummaryForPrintJobs(order.getPrintJobs());
+                double delivery = order.getDeliveryType() != null && order.getDeliveryType().equalsIgnoreCase("PICKUP") ? 0.0 : 0.0; // Set delivery charge as needed
+                order.setSubtotal(summary.subtotal);
+                order.setDiscount(summary.discount);
+                order.setGst(summary.gst);
+                order.setDelivery(delivery);
+                order.setGrandTotal(summary.grandTotal + delivery);
+                order.setTotalAmount(order.getGrandTotal());
+            }
             // Save order and link payment if razorpayOrderId is present
             String razorpayOrderId = orderDTO.getRazorpayOrderId();
             Order saved = orderService.save(order, razorpayOrderId);
@@ -123,8 +134,12 @@ public class OrderController {
                 saved.getDeliveryType(),
                 saved.getDeliveryAddress(),
                 saved.getRazorpayOrderId(),
-                parseBindingGroups(saved.getBindingGroups()),
-                saved.getOrderNote()
+                saved.getOrderNote(),
+                saved.getSubtotal(),
+                saved.getDiscount(),
+                saved.getGst(),
+                saved.getDelivery(),
+                saved.getGrandTotal()
             );
             logger.info("[OrderController] Created order DTO: {}", dto);
             return ResponseEntity.ok(dto);
@@ -200,8 +215,12 @@ public class OrderController {
                             saved.getDeliveryType(),
                             saved.getDeliveryAddress(),
                             saved.getRazorpayOrderId(),
-                            parseBindingGroups(saved.getBindingGroups()),
-                            saved.getOrderNote()
+                            saved.getOrderNote(),
+                            saved.getSubtotal(),
+                            saved.getDiscount(),
+                            saved.getGst(),
+                            saved.getDelivery(),
+                            saved.getGrandTotal()
                         );
                     } catch (Exception e) {
                         logger.error("[OrderController] Error mapping order to DTO (order id: {}): {}", saved.getId(), e.getMessage(), e);
@@ -247,8 +266,12 @@ public class OrderController {
                     order.getDeliveryType(),
                     order.getDeliveryAddress(),
                     order.getRazorpayOrderId(),
-                    parseBindingGroups(order.getBindingGroups()),
-                    order.getOrderNote()
+                    order.getOrderNote(),
+                    order.getSubtotal(),
+                    order.getDiscount(),
+                    order.getGst(),
+                    order.getDelivery(),
+                    order.getGrandTotal()
                 );
                 return ResponseEntity.ok(dto);
             })
@@ -293,8 +316,12 @@ public class OrderController {
                 updated.getDeliveryType(),
                 updated.getDeliveryAddress(),
                 updated.getRazorpayOrderId(),
-                parseBindingGroups(updated.getBindingGroups()),
-                updated.getOrderNote()
+                updated.getOrderNote(),
+                updated.getSubtotal(),
+                updated.getDiscount(),
+                updated.getGst(),
+                updated.getDelivery(),
+                updated.getGrandTotal()
             );
             return ResponseEntity.ok(dto);
         } catch (Exception e) {
@@ -396,88 +423,63 @@ public class OrderController {
             html = html.replace("${orderDate}", order.getCreatedAt() != null ? order.getCreatedAt().toLocalDate().toString() : "-");
             html = html.replace("${orderStatus}", order.getStatus() != null ? order.getStatus().name() : "-");
             html = html.replace("${deliveryType}", order.getDeliveryType() != null ? order.getDeliveryType() : "-");
+            html = html.replace("${customerGSTIN}", order.getUser() != null && order.getUser().getGstin() != null ? order.getUser().getGstin() : "-");
 
-            // Group print jobs by bindingGroups if present, else by print options
-            java.util.List<com.lipiprint.backend.entity.PrintJob> printJobs = order.getPrintJobs();
-            java.util.List<java.util.List<Long>> bindingGroups = null;
-            if (order.getBindingGroups() != null && !order.getBindingGroups().isBlank()) {
-                try {
-                    com.fasterxml.jackson.databind.ObjectMapper mapper = new com.fasterxml.jackson.databind.ObjectMapper();
-                    bindingGroups = mapper.readValue(order.getBindingGroups(), java.util.List.class);
-                } catch (Exception e) { bindingGroups = null; }
-            }
-            java.util.List<GroupBlock> groups = new java.util.ArrayList<>();
-            if (bindingGroups != null && !bindingGroups.isEmpty()) {
-                for (int i = 0; i < bindingGroups.size(); i++) {
-                    java.util.List<Long> groupFileIds = bindingGroups.get(i);
-                    java.util.List<com.lipiprint.backend.entity.PrintJob> groupJobs = printJobs.stream().filter(pj -> pj.getFile() != null && groupFileIds.contains(pj.getFile().getId())).toList();
-                    groups.add(new GroupBlock("Binding Group " + (i+1), groupJobs));
-                }
-            } else {
-                // Fallback: group by print options
-                java.util.Map<String, java.util.List<com.lipiprint.backend.entity.PrintJob>> seen = new java.util.LinkedHashMap<>();
-                for (var pj : printJobs) {
-                    String optionsKey = pj.getOptions() != null ? pj.getOptions() : "-";
-                    seen.computeIfAbsent(optionsKey, k -> new java.util.ArrayList<>()).add(pj);
-                }
-                int idx = 1;
-                for (var entry : seen.entrySet()) {
-                    groups.add(new GroupBlock("Print Group " + (idx++), entry.getValue()));
-                }
-            }
-            // Build HTML for printJobGroupsBlock
-            StringBuilder printJobGroupsBlock = new StringBuilder();
-            for (GroupBlock group : groups) {
-                printJobGroupsBlock.append("<div class='group-block'>");
-                printJobGroupsBlock.append("<div class='group-title'>").append(escapeHtml(group.label)).append("</div>");
-                // Print options
-                printJobGroupsBlock.append("<div class='options-list'>");
-                java.util.Map<String, Object> specs = null;
-                try {
-                    if (!group.jobs.isEmpty() && group.jobs.get(0).getOptions() != null) {
-                        com.fasterxml.jackson.databind.ObjectMapper mapper = new com.fasterxml.jackson.databind.ObjectMapper();
-                        specs = mapper.readValue(group.jobs.get(0).getOptions(), java.util.Map.class);
-                    }
-                } catch (Exception e) { specs = null; }
-                if (specs != null) {
-                    for (var entry : specs.entrySet()) {
-                        String key = entry.getKey().replace("_", " ");
-                        String value = String.valueOf(entry.getValue());
-                        printJobGroupsBlock.append("<span><b>")
-                            .append(escapeHtml(Character.toUpperCase(key.charAt(0)) + key.substring(1)))
-                            .append(":</b> ")
-                            .append(escapeHtml(value))
-                            .append("</span>");
-                    }
-                }
-                printJobGroupsBlock.append("</div>");
-                // Files in group
-                printJobGroupsBlock.append("<div class='files-list'>");
-                for (var pj : group.jobs) {
+            // Build orderItemsBlock with per-file price
+            StringBuilder orderItemsBlock = new StringBuilder();
+            if (order.getPrintJobs() != null) {
+                for (var pj : order.getPrintJobs()) {
                     var file = pj.getFile();
-                    printJobGroupsBlock.append("<div class='file-row'>");
-                    printJobGroupsBlock.append("<span class='file-name'>").append(escapeHtml(file != null ? file.getOriginalFilename() : "-")).append("</span> ");
-                    printJobGroupsBlock.append("<span class='file-meta'>Pages: ").append(file != null && file.getPages() != null ? file.getPages() : "-").append("</span> ");
-                    printJobGroupsBlock.append("<span class='file-meta'>Uploaded: ").append(file != null && file.getCreatedAt() != null ? file.getCreatedAt().toLocalDate().toString() : "-").append("</span>");
-                    printJobGroupsBlock.append("</div>");
+                    String fileName = file != null ? (file.getOriginalFilename() != null ? file.getOriginalFilename() : file.getFilename()) : "-";
+                    int pages = file != null && file.getPages() != null ? file.getPages() : 1;
+                    String printOptions = "";
+                    try {
+                        if (pj.getOptions() != null) {
+                            com.fasterxml.jackson.databind.ObjectMapper mapper = new com.fasterxml.jackson.databind.ObjectMapper();
+                            java.util.Map<String, Object> opts = mapper.readValue(pj.getOptions(), java.util.Map.class);
+                            printOptions = opts.entrySet().stream()
+                                .map(e -> "<b>" + escapeHtml(e.getKey().replace("_", " ")) + ":</b> " + escapeHtml(String.valueOf(e.getValue())))
+                                .reduce((a, b) -> a + "<br>" + b).orElse("");
+                        }
+                    } catch (Exception e) { printOptions = "-"; }
+                    // Calculate per-file price
+                    double price = 0.0;
+                    try {
+                        com.fasterxml.jackson.databind.ObjectMapper mapper = new com.fasterxml.jackson.databind.ObjectMapper();
+                        java.util.Map<String, Object> opts = pj.getOptions() != null ? mapper.readValue(pj.getOptions(), java.util.Map.class) : new java.util.HashMap<>();
+                        String color = (String) opts.getOrDefault("color", null);
+                        String paper = (String) opts.getOrDefault("paper", null);
+                        String quality = (String) opts.getOrDefault("quality", null);
+                        String side = (String) opts.getOrDefault("side", null);
+                        String binding = (String) opts.getOrDefault("binding", null);
+                        java.math.BigDecimal printCost = pricingService.calculatePrintCost(color, paper, quality, side, pages);
+                        java.math.BigDecimal bindingCost = (binding != null && !binding.isBlank()) ? pricingService.calculateBindingCost(binding, pages) : java.math.BigDecimal.ZERO;
+                        price = printCost.add(bindingCost).doubleValue();
+                    } catch (Exception e) { price = 0.0; }
+                    orderItemsBlock.append("<tr>")
+                        .append("<td style='padding:8px 6px;'>").append(escapeHtml(fileName)).append("</td>")
+                        .append("<td style='padding:8px 6px;'>").append(printOptions).append("</td>")
+                        .append("<td style='padding:8px 6px;'>").append(pages).append("</td>")
+                        .append("<td style='padding:8px 6px;'>INR ").append(String.format("%.2f", price)).append("</td>")
+                        .append("</tr>");
                 }
-                printJobGroupsBlock.append("</div>");
-                printJobGroupsBlock.append("</div>");
             }
-            html = html.replace("${printJobGroupsBlock}", printJobGroupsBlock.toString());
+            html = html.replace("${orderItemsBlock}", orderItemsBlock.toString());
+
             // Order note
             String orderNoteBlock = "";
             if (order.getOrderNote() != null && !order.getOrderNote().isBlank()) {
                 orderNoteBlock = "<div class='order-note-block'><b>Order Note:</b> " + escapeHtml(order.getOrderNote()) + "</div>";
             }
             html = html.replace("${orderNoteBlock}", orderNoteBlock);
-            // Pricing (use order.getTotalAmount() if available)
-            double gstRate = 0.18;
-            double delivery = (order.getDeliveryType() != null && order.getDeliveryType().equalsIgnoreCase("PICKUP")) ? 0.0 : 50.0;
-            double grandTotal = order.getTotalAmount() != null ? order.getTotalAmount() : 0.0;
-            double subtotal = grandTotal / (1 + gstRate);
-            double gst = grandTotal - subtotal;
+            // Pricing (use order's saved values)
+            double subtotal = order.getSubtotal() != null ? order.getSubtotal() : 0.0;
+            double discount = order.getDiscount() != null ? order.getDiscount() : 0.0;
+            double gst = order.getGst() != null ? order.getGst() : 0.0;
+            double delivery = order.getDelivery() != null ? order.getDelivery() : 0.0;
+            double grandTotal = order.getGrandTotal() != null ? order.getGrandTotal() : 0.0;
             html = html.replace("${subtotal}", String.format("%.2f", subtotal));
+            html = html.replace("${discount}", String.format("%.2f", discount));
             html = html.replace("${gst}", String.format("%.2f", gst));
             html = html.replace("${delivery}", String.format("%.2f", delivery));
             html = html.replace("${grandTotal}", String.format("%.2f", grandTotal));
@@ -520,15 +522,6 @@ private void drawText(PDPageContentStream content, float x, float y, String text
     content.newLineAtOffset(x, y);
     content.showText(text);
     content.endText();
-}
-
-// Helper to parse bindingGroups JSON string to List<List<Long>>
-private List<List<Long>> parseBindingGroups(String json) {
-    if (json == null || json.isBlank()) return null;
-    try {
-        ObjectMapper mapper = new ObjectMapper();
-        return mapper.readValue(json, new TypeReference<List<List<Long>>>() {});
-    } catch (Exception e) { return null; }
 }
 
 } 

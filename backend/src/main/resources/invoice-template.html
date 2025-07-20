@@ -41,7 +41,8 @@
                 <div class="company-info">
                     LipiPrint<br />
                     123 Printing Street, Saharanpur, Uttar Pradesh, India<br />
-                    support@lipiprint.in | +91 12345 67890
+                    support@lipiprint.in | +91 12345 67890<br />
+                    <b>GSTIN:</b> 09AJ0PN3715E1Z3
                 </div>
         </div>
         <div class="invoice-meta">
@@ -58,6 +59,7 @@
             <tr><td><b>Email:</b></td><td>${customerEmail}</td></tr>
             <tr><td><b>Phone:</b></td><td>${customerPhone}</td></tr>
             <tr><td><b>Address:</b></td><td>${customerAddress}</td></tr>
+            <tr><td><b>GSTIN:</b></td><td>${customerGSTIN}</td></tr>
         </table>
     </div>
     <div class="section">
@@ -70,23 +72,31 @@
         </table>
     </div>
     <div class="section">
-        <div class="section-title">Print Job Groups</div>
-        ${printJobGroupsBlock}
+        <div class="section-title">Order Items</div>
+        <table class="info-table" style="border-collapse:collapse;width:100%;margin-bottom:10px;">
+            <tr style="background:#f0f4ff;color:#22194f;font-weight:bold;">
+                <td style="padding:8px 6px;">File Name</td>
+                <td style="padding:8px 6px;">Print Options</td>
+                <td style="padding:8px 6px;">Pages</td>
+                <td style="padding:8px 6px;">Price</td>
+            </tr>
+            ${orderItemsBlock}
+        </table>
     </div>
     ${orderNoteBlock}
     <div class="section">
         <div class="section-title">Pricing</div>
-        <table class="totals">
+        <table class="totals" style="background:#f8f9fa;border-radius:10px;padding:10px;">
             <tr><td class="label">Subtotal</td><td class="value">INR ${subtotal}</td></tr>
             <tr><td class="label">GST (18%)</td><td class="value">INR ${gst}</td></tr>
             <tr><td class="label">Delivery</td><td class="value">INR ${delivery}</td></tr>
             <tr><td class="label grand-total">Grand Total</td><td class="value grand-total">INR ${grandTotal}</td></tr>
         </table>
     </div>
-    <div class="footer">
-        Thank you for choosing LipiPrint! For support, contact support@lipiprint.in
+    <div class="footer" style="margin-top:40px;text-align:center;color:#888;font-size:14px;border-top:1px solid #eee;padding-top:16px;background:#fff;">
+        Thank you for choosing LipiPrint! For support, contact support@lipiprint.in<br>
+        <span style="font-size:13px;color:#bbb;">This is a computer-generated invoice and does not require a signature.</span>
     </div>
 </div>
 </body>
-</html> 
 </html> 

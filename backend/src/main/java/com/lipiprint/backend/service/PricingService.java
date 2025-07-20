@@ -161,4 +161,72 @@ public class PricingService {
         logger.info("[PricingService] Total price for print jobs: {}", total);
         return total;
     }
+
+    // Add a method to calculate price summary including GST
+    public static class PriceSummary {
+        public double subtotal;
+        public double discount;
+        public double gst;
+        public double grandTotal;
+        public PriceSummary(double subtotal, double discount, double gst, double grandTotal) {
+            this.subtotal = subtotal;
+            this.discount = discount;
+            this.gst = gst;
+            this.grandTotal = grandTotal;
+        }
+    }
+
+    public PriceSummary calculatePriceSummaryForPrintJobs(List<PrintJob> printJobs) {
+        double subtotal = 0.0;
+        double bestDiscount = 0.0;
+        int totalPages = 0;
+        String color = null, paper = null, quality = null, side = null;
+        for (var pj : printJobs) {
+            if (pj.getFile() == null) continue;
+            Integer numPages = pj.getFile().getPages();
+            if (numPages == null || numPages == 0) continue;
+            if (pj.getOptions() == null || pj.getOptions().isBlank()) continue;
+            try {
+                com.fasterxml.jackson.databind.ObjectMapper mapper = new com.fasterxml.jackson.databind.ObjectMapper();
+                java.util.Map<String, Object> opts = mapper.readValue(pj.getOptions(), java.util.Map.class);
+                color = (String) opts.getOrDefault("color", null);
+                paper = (String) opts.getOrDefault("paper", null);
+                quality = (String) opts.getOrDefault("quality", null);
+                side = (String) opts.getOrDefault("side", null);
+                ServiceCombination combo = serviceCombinationRepository.findByColorAndPaperSizeAndPaperQualityAndPrintOption(
+                    color, paper, quality, side
+                ).orElseThrow(() -> new RuntimeException("No price found for selected options"));
+                double basePricePerPage = combo.getCostPerPage().doubleValue();
+                double basePrintCost = basePricePerPage * numPages;
+                // Binding cost
+                double bindingCost = 0.0;
+                String binding = (String) opts.getOrDefault("binding", null);
+                if (binding != null && !binding.isBlank()) {
+                    BindingOption bindingOpt = bindingOptionRepository.findByType(binding).orElse(null);
+                    if (bindingOpt != null) {
+                        double perPage = bindingOpt.getPerPagePrice().doubleValue();
+                        double min = bindingOpt.getMinPrice().doubleValue();
+                        bindingCost = Math.max(perPage * numPages, min);
+                    }
+                }
+                subtotal += basePrintCost + bindingCost;
+                totalPages += numPages;
+            } catch (Exception e) {
+                continue;
+            }
+        }
+        // Find best discount for the whole order (by options and totalPages)
+        List<DiscountRule> discounts = discountRuleRepository.findByColorAndPaperSizeAndPaperQualityAndPrintOptionAndMinPagesLessThanEqualOrderByMinPagesDesc(
+            color, paper, quality, side, totalPages
+        );
+        if (!discounts.isEmpty()) {
+            bestDiscount = discounts.get(0).getAmountOff().doubleValue();
+        }
+        subtotal = Math.round(subtotal * 100.0) / 100.0;
+        double totalDiscount = Math.round(subtotal * bestDiscount * 100.0) / 100.0;
+        double discountedSubtotal = subtotal - totalDiscount;
+        double gst = Math.round(discountedSubtotal * 0.18 * 100.0) / 100.0;
+        double grandTotal = Math.round((discountedSubtotal + gst) * 100.0) / 100.0;
+        return new PriceSummary(discountedSubtotal, totalDiscount, gst, grandTotal);
+    }
 } 

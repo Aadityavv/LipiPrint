@@ -21,7 +21,7 @@ const { width } = Dimensions.get('window');
 
 export default function PaymentScreen({ navigation, route }) {
   console.log('[PaymentScreen] route.params:', route.params);
-  const { files, selectedOptions, deliveryType, deliveryAddress, phone, total, totalPrice, priceBreakdown } = route.params || {};
+  const { files, selectedOptions, deliveryType, deliveryAddress, phone, total, totalPrice, priceBreakdown, subtotal, gst, discount } = route.params || {};
   
   const [processing, setProcessing] = useState(false);
   const [user, setUser] = useState(null);
@@ -42,17 +42,15 @@ export default function PaymentScreen({ navigation, route }) {
     });
   }, []);
 
-  // GST Calculation (18% on subtotal)
+  // Use backend totalPrice (grandTotal) and other fields for all price displays
   const baseTotal = (totalPrice !== undefined && totalPrice !== null) ? totalPrice : (total || 0);
-  const gst = Math.round(baseTotal * 0.18);
-  const grandTotal = baseTotal + gst;
-
   const orderSummary = {
     items: files?.length || 0,
     pages: files?.reduce((sum, fileObj) => sum + (fileObj.file?.pages || 0), 0),
-    printing: baseTotal,
-    gst,
-    total: grandTotal,
+    printing: subtotal !== undefined && subtotal !== null ? subtotal : baseTotal,
+    gst: gst !== undefined && gst !== null ? gst : 0,
+    discount: discount !== undefined && discount !== null ? discount : 0,
+    total: baseTotal,
   };
 
   const showAlert = (title, message, type = 'info', onConfirm = null, showCancel = false) => {
@@ -85,14 +83,14 @@ export default function PaymentScreen({ navigation, route }) {
         user: { id: user?.id },
         printJobs: printJobsPayload,
         status: 'PENDING',
-        totalAmount: grandTotal,
+        totalAmount: baseTotal,
         deliveryType,
         deliveryAddress,
         phone,
       };
       // 2. Create Razorpay order with grandTotal
       const orderRes = await createRazorpayOrder({
-        amount: grandTotal,
+        amount: baseTotal,
         currency: 'INR',
         receipt: `receipt_${Date.now()}`,
       });
@@ -177,6 +175,10 @@ export default function PaymentScreen({ navigation, route }) {
                 <View style={styles.summaryRow}>
                   <Text style={styles.summaryLabel}>GST (18%)</Text>
                   <Text style={styles.summaryValue}>₹{orderSummary.gst}</Text>
+                </View>
+                <View style={styles.summaryRow}>
+                  <Text style={styles.summaryLabel}>Discount</Text>
+                  <Text style={styles.summaryValue}>₹{orderSummary.discount}</Text>
                 </View>
                 <View style={styles.totalRow}>
                   <Text style={styles.totalLabel}>Total Amount</Text>

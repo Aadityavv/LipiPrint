@@ -22,7 +22,7 @@ import LoadingWorld from '../../assets/animations/loading-world.json';
 const { width } = Dimensions.get('window');
 
 export default function DeliveryOptionsScreen({ navigation, route }) {
-  const { files, selectedOptions, selectedPaper, selectedPrint, total, totalPrice, priceBreakdown } = route.params || {};
+  const { files, selectedOptions, selectedPaper, selectedPrint, total, totalPrice, priceBreakdown, subtotal, gst, discount } = route.params || {};
   const [deliveryMethod, setDeliveryMethod] = useState('pickup');
   const [selectedLocation, setSelectedLocation] = useState(null);
   const [pickupLocations, setPickupLocations] = useState([]);
@@ -91,9 +91,12 @@ export default function DeliveryOptionsScreen({ navigation, route }) {
     }
   }, [deliveryMethod, pickupLocations]);
 
+  // Use totalPrice (from backend grandTotal) for all price displays
+  const finalTotal = totalPrice !== undefined && totalPrice !== null ? totalPrice : (total || 0);
+
   const calculateFinalTotal = () => {
     const selectedDelivery = deliveryOptions.find(method => method.id === deliveryMethod);
-    return total + (selectedDelivery ? selectedDelivery.price : 0);
+    return finalTotal + (selectedDelivery ? selectedDelivery.price : 0);
   };
 
   const proceedToPayment = () => {
@@ -136,9 +139,11 @@ export default function DeliveryOptionsScreen({ navigation, route }) {
       deliveryAddress,
       phone: showNewAddress ? phone : savedAddresses.find(a => a.id === selectedAddressId)?.phone,
       total: calculateFinalTotal(),
-      selectedLocation,
-      totalPrice,
+      totalPrice: finalTotal,
       priceBreakdown,
+      subtotal,
+      gst,
+      discount,
     });
   };
 

@@ -27,6 +27,11 @@ public class Order {
     private Status status;
 
     private Double totalAmount;
+    private Double subtotal;
+    private Double discount;
+    private Double gst;
+    private Double delivery;
+    private Double grandTotal;
 
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
@@ -34,8 +39,6 @@ public class Order {
     private String deliveryType;
     private String deliveryAddress;
 
-    @Column(columnDefinition = "TEXT")
-    private String bindingGroups; // Store as JSON string
     private String orderNote;
 
     private String razorpayOrderId;
@@ -80,13 +83,22 @@ public class Order {
     public java.util.List<PrintJob> getPrintJobs() { return printJobs; }
     public void setPrintJobs(java.util.List<PrintJob> printJobs) { this.printJobs = printJobs; }
 
-    public String getBindingGroups() { return bindingGroups; }
-    public void setBindingGroups(String bindingGroups) { this.bindingGroups = bindingGroups; }
     public String getOrderNote() { return orderNote; }
     public void setOrderNote(String orderNote) { this.orderNote = orderNote; }
 
     public String getRazorpayOrderId() { return razorpayOrderId; }
     public void setRazorpayOrderId(String razorpayOrderId) { this.razorpayOrderId = razorpayOrderId; }
+
+    public Double getSubtotal() { return subtotal; }
+    public void setSubtotal(Double subtotal) { this.subtotal = subtotal; }
+    public Double getDiscount() { return discount; }
+    public void setDiscount(Double discount) { this.discount = discount; }
+    public Double getGst() { return gst; }
+    public void setGst(Double gst) { this.gst = gst; }
+    public Double getDelivery() { return delivery; }
+    public void setDelivery(Double delivery) { this.delivery = delivery; }
+    public Double getGrandTotal() { return grandTotal; }
+    public void setGrandTotal(Double grandTotal) { this.grandTotal = grandTotal; }
 
     public Map<String, Object> toActivityMap() {
         Map<String, Object> map = new HashMap<>();

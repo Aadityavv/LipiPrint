@@ -32,10 +32,11 @@ export default function UploadScreen({ navigation }) {
   const [alertType, setAlertType] = useState('info'); // 'info', 'error', 'success'
   const [totalPrice, setTotalPrice] = useState(null);
   const [priceBreakdown, setPriceBreakdown] = useState([]);
+  const [backendSubtotal, setBackendSubtotal] = useState(null);
+  const [backendGst, setBackendGst] = useState(null);
+  const [backendDiscount, setBackendDiscount] = useState(null);
 
   // Add state for binding groups and order note
-  const [bindingGroups, setBindingGroups] = useState([]); // Array of arrays of file indices
-  const [selectedFiles, setSelectedFiles] = useState([]); // For current group selection
   const [orderNote, setOrderNote] = useState('');
 
   function showCustomAlert(title, message, type = 'info') {
@@ -279,14 +280,18 @@ export default function UploadScreen({ navigation }) {
     }));
     ApiService.calculatePrintJobsCost({ files: filesPayload })
       .then(res => {
-        setTotalPrice(res.total);
+        setTotalPrice(res.grandTotal);
+        setBackendSubtotal(res.subtotal);
+        setBackendGst(res.gst);
+        setBackendDiscount(res.discount);
         setPriceBreakdown(res.breakdown || []);
-        console.log('[LOG] Calculated price:', res);
       })
       .catch(e => {
         setTotalPrice(null);
+        setBackendSubtotal(null);
+        setBackendGst(null);
+        setBackendDiscount(null);
         setPriceBreakdown([]);
-        console.log('[LOG] Price calculation error:', e);
       });
   }, [uploadedFiles]);
 
@@ -306,6 +311,9 @@ const handleProceedToCheckout = async () => {
     totalPrice,
     priceBreakdown,
     files: uploadedFiles, // Pass files with pages
+    subtotal: backendSubtotal,
+    gst: backendGst,
+    discount: backendDiscount,
     // Add any other order-related data here if needed
   });
 };
@@ -338,89 +346,24 @@ const handleProceedToCheckout = async () => {
     return opts;
   };
 
-  // Helper to add a new binding group
-  const addBindingGroup = () => {
-    if (selectedFiles.length < 2) {
-      Alert.alert('Select at least 2 files to bind together.');
-      return;
-    }
-    setBindingGroups([...bindingGroups, selectedFiles]);
-    setSelectedFiles([]);
-  };
-
-  // Helper to remove a file from all groups
-  const removeFileFromGroups = (fileIdx) => {
-    setBindingGroups(bindingGroups.map(group => group.filter(idx => idx !== fileIdx)).filter(g => g.length > 0));
-  };
-
-  // UI for selecting files to bind together
-  const renderFileSelector = () => (
-    <View style={styles.bindingSection}>
-      <Text style={styles.bindingTitle}>Group Binding</Text>
-      <Text style={styles.bindingDesc}>Select files to bind together, then tap 'Add Group'.</Text>
-      <FlatList
-        data={uploadedFiles}
-        keyExtractor={(_, idx) => idx.toString()}
-        horizontal
-        renderItem={({ item, index }) => (
-          <TouchableOpacity
-            style={[styles.fileChip, selectedFiles.includes(index) && styles.fileChipSelected]}
-            onPress={() => {
-              setSelectedFiles(selectedFiles.includes(index)
-                ? selectedFiles.filter(i => i !== index)
-                : [...selectedFiles, index]);
-            }}
-          >
-            <Text style={styles.fileChipText}>{item.file.originalFilename || item.file.name}</Text>
-          </TouchableOpacity>
-        )}
-      />
-      <TouchableOpacity style={styles.addGroupBtn} onPress={addBindingGroup}>
-        <Text style={styles.addGroupBtnText}>Add Group</Text>
-      </TouchableOpacity>
-      <View style={styles.groupsList}>
-        {bindingGroups.map((group, gidx) => (
-          <View key={gidx} style={styles.groupRow}>
-            <Text style={styles.groupLabel}>Group {gidx + 1}:</Text>
-            {group.map(idx => (
-              <View key={idx} style={styles.groupFileChip}>
-                <Text style={styles.groupFileChipText}>{uploadedFiles[idx]?.file.originalFilename || uploadedFiles[idx]?.file.name}</Text>
-              </View>
-            ))}
-          </View>
-        ))}
-      </View>
-    </View>
-  );
-
   return (
     <ScrollView style={styles.container} contentContainerStyle={{ paddingBottom: 40 }}>
       {isUploading && (
         <View style={{
           position: 'absolute', left: 0, top: 0, right: 0, bottom: 0,
-          backgroundColor: 'rgba(0,0,0,0.35)', justifyContent: 'center', alignItems: 'center', zIndex: 10
+          backgroundColor: 'rgba(0,0,0,0.45)', justifyContent: 'center', alignItems: 'center', zIndex: 10
         }}>
-          <View style={{
-            backgroundColor: '#fff',
-            borderRadius: 32,
-            padding: 36,
-            alignItems: 'center',
-            shadowColor: '#000',
-            shadowOpacity: 0.18,
-            shadowRadius: 24,
-            elevation: 12,
-            minWidth: 260,
-            maxWidth: 320
-          }}>
+          <View style={styles.lottieCardModern}>
             <LottieView
               source={require('../../assets/animations/Man-using-printing-machine.json')}
               autoPlay
               loop
-              style={{ width: 180, height: 180, marginBottom: 10 }}
-              speed={2}
+              style={{ width: 200, height: 200, marginBottom: 18 }}
+              speed={1.5}
             />
-            <Text style={{ color: '#22194f', fontWeight: 'bold', fontSize: 22, marginTop: 10, marginBottom: 10, textAlign: 'center' }}>Uploading your file...</Text>
-            <ActivityIndicator size="large" color="#667eea" style={{ marginTop: 8 }} />
+            <Text style={styles.lottieTitle}>Uploading your file...</Text>
+            <Text style={styles.lottieSubtitle}>Please wait while we securely upload and process your document.</Text>
+            <ActivityIndicator size="large" color="#667eea" style={{ marginTop: 12 }} />
           </View>
         </View>
       )}
@@ -467,6 +410,24 @@ const handleProceedToCheckout = async () => {
                 {priceBreakdown.length > 0 && priceBreakdown.map((b, i) => (
                   <Text key={i} style={styles.priceBreakdownModern}>{b.fileName}: ₹{b.totalCost}</Text>
                 ))}
+                {backendSubtotal !== null && (
+                  <View style={{ marginTop: 8, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <Text style={{ fontSize: 14, color: '#888' }}>Subtotal:</Text>
+                    <Text style={{ fontSize: 14, fontWeight: 'bold', color: '#22194f' }}>₹{backendSubtotal}</Text>
+                  </View>
+                )}
+                {backendGst !== null && (
+                  <View style={{ marginTop: 4, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <Text style={{ fontSize: 14, color: '#888' }}>GST:</Text>
+                    <Text style={{ fontSize: 14, fontWeight: 'bold', color: '#22194f' }}>₹{backendGst}</Text>
+                  </View>
+                )}
+                {backendDiscount !== null && (
+                  <View style={{ marginTop: 4, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <Text style={{ fontSize: 14, color: '#888' }}>Discount:</Text>
+                    <Text style={{ fontSize: 14, fontWeight: 'bold', color: '#22194f' }}>₹{!isNaN(Number(backendDiscount)) && backendDiscount !== null && backendDiscount !== undefined ? Number(backendDiscount).toFixed(2) : '0.00'}</Text>
+                  </View>
+                )}
               </View>
             )}
             <TouchableOpacity 
@@ -479,16 +440,18 @@ const handleProceedToCheckout = async () => {
           </View>
         )}
       </View>
-      {renderFileSelector()}
-      <View style={styles.orderNoteSection}>
-        <Text style={styles.orderNoteLabel}>Order Note (optional):</Text>
+      <View style={styles.orderNoteSectionModern}>
+        <Text style={styles.orderNoteLabelModern}>Order Note (optional):</Text>
         <TextInput
-          style={styles.orderNoteInput}
+          style={styles.orderNoteInputModern}
           value={orderNote}
           onChangeText={setOrderNote}
           placeholder="Leave a note for the admin..."
+          placeholderTextColor="#aaa"
           multiline
+          maxLength={300}
         />
+        <Text style={styles.orderNoteCharCount}>{orderNote.length}/300</Text>
       </View>
       {/* Print Options Modal */}
       <Modal visible={showPrintOptionsModal} transparent animationType="slide" onRequestClose={() => setShowPrintOptionsModal(false)}>
@@ -621,20 +584,68 @@ const styles = StyleSheet.create({
   uploadMoreBtn: { backgroundColor: '#43B581', paddingHorizontal: 20, paddingVertical: 10, borderRadius: 8 },
   uploadMoreBtnAlt: { backgroundColor: '#ff512f', paddingHorizontal: 20, paddingVertical: 10, borderRadius: 8 },
   uploadMoreBtnText: { color: 'white', fontWeight: 'bold' },
-  bindingSection: { marginVertical: 16, padding: 12, backgroundColor: '#f8f9fa', borderRadius: 10 },
-  bindingTitle: { fontWeight: 'bold', fontSize: 16, color: '#764ba2', marginBottom: 4 },
-  bindingDesc: { color: '#888', fontSize: 13, marginBottom: 8 },
-  fileChip: { padding: 8, borderRadius: 8, backgroundColor: '#e0e0e0', marginRight: 8 },
-  fileChipSelected: { backgroundColor: '#667eea' },
-  fileChipText: { color: '#333' },
-  addGroupBtn: { marginTop: 8, backgroundColor: '#667eea', borderRadius: 8, padding: 8, alignItems: 'center' },
-  addGroupBtnText: { color: '#fff', fontWeight: 'bold' },
-  groupsList: { marginTop: 8 },
-  groupRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 4 },
-  groupLabel: { color: '#764ba2', fontWeight: 'bold', marginRight: 4 },
-  groupFileChip: { backgroundColor: '#e0e0e0', borderRadius: 6, paddingHorizontal: 6, marginRight: 4 },
-  groupFileChipText: { color: '#333' },
   orderNoteSection: { marginVertical: 16 },
   orderNoteLabel: { fontWeight: 'bold', color: '#764ba2', marginBottom: 4 },
   orderNoteInput: { backgroundColor: '#f8f9fa', borderRadius: 8, padding: 8, minHeight: 40, color: '#333' },
+  lottieCardModern: {
+    backgroundColor: '#fff',
+    borderRadius: 32,
+    padding: 36,
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOpacity: 0.18,
+    shadowRadius: 24,
+    elevation: 16,
+    minWidth: 280,
+    maxWidth: 340,
+    marginHorizontal: 16,
+  },
+  lottieTitle: {
+    color: '#22194f',
+    fontWeight: 'bold',
+    fontSize: 24,
+    marginTop: 8,
+    marginBottom: 6,
+    textAlign: 'center',
+  },
+  lottieSubtitle: {
+    color: '#555',
+    fontSize: 15,
+    textAlign: 'center',
+    marginBottom: 8,
+  },
+  orderNoteSectionModern: {
+    marginVertical: 24,
+    marginHorizontal: 18,
+    backgroundColor: '#fff',
+    borderRadius: 16,
+    padding: 18,
+    shadowColor: '#000',
+    shadowOpacity: 0.06,
+    shadowRadius: 8,
+    elevation: 2,
+  },
+  orderNoteLabelModern: {
+    fontWeight: 'bold',
+    color: '#764ba2',
+    marginBottom: 8,
+    fontSize: 16,
+  },
+  orderNoteInputModern: {
+    backgroundColor: '#f8f9fa',
+    borderRadius: 10,
+    padding: 12,
+    minHeight: 60,
+    color: '#333',
+    fontSize: 15,
+    marginBottom: 6,
+    borderWidth: 1,
+    borderColor: '#eee',
+  },
+  orderNoteCharCount: {
+    alignSelf: 'flex-end',
+    color: '#aaa',
+    fontSize: 12,
+    marginTop: -4,
+  },
 });
