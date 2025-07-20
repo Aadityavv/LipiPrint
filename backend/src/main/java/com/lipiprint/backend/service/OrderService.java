@@ -16,6 +16,10 @@ import com.lipiprint.backend.repository.PaymentRepository;
 import com.lipiprint.backend.service.UserService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import com.lipiprint.backend.entity.User;
+import com.lipiprint.backend.dto.OrderListDTO;
 
 @Service
 public class OrderService {
@@ -55,6 +59,25 @@ public class OrderService {
 
     public List<Order> findAll() {
         return orderRepository.findAll();
+    }
+
+    // Add paged methods
+    public Page<Order> findAllPaged(Pageable pageable) {
+        return orderRepository.findAll(pageable);
+    }
+    public Page<Order> findAllByStatusPaged(String status, Pageable pageable) {
+        try {
+            return orderRepository.findByStatus(Order.Status.valueOf(status.toUpperCase()), pageable);
+        } catch (Exception e) {
+            return Page.empty();
+        }
+    }
+    public Page<Order> findAllByUserPaged(User user, Pageable pageable) {
+        try {
+            return orderRepository.findByUserId(user.getId(), pageable);
+        } catch (Exception e) {
+            return Page.empty();
+        }
     }
 
     public List<Order> findAllByStatus(String status) {
@@ -124,5 +147,9 @@ public class OrderService {
 
     public double getTotalRevenue() {
         return orderRepository.sumTotalAmountByStatuses(java.util.Arrays.asList(com.lipiprint.backend.entity.Order.Status.COMPLETED, com.lipiprint.backend.entity.Order.Status.DELIVERED));
+    }
+
+    public Page<OrderListDTO> findAllListPaged(Pageable pageable) {
+        return orderRepository.findAllForList(pageable);
     }
 } 

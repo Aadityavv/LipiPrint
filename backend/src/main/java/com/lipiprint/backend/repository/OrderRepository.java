@@ -1,13 +1,18 @@
 package com.lipiprint.backend.repository;
 
 import com.lipiprint.backend.entity.Order;
+import com.lipiprint.backend.dto.OrderListDTO;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import java.util.List;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 
 public interface OrderRepository extends JpaRepository<Order, Long> {
     List<Order> findByUserId(Long userId);
+    Page<Order> findByUserId(Long userId, Pageable pageable);
+    Page<Order> findByStatus(Order.Status status, Pageable pageable);
 
     long count();
     long countByStatus(Order.Status status);
@@ -20,4 +25,7 @@ public interface OrderRepository extends JpaRepository<Order, Long> {
 
     @Query(value = "SELECT DATE(o.created_at) as day, COALESCE(SUM(o.total_amount),0) as revenue FROM orders o WHERE o.created_at >= CURRENT_DATE - INTERVAL '7 days' AND o.status IN (:statuses) GROUP BY day ORDER BY day", nativeQuery = true)
     List<Object[]> getRevenueByDayLast7Days(@Param("statuses") List<String> statuses);
+
+    @Query("SELECT new com.lipiprint.backend.dto.OrderListDTO(o.id, u.name, CAST(o.status AS string), o.totalAmount, o.createdAt, o.deliveryType) FROM Order o JOIN o.user u ORDER BY o.createdAt DESC")
+    Page<OrderListDTO> findAllForList(Pageable pageable);
 } 

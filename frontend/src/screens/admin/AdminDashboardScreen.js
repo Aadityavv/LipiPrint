@@ -32,7 +32,7 @@ export default function AdminDashboardScreen({ navigation }) {
       icon: <Icon name="assignment" size={22} color="#fff" />, 
       color: '#1976D2',
       iconBg: '#1976D2',
-      onPress: () => navigation.navigate('AdminOrders')
+      onPress: () => navigation.navigate('AdminTabs', { screen: 'AdminOrders' })
     },
     {
       title: 'User Management',

@@ -1,6 +1,6 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
-const baseUrl = 'http://192.168.1.11:8082/api'; // Ensure no trailing slash
+const baseUrl = 'https://lipiprint-freelance.onrender.com/api'; // Ensure no trailing slash
 class ApiService {
     constructor() {
         this.baseURL = baseUrl;
@@ -55,46 +55,38 @@ class ApiService {
         };
 
         // Log request details for debugging
-        console.log('[API CALL]', {
-            url,
-            method: options.method || 'GET',
-            headers,
-            token: this.token,
-            body: options.body,
-        });
-
+        console.log('[API CALL]', { url, method: options.method || 'GET', headers, token: this.token, body: options.body });
+        // Extra log for troubleshooting
+        console.log('[API DEBUG] Fetching:', url, config);
+        // New debug logs
+        console.log('[API DEBUG] About to fetch:', url, config);
         try {
             const response = await fetch(url, config);
-            
+            console.log('[API DEBUG] After fetch:', response);
             // Log response status
             console.log('[API RESPONSE STATUS]', { url, status: response.status });
-
             if (response.status === 401) {
                 await this.clearToken();
                 throw new Error('Unauthorized');
             }
-
             if (!response.ok) {
                 throw new Error(`HTTP error! status: ${response.status}`);
             }
-
             // Only parse JSON if there is content
             const text = await response.text();
             // Log response body
             console.log('[API RESPONSE BODY]', { url, response: text });
-            
             // For DELETE operations with 204 No Content, return success indicator
             if (options.method === 'DELETE' && response.status === 204) {
                 return { success: true };
             }
-            
             try {
                 return text ? JSON.parse(text) : {};
             } catch (e) {
                 return {};
             }
         } catch (error) {
-            console.error('API request failed:', error);
+            console.error('[API ERROR]', error);
             throw error;
         }
     }
