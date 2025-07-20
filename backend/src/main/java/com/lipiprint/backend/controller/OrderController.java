@@ -108,10 +108,12 @@ public class OrderController {
                 double delivery = order.getDeliveryType() != null && order.getDeliveryType().equalsIgnoreCase("PICKUP") ? 0.0 : 0.0; // Set delivery charge as needed
                 order.setSubtotal(summary.subtotal);
                 order.setDiscount(summary.discount);
+                order.setDiscountedSubtotal(summary.discountedSubtotal);
                 order.setGst(summary.gst);
                 order.setDelivery(delivery);
                 order.setGrandTotal(summary.grandTotal + delivery);
                 order.setTotalAmount(order.getGrandTotal());
+                order.setBreakdown(summary.breakdown); // Add this field to Order entity if not present
             }
             // Save order and link payment if razorpayOrderId is present
             String razorpayOrderId = orderDTO.getRazorpayOrderId();
@@ -137,9 +139,11 @@ public class OrderController {
                 saved.getOrderNote(),
                 saved.getSubtotal(),
                 saved.getDiscount(),
+                saved.getDiscountedSubtotal(),
                 saved.getGst(),
                 saved.getDelivery(),
-                saved.getGrandTotal()
+                saved.getGrandTotal(),
+                saved.getBreakdown() // Add this field to OrderDTO if not present
             );
             logger.info("[OrderController] Created order DTO: {}", dto);
             return ResponseEntity.ok(dto);
@@ -182,6 +186,11 @@ public class OrderController {
             List<OrderDTO> orders = orderList.stream()
                 .map(saved -> {
                     try {
+                        // Always recalculate and set breakdown before mapping to DTO
+                        if (saved.getPrintJobs() != null && !saved.getPrintJobs().isEmpty()) {
+                            PricingService.PriceSummary summary = pricingService.calculatePriceSummaryForPrintJobs(saved.getPrintJobs());
+                            saved.setBreakdown(summary.breakdown);
+                        }
                         User u = saved.getUser();
                         List<PrintJob> printJobs = saved.getPrintJobs();
                         // Always fetch the full PrintJob entity with file if present
@@ -218,9 +227,11 @@ public class OrderController {
                             saved.getOrderNote(),
                             saved.getSubtotal(),
                             saved.getDiscount(),
+                            saved.getDiscountedSubtotal(),
                             saved.getGst(),
                             saved.getDelivery(),
-                            saved.getGrandTotal()
+                            saved.getGrandTotal(),
+                            saved.getBreakdown()
                         );
                     } catch (Exception e) {
                         logger.error("[OrderController] Error mapping order to DTO (order id: {}): {}", saved.getId(), e.getMessage(), e);
@@ -241,6 +252,11 @@ public class OrderController {
     public ResponseEntity<?> getOrder(@PathVariable Long id) {
         return orderService.findById(id)
             .<ResponseEntity<?>>map(order -> {
+                // Always recalculate and set breakdown before mapping to DTO
+                if (order.getPrintJobs() != null && !order.getPrintJobs().isEmpty()) {
+                    PricingService.PriceSummary summary = pricingService.calculatePriceSummaryForPrintJobs(order.getPrintJobs());
+                    order.setBreakdown(summary.breakdown);
+                }
                 User u = order.getUser();
                 List<PrintJob> printJobs = order.getPrintJobs();
                 // Always fetch the full PrintJob entity with file if present
@@ -269,9 +285,11 @@ public class OrderController {
                     order.getOrderNote(),
                     order.getSubtotal(),
                     order.getDiscount(),
+                    order.getDiscountedSubtotal(),
                     order.getGst(),
                     order.getDelivery(),
-                    order.getGrandTotal()
+                    order.getGrandTotal(),
+                    order.getBreakdown()
                 );
                 return ResponseEntity.ok(dto);
             })
@@ -319,9 +337,11 @@ public class OrderController {
                 updated.getOrderNote(),
                 updated.getSubtotal(),
                 updated.getDiscount(),
+                updated.getDiscountedSubtotal(),
                 updated.getGst(),
                 updated.getDelivery(),
-                updated.getGrandTotal()
+                updated.getGrandTotal(),
+                updated.getBreakdown() // Add this field to OrderDTO if not present
             );
             return ResponseEntity.ok(dto);
         } catch (Exception e) {

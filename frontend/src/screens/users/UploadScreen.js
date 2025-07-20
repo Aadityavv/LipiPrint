@@ -35,6 +35,7 @@ export default function UploadScreen({ navigation }) {
   const [backendSubtotal, setBackendSubtotal] = useState(null);
   const [backendGst, setBackendGst] = useState(null);
   const [backendDiscount, setBackendDiscount] = useState(null);
+  const [backendDiscountedSubtotal, setBackendDiscountedSubtotal] = useState(null);
 
   // Add state for binding groups and order note
   const [orderNote, setOrderNote] = useState('');
@@ -281,7 +282,8 @@ export default function UploadScreen({ navigation }) {
     ApiService.calculatePrintJobsCost({ files: filesPayload })
       .then(res => {
         setTotalPrice(res.grandTotal);
-        setBackendSubtotal(res.subtotal);
+        setBackendSubtotal(res.subtotal); // before discount
+        setBackendDiscountedSubtotal(res.discountedSubtotal); // after discount, before GST
         setBackendGst(res.gst);
         setBackendDiscount(res.discount);
         setPriceBreakdown(res.breakdown || []);
@@ -412,8 +414,14 @@ const handleProceedToCheckout = async () => {
                 ))}
                 {backendSubtotal !== null && (
                   <View style={{ marginTop: 8, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <Text style={{ fontSize: 14, color: '#888' }}>Subtotal:</Text>
+                    <Text style={{ fontSize: 14, color: '#888' }}>Subtotal (Before Discount):</Text>
                     <Text style={{ fontSize: 14, fontWeight: 'bold', color: '#22194f' }}>₹{backendSubtotal}</Text>
+                  </View>
+                )}
+                {backendDiscountedSubtotal !== null && (
+                  <View style={{ marginTop: 8, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <Text style={{ fontSize: 14, color: '#888' }}>Subtotal (After Discount):</Text>
+                    <Text style={{ fontSize: 14, fontWeight: 'bold', color: '#22194f' }}>₹{backendDiscountedSubtotal}</Text>
                   </View>
                 )}
                 {backendGst !== null && (

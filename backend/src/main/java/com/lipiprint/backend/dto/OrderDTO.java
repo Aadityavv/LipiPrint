@@ -32,7 +32,9 @@ public class OrderDTO {
     private String orderNote;
     private Double subtotal;
     private Double discount;
+    private Double discountedSubtotal;
     private Double gst;
     private Double delivery;
     private Double grandTotal;
+    private java.util.List<com.lipiprint.backend.service.PricingService.BreakdownItem> breakdown;
 } 

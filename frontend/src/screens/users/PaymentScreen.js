@@ -21,7 +21,7 @@ const { width } = Dimensions.get('window');
 
 export default function PaymentScreen({ navigation, route }) {
   console.log('[PaymentScreen] route.params:', route.params);
-  const { files, selectedOptions, deliveryType, deliveryAddress, phone, total, totalPrice, priceBreakdown, subtotal, gst, discount } = route.params || {};
+  const { files, selectedOptions, deliveryType, deliveryAddress, phone, total, totalPrice, priceBreakdown, subtotal, discountedSubtotal, gst, discount } = route.params || {};
   
   const [processing, setProcessing] = useState(false);
   const [user, setUser] = useState(null);
@@ -47,10 +47,11 @@ export default function PaymentScreen({ navigation, route }) {
   const orderSummary = {
     items: files?.length || 0,
     pages: files?.reduce((sum, fileObj) => sum + (fileObj.file?.pages || 0), 0),
-    printing: subtotal !== undefined && subtotal !== null ? subtotal : baseTotal,
+    subtotal: subtotal !== undefined && subtotal !== null ? subtotal : 0, // before discount
+    discountedSubtotal: discountedSubtotal !== undefined && discountedSubtotal !== null ? discountedSubtotal : 0, // after discount, before GST
     gst: gst !== undefined && gst !== null ? gst : 0,
     discount: discount !== undefined && discount !== null ? discount : 0,
-    total: baseTotal,
+    total: totalPrice !== undefined && totalPrice !== null ? totalPrice : (total || 0),
   };
 
   const showAlert = (title, message, type = 'info', onConfirm = null, showCancel = false) => {
@@ -162,24 +163,25 @@ export default function PaymentScreen({ navigation, route }) {
                 </View>
                 <View style={styles.summaryRow}>
                   <Text style={styles.summaryLabel}>Printing Cost</Text>
-                  <Text style={styles.summaryValue}>₹{orderSummary.printing}</Text>
+                  <Text style={styles.summaryValue}>₹{orderSummary.subtotal}</Text>
                 </View>
+                {/* <View style={styles.summaryRow}>
+                  <Text style={styles.summaryLabel}>Subtotal (Before Discount)</Text>
+                  <Text style={styles.summaryValue}>₹{orderSummary.subtotal}</Text>
+                </View> */}
+                {/* <View style={styles.summaryRow}>
+                  <Text style={styles.summaryLabel}>Subtotal (After Discount, Before GST)</Text>
+                  <Text style={styles.summaryValue}>₹{orderSummary.discountedSubtotal}</Text>
+                </View> */}
                 <View style={styles.summaryRow}>
-                  <Text style={styles.summaryLabel}>Delivery</Text>
-                  <Text style={styles.summaryValue}>₹{orderSummary.gst}</Text>
-                </View>
-                <View style={styles.summaryRow}>
-                  <Text style={styles.summaryLabel}>Subtotal</Text>
-                  <Text style={styles.summaryValue}>₹{orderSummary.printing}</Text>
+                  <Text style={styles.summaryLabel}>Discount</Text>
+                  <Text style={styles.summaryValue}>₹{orderSummary.discount}</Text>
                 </View>
                 <View style={styles.summaryRow}>
                   <Text style={styles.summaryLabel}>GST (18%)</Text>
                   <Text style={styles.summaryValue}>₹{orderSummary.gst}</Text>
                 </View>
-                <View style={styles.summaryRow}>
-                  <Text style={styles.summaryLabel}>Discount</Text>
-                  <Text style={styles.summaryValue}>₹{orderSummary.discount}</Text>
-                </View>
+                
                 <View style={styles.totalRow}>
                   <Text style={styles.totalLabel}>Total Amount</Text>
                   <Text style={styles.totalAmount}>₹{orderSummary.total}</Text>

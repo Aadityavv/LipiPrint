@@ -163,24 +163,50 @@ public class PricingService {
     }
 
     // Add a method to calculate price summary including GST
-    public static class PriceSummary {
-        public double subtotal;
+    public static class BreakdownItem {
+        public String description;
+        public int quantity;
+        public String hsn;
+        public double rate;
+        public double amount;
         public double discount;
+        public double total;
+        public String printOptions;
+        public BreakdownItem(String description, int quantity, String hsn, double rate, double amount, double discount, double total, String printOptions) {
+            this.description = description;
+            this.quantity = quantity;
+            this.hsn = hsn;
+            this.rate = rate;
+            this.amount = amount;
+            this.discount = discount;
+            this.total = total;
+            this.printOptions = printOptions;
+        }
+    }
+
+    public static class PriceSummary {
+        public double subtotal; // before discount
+        public double discount;
+        public double discountedSubtotal; // after discount, before GST
         public double gst;
         public double grandTotal;
-        public PriceSummary(double subtotal, double discount, double gst, double grandTotal) {
+        public java.util.List<BreakdownItem> breakdown;
+        public PriceSummary(double subtotal, double discount, double discountedSubtotal, double gst, double grandTotal, java.util.List<BreakdownItem> breakdown) {
             this.subtotal = subtotal;
             this.discount = discount;
+            this.discountedSubtotal = discountedSubtotal;
             this.gst = gst;
             this.grandTotal = grandTotal;
+            this.breakdown = breakdown;
         }
     }
 
     public PriceSummary calculatePriceSummaryForPrintJobs(List<PrintJob> printJobs) {
         double subtotal = 0.0;
-        double bestDiscount = 0.0;
+        double discountPercent = 0.0;
         int totalPages = 0;
         String color = null, paper = null, quality = null, side = null;
+        java.util.List<BreakdownItem> breakdown = new java.util.ArrayList<>();
         for (var pj : printJobs) {
             if (pj.getFile() == null) continue;
             Integer numPages = pj.getFile().getPages();
@@ -209,9 +235,31 @@ public class PricingService {
                         bindingCost = Math.max(perPage * numPages, min);
                     }
                 }
-                subtotal += basePrintCost + bindingCost;
+                double amount = basePrintCost + bindingCost;
+                subtotal += amount;
                 totalPages += numPages;
+                // For now, apply discount at order level, but you can also apply per-file if needed
+                // Build print options string
+                StringBuilder printOptionsStr = new StringBuilder();
+                if (color != null) printOptionsStr.append("Color: ").append(color).append(", ");
+                if (paper != null) printOptionsStr.append("Paper: ").append(paper).append(", ");
+                if (quality != null) printOptionsStr.append("Quality: ").append(quality).append(", ");
+                if (side != null) printOptionsStr.append("Side: ").append(side).append(", ");
+                if (binding != null) printOptionsStr.append("Binding: ").append(binding).append(", ");
+                if (printOptionsStr.length() > 2) printOptionsStr.setLength(printOptionsStr.length() - 2); // Remove trailing comma
+                breakdown.add(new BreakdownItem(
+                    pj.getFile().getOriginalFilename() != null ? pj.getFile().getOriginalFilename() : pj.getFile().getFilename(),
+                    numPages,
+                    "4911",
+                    basePricePerPage,
+                    amount,
+                    0.0, // will fill later if per-file discount
+                    amount, // will fill later if per-file discount
+                    printOptionsStr.toString()
+                ));
+                logger.info("[PricingService] PrintJob: color={}, paper={}, quality={}, side={}, binding={}, numPages={}, basePricePerPage={}, basePrintCost={}, bindingCost={}, subtotalSoFar={}", color, paper, quality, side, binding, numPages, basePricePerPage, basePrintCost, bindingCost, subtotal);
             } catch (Exception e) {
+                logger.error("[PricingService] Error parsing print job options or calculating cost: {}", e.getMessage(), e);
                 continue;
             }
         }
@@ -220,13 +268,27 @@ public class PricingService {
             color, paper, quality, side, totalPages
         );
         if (!discounts.isEmpty()) {
-            bestDiscount = discounts.get(0).getAmountOff().doubleValue();
+            discountPercent = discounts.get(0).getAmountOff().doubleValue();
         }
         subtotal = Math.round(subtotal * 100.0) / 100.0;
-        double totalDiscount = Math.round(subtotal * bestDiscount * 100.0) / 100.0;
-        double discountedSubtotal = subtotal - totalDiscount;
+        double discount = Math.round((subtotal * discountPercent) * 100.0) / 100.0;
+        double discountedSubtotal = subtotal - discount;
         double gst = Math.round(discountedSubtotal * 0.18 * 100.0) / 100.0;
         double grandTotal = Math.round((discountedSubtotal + gst) * 100.0) / 100.0;
-        return new PriceSummary(discountedSubtotal, totalDiscount, gst, grandTotal);
+        // Distribute discount proportionally to each file
+        if (discount > 0 && subtotal > 0) {
+            for (BreakdownItem item : breakdown) {
+                double prop = item.amount / subtotal;
+                item.discount = Math.round(discount * prop * 100.0) / 100.0;
+                item.total = Math.round((item.amount - item.discount) * 100.0) / 100.0;
+            }
+        } else {
+            for (BreakdownItem item : breakdown) {
+                item.discount = 0.0;
+                item.total = item.amount;
+            }
+        }
+        logger.info("[PricingService] Final Calculation: subtotal(before discount)={}, discountPercent={}, discountAmount={}, discountedSubtotal(after discount)={}, gst={}, grandTotal={}", subtotal, discountPercent, discount, discountedSubtotal, gst, grandTotal);
+        return new PriceSummary(subtotal, discount, discountedSubtotal, gst, grandTotal, breakdown);
     }
 } 

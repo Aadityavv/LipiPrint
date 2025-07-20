@@ -176,93 +176,32 @@ export default function InvoiceDetailScreen() {
         groupedJobs[key].totalPages += pj.file?.pages || 1;
       });
     }
-    // Build order items rows from grouped jobs
+    // Use backend breakdown for invoice table
+    const breakdown = order.breakdown || [];
     let sNo = 1;
-    let totalAmount = 0;
-    let totalCGST = 0;
-    let totalSGST = 0;
-    let totalIGST = 0;
-    let totalQty = 0;
     let orderItemsRows = '';
-    Object.values(groupedJobs).forEach((group) => {
-      const fileNames = group.files.map(f => f.originalFilename || f.filename || '-').join(', ');
-      const description = group.files.length > 1 ? `Multiple files: ${fileNames}` : fileNames;
-      const quantity = group.totalPages;
-      const opts = group.printOptions || {};
-      // Find matching combination
-      const combo = combinations.find(c =>
-        c.color === opts.color &&
-        c.paperSize === opts.paper &&
-        c.paperQuality === opts.quality &&
-        c.printOption === opts.side
-      );
-      let pricePerPage = combo ? parseFloat(combo.costPerPage) : 0;
-      // Find best discount rule
-      let bestDiscount = 0;
-      discountRules.forEach(rule => {
-        if (
-          (!rule.color || rule.color === opts.color) &&
-          (!rule.paperSize || rule.paperSize === opts.paper) &&
-          (!rule.paperQuality || rule.paperQuality === opts.quality) &&
-          (!rule.printOption || rule.printOption === opts.side) &&
-          quantity >= rule.minPages
-        ) {
-          if (parseFloat(rule.amountOff) > bestDiscount) {
-            bestDiscount = parseFloat(rule.amountOff);
-          }
-        }
-      });
-      pricePerPage = Math.max(0, pricePerPage - bestDiscount);
-      // Print cost
-      const printCost = pricePerPage * quantity;
-      // Binding cost
-      let bindingCost = 0;
-      if (opts.binding && opts.binding !== 'None') {
-        const binding = bindingOptions.find(b => b.type === opts.binding);
-        if (binding) {
-          const perPage = parseFloat(binding.perPagePrice);
-          const min = parseFloat(binding.minPrice);
-          bindingCost = Math.max(perPage * quantity, min);
-        }
-      }
-      const amount = printCost;
-      const cgst = (amount * 0.09).toFixed(2);
-      const sgst = (amount * 0.09).toFixed(2);
-      const igst = '0.00'; // Assuming intra-state
-      const total = (amount + bindingCost + parseFloat(cgst) + parseFloat(sgst)).toFixed(2);
-      totalAmount += amount + bindingCost;
-      totalCGST += parseFloat(cgst);
-      totalSGST += parseFloat(sgst);
-      totalIGST += parseFloat(igst);
-      totalQty += quantity;
-      // Print options string
-      const printOptionsStr = Object.entries(opts)
-        .map(([key, value]) => `<b>${key.replace(/_/g, ' ').replace(/^./, c => c.toUpperCase())}:</b> ${String(value)}`)
-        .join('<br>');
+    breakdown.forEach(item => {
       orderItemsRows += `
         <tr>
           <td style='padding:6px 4px;text-align:center;'>${sNo++}</td>
-          <td style='padding:6px 4px;'>${description}</td>
-          <td style='padding:6px 4px;text-align:center;'>${quantity}</td>
-          <td style='padding:6px 4px;text-align:center;'>4911</td>
-          <td style='padding:6px 4px;text-align:right;'>${pricePerPage.toFixed(2)}</td>
-          <td style='padding:6px 4px;text-align:right;'>${amount.toFixed(2)}</td>
-          <td style='padding:6px 4px;text-align:right;'>${cgst}</td>
-          <td style='padding:6px 4px;text-align:right;'>${sgst}</td>
-          <td style='padding:6px 4px;text-align:right;'>${igst}</td>
-          <td style='padding:6px 4px;text-align:right;'>${total}</td>
+          <td style='padding:6px 4px;'>${item.description}</td>
+          <td style='padding:6px 4px;text-align:center;'>${item.quantity}</td>
+          <td style='padding:6px 4px;text-align:center;'>${item.hsn}</td>
+          <td style='padding:6px 4px;text-align:right;'>${item.rate.toFixed(2)}</td>
+          <td style='padding:6px 4px;text-align:right;'>${item.amount.toFixed(2)}</td>
+          <td style='padding:6px 4px;text-align:right;'>${item.discount.toFixed(2)}</td>
+          <td style='padding:6px 4px;text-align:right;'>${item.total.toFixed(2)}</td>
         </tr>
         <tr>
           <td></td>
-          <td colspan='9' style='font-size:13px;color:#555;padding-bottom:8px;'>${printOptionsStr}</td>
+          <td colspan='7' style='font-size:13px;color:#555;padding-bottom:8px;'>${item.printOptions || ''}</td>
         </tr>
       `;
     });
-    const grandTotalAll = (totalAmount + totalCGST + totalSGST + totalIGST).toFixed(2);
-    // --- FIXED SUMMARY CALCULATION ---
     // Use backend summary for all monetary values
     const summarySubtotal = order.subtotal !== undefined && order.subtotal !== null ? order.subtotal.toFixed(2) : '0.00';
     const summaryDiscount = order.discount !== undefined && order.discount !== null ? order.discount.toFixed(2) : '0.00';
+    const summaryDiscountedSubtotal = order.discountedSubtotal !== undefined && order.discountedSubtotal !== null ? order.discountedSubtotal.toFixed(2) : '0.00';
     const summaryGST = order.gst !== undefined && order.gst !== null ? order.gst.toFixed(2) : '0.00';
     const summaryDelivery = order.delivery !== undefined && order.delivery !== null ? order.delivery.toFixed(2) : '0.00';
     const summaryGrandTotal = order.grandTotal !== undefined && order.grandTotal !== null ? order.grandTotal.toFixed(2) : '0.00';
@@ -334,30 +273,19 @@ export default function InvoiceDetailScreen() {
               <th>HSN</th>
               <th>Rate</th>
               <th>Amount</th>
-              <th>CGST</th>
-              <th>SGST</th>
-              <th>IGST</th>
+              <th>Discount</th>
               <th>Total</th>
             </tr>
             ${orderItemsRows}
-            <tr style='font-weight:bold;background:#f8f9fa;'>
-              <td colspan='2' style='text-align:right;'>Total</td>
-              <td style='text-align:center;'>${totalQty}</td>
-              <td></td>
-              <td></td>
-              <td style='text-align:right;'>${totalAmount.toFixed(2)}</td>
-              <td style='text-align:right;'>${totalCGST.toFixed(2)}</td>
-              <td style='text-align:right;'>${totalSGST.toFixed(2)}</td>
-              <td style='text-align:right;'>${totalIGST.toFixed(2)}</td>
-              <td style='text-align:right;'>${grandTotalAll}</td>
-            </tr>
           </table>
+          <div style='font-size:13px;color:#888;margin-top:8px;'>All prices are backend-calculated for accuracy. See summary below.</div>
         </div>
         <div class='section'>
           <div class='section-title'>Summary</div>
           <table class='totals'>
             <tr><td class='label'>Subtotal</td><td class='value'>INR ${summarySubtotal}</td></tr>
             <tr><td class='label'>Discount</td><td class='value'>INR ${summaryDiscount}</td></tr>
+            <tr><td class='label'>Subtotal (After Discount)</td><td class='value'>INR ${summaryDiscountedSubtotal}</td></tr>
             <tr><td class='label'>GST</td><td class='value'>INR ${summaryGST}</td></tr>
             <tr><td class='label'>Delivery</td><td class='value'>INR ${summaryDelivery}</td></tr>
             <tr><td class='label grand-total'>Grand Total</td><td class='value grand-total'>INR ${summaryGrandTotal}</td></tr>
@@ -463,12 +391,12 @@ export default function InvoiceDetailScreen() {
   if (error) return <View style={styles.center}><Text>{error}</Text></View>;
   if (!order) return <View style={styles.center}><Text>No invoice data</Text></View>;
 
-  const { user, status, createdAt } = order;
-  const gstRate = 0.18;
-  const deliveryCharge = order.deliveryCharge || 0;
-  const subtotal = order.totalAmount ? (order.totalAmount / (1 + gstRate)).toFixed(2) : '0.00';
-  const gst = order.totalAmount ? (parseFloat(subtotal) * gstRate).toFixed(2) : '0.00';
-  const grandTotal = order.totalAmount ? (parseFloat(subtotal) + parseFloat(gst) + parseFloat(deliveryCharge)).toFixed(2) : '0.00';
+  // Use backend values for all price fields
+  const subtotal = order.subtotal !== undefined && order.subtotal !== null ? order.subtotal.toFixed(2) : '0.00';
+  const discountedSubtotal = order.discountedSubtotal !== undefined && order.discountedSubtotal !== null ? order.discountedSubtotal.toFixed(2) : '0.00';
+  const gst = order.gst !== undefined && order.gst !== null ? order.gst.toFixed(2) : '0.00';
+  const delivery = order.delivery !== undefined && order.delivery !== null ? order.delivery.toFixed(2) : '0.00';
+  const grandTotal = order.grandTotal !== undefined && order.grandTotal !== null ? order.grandTotal.toFixed(2) : '0.00';
 
   const invoiceUrl = `${process.env.EXPO_PUBLIC_API_URL || 'http://192.168.1.11:8082/'}api/orders/${orderId}/invoice`;
 
@@ -572,16 +500,16 @@ export default function InvoiceDetailScreen() {
         </View>
         <View style={styles.infoRow}>
           <Icon name="event" size={18} color="#764ba2" style={styles.infoIcon} />
-          <Text style={styles.invoiceInfo}>Date: {createdAt.split('T')[0]}</Text>
+          <Text style={styles.invoiceInfo}>Date: {order.createdAt?.split('T')[0] || '-'}</Text>
         </View>
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
             <Icon name="person" size={18} color="#667eea" style={styles.sectionIcon} />
             <Text style={styles.sectionTitle}>Customer Info</Text>
           </View>
-          <Text>Name: {user?.name || '-'}</Text>
-          <Text>Phone: {user?.phone || '-'}</Text>
-          <Text>Email: {user?.email || '-'}</Text>
+          <Text>Name: {order.user?.name || '-'}</Text>
+          <Text>Phone: {order.user?.phone || '-'}</Text>
+          <Text>Email: {order.user?.email || '-'}</Text>
         </View>
         <View style={[styles.section, styles.sectionHighlight]}>
           <View style={styles.sectionHeader}>
@@ -645,21 +573,29 @@ export default function InvoiceDetailScreen() {
           )}
           <View style={styles.priceCard}>
             <View style={styles.priceRow}>
-              <Text style={styles.priceLabel}>Subtotal (Before GST)</Text>
-              <Text style={styles.priceValue}>INR {subtotal}</Text>
+              <Text style={styles.priceLabel}>Subtotal (Before Discount)</Text>
+              <Text style={styles.priceValue}>INR {order.subtotal?.toFixed(2) || '0.00'}</Text>
+            </View>
+            <View style={styles.priceRow}>
+              <Text style={styles.priceLabel}>Discount </Text>
+              <Text style={styles.priceValue}>INR {order.discount?.toFixed(2) || '0.00'}</Text>
+            </View>
+            <View style={styles.priceRow}>
+              <Text style={styles.priceLabel}>Subtotal (After Discount)</Text>
+              <Text style={styles.priceValue}>INR {order.discountedSubtotal?.toFixed(2) || '0.00'}</Text>
             </View>
             <View style={styles.priceRow}>
               <Text style={styles.priceLabel}>GST (18%)</Text>
-              <Text style={styles.priceValue}>INR {gst}</Text>
+              <Text style={styles.priceValue}>INR {order.gst?.toFixed(2) || '0.00'}</Text>
             </View>
             <View style={styles.priceRow}>
               <Text style={styles.priceLabel}>Delivery</Text>
-              <Text style={styles.priceValue}>INR {deliveryCharge}</Text>
+              <Text style={styles.priceValue}>INR {order.delivery?.toFixed(2) || '0.00'}</Text>
             </View>
             <View style={styles.priceRowDivider} />
             <View style={styles.priceRow}>
               <Text style={[styles.priceLabel, styles.grandTotal]}>Grand Total</Text>
-              <Text style={[styles.priceValue, styles.grandTotal]}>INR {grandTotal}</Text>
+              <Text style={[styles.priceValue, styles.grandTotal]}>INR {order.grandTotal?.toFixed(2) || '0.00'}</Text>
             </View>
           </View>
         </View>
@@ -668,7 +604,7 @@ export default function InvoiceDetailScreen() {
             <Icon name="info" size={18} color="#667eea" style={styles.sectionIcon} />
             <Text style={styles.sectionTitle}>Order Status</Text>
           </View>
-          <Text>{status}</Text>
+          <Text>{order.status}</Text>
         </View>
         <View style={styles.thankYouBox}>
           <Text style={styles.thankYouText}>Thank you for choosing LipiPrint!</Text>
@@ -756,7 +692,7 @@ const styles = StyleSheet.create({
   priceLabel: { fontWeight: 'bold', color: '#667eea' },
   priceValue: { fontWeight: 'bold', color: '#333' },
   grandTotal: { color: '#764ba2', fontSize: 16 },
-  thankYouBox: { backgroundColor: '#e0e7ff', borderRadius: 8, padding: 10, marginTop: 16 },
+  thankYouBox: { backgroundColor: '#f0f4ff', borderRadius: 8, padding: 10, marginTop: 16 },
   thankYouText: { color: '#667eea', fontWeight: 'bold', textAlign: 'center' },
   container: { flex: 1 },
   downloadOverlay: {

@@ -109,10 +109,12 @@ public class PrintJobController {
             }
             PricingService.PriceSummary summary = pricingService.calculatePriceSummaryForPrintJobs(printJobs);
             Map<String, Object> result = new java.util.HashMap<>();
-            result.put("subtotal", summary.subtotal);
+            result.put("subtotal", summary.subtotal); // before discount
             result.put("discount", summary.discount);
+            result.put("discountedSubtotal", summary.discountedSubtotal); // after discount, before GST
             result.put("gst", summary.gst);
             result.put("grandTotal", summary.grandTotal);
+            result.put("breakdown", summary.breakdown);
             // Optionally, add breakdown per file
             return ResponseEntity.ok(result);
         } else {

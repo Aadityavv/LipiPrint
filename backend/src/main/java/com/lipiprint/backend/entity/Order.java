@@ -29,9 +29,12 @@ public class Order {
     private Double totalAmount;
     private Double subtotal;
     private Double discount;
+    private Double discountedSubtotal;
     private Double gst;
     private Double delivery;
     private Double grandTotal;
+    @Transient
+    private java.util.List<com.lipiprint.backend.service.PricingService.BreakdownItem> breakdown;
 
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
@@ -93,12 +96,17 @@ public class Order {
     public void setSubtotal(Double subtotal) { this.subtotal = subtotal; }
     public Double getDiscount() { return discount; }
     public void setDiscount(Double discount) { this.discount = discount; }
+    public Double getDiscountedSubtotal() { return discountedSubtotal; }
+    public void setDiscountedSubtotal(Double discountedSubtotal) { this.discountedSubtotal = discountedSubtotal; }
     public Double getGst() { return gst; }
     public void setGst(Double gst) { this.gst = gst; }
     public Double getDelivery() { return delivery; }
     public void setDelivery(Double delivery) { this.delivery = delivery; }
     public Double getGrandTotal() { return grandTotal; }
     public void setGrandTotal(Double grandTotal) { this.grandTotal = grandTotal; }
+
+    public java.util.List<com.lipiprint.backend.service.PricingService.BreakdownItem> getBreakdown() { return breakdown; }
+    public void setBreakdown(java.util.List<com.lipiprint.backend.service.PricingService.BreakdownItem> breakdown) { this.breakdown = breakdown; }
 
     public Map<String, Object> toActivityMap() {
         Map<String, Object> map = new HashMap<>();
