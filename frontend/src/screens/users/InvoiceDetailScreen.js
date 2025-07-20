@@ -10,6 +10,10 @@ import CustomAlert from '../../components/CustomAlert';
 import { useTheme } from '../../theme/ThemeContext';
 import Pdf from 'react-native-pdf';
 import Heading from '../../components/Heading';
+import LottieView from 'lottie-react-native';
+import searchForInvoiceAnim from '../../assets/animations/search for invoice.json';
+import RNHTMLtoPDF from 'react-native-html-to-pdf';
+import { Platform, PermissionsAndroid } from 'react-native';
 
 export default function InvoiceDetailScreen() {
   const route = useRoute();
@@ -34,7 +38,7 @@ export default function InvoiceDetailScreen() {
       try {
         setLoading(true);
         console.log('[InvoiceDetailScreen] orderId:', orderId);
-        const apiUrl = `${process.env.EXPO_PUBLIC_API_URL || 'https://lipiprint-freelance.onrender.com/'}api/orders/${orderId}`;
+        const apiUrl = `${process.env.EXPO_PUBLIC_API_URL || 'http://192.168.1.11:8082/'}api/orders/${orderId}`;
         console.log('[InvoiceDetailScreen] API URL:', apiUrl);
         const token = await AsyncStorage.getItem('authToken');
         console.log('[InvoiceDetailScreen] token:', token);
@@ -68,38 +72,189 @@ export default function InvoiceDetailScreen() {
     fetchOrder();
   }, [orderId]);
 
+  // Helper to build invoice HTML (premium, professional, with public logo URL)
+  function buildInvoiceHtml(order, printJobGroups, subtotal, gst, deliveryCharge, grandTotal) {
+    // Company and customer info
+    const companyName = 'LipiPrint';
+    const companyAddress = '123 Printing Street, Saharanpur, Uttar Pradesh, India';
+    const companyEmail = 'support@lipiprint.in';
+    const companyPhone = '+91 12345 67890';
+    // Use backend-served logo for invoice
+    const apiBase = process.env.EXPO_PUBLIC_API_URL || 'http://192.168.1.11:8082/';
+    const logoUrl = apiBase + 'api/files/logo';
+    const orderId = order.id;
+    const orderDate = order.createdAt ? order.createdAt.split('T')[0] : '-';
+    const orderStatus = order.status || '-';
+    const deliveryType = order.deliveryType || '-';
+    const customerName = order.user?.name || '-';
+    const customerEmail = order.user?.email || '-';
+    const customerPhone = order.user?.phone || '-';
+    const customerAddress = order.deliveryAddress || '-';
+    const paidBadge = (orderStatus.toLowerCase() === 'paid' || orderStatus.toLowerCase() === 'completed')
+      ? `<span class='badge paid'>PAID</span>`
+      : `<span class='badge unpaid'>UNPAID</span>`;
+    // Print job groups block
+    const printJobGroupsBlock = printJobGroups.map((group, gidx) => {
+      let specs;
+      try { specs = typeof group.options === 'string' ? JSON.parse(group.options) : group.options; } catch { specs = {}; }
+      return `<tr>
+        <td style='padding:8px 6px; border-bottom:1px solid #f0f0f0;'>${group.files.map(file => file.originalFilename || file.filename || '-').join('<br>')}</td>
+        <td style='padding:8px 6px; border-bottom:1px solid #f0f0f0;'>${Object.entries(specs).map(([key, value]) => `<div><b>${key.replace(/_/g, ' ').replace(/^./, c => c.toUpperCase())}:</b> ${String(value)}</div>`).join('')}</td>
+        <td style='padding:8px 6px; border-bottom:1px solid #f0f0f0;'>${group.files.map(file => file.pages || '-').join('<br>')}</td>
+        <td style='padding:8px 6px; border-bottom:1px solid #f0f0f0;'>${group.files.map(file => file.createdAt ? file.createdAt.split('T')[0] : '-').join('<br>')}</td>
+      </tr>`;
+    }).join('');
+    // Order note block
+    const orderNoteBlock = order.orderNote ? `<div class='order-note-block'><b>Order Note:</b> ${order.orderNote}</div>` : '';
+    // HTML template
+    return `
+      <!DOCTYPE html>
+      <html lang='en'>
+      <head>
+        <meta charset='UTF-8' />
+        <title>Invoice - LipiPrint</title>
+        <link href='https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap' rel='stylesheet'>
+        <style>
+          body { font-family: 'Inter', 'Segoe UI', Arial, sans-serif; margin: 0; padding: 0; background: #f7f9fb; color: #222; }
+          .container { max-width: 720px; margin: 40px auto; background: #fff; border-radius: 16px; box-shadow: 0 4px 24px #0001; padding: 36px 32px; }
+          .header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 32px; }
+          .logo { height: 64px; border-radius: 8px; }
+          .company-info { font-size: 15px; line-height: 1.6; margin-top: 10px; color: #555; }
+          .invoice-meta { text-align: right; font-size: 15px; }
+          .invoice-title { font-size: 32px; font-weight: 700; color: #2d6cdf; margin-bottom: 8px; letter-spacing: 1px; }
+          .badge { display: inline-block; padding: 4px 16px; border-radius: 16px; font-size: 14px; font-weight: 600; margin-top: 8px; }
+          .badge.paid { background: #e6fbe6; color: #1aaf1a; border: 1px solid #1aaf1a; }
+          .badge.unpaid { background: #fff0f0; color: #e74c3c; border: 1px solid #e74c3c; }
+          .section { margin-top: 38px; }
+          .section-title { font-size: 20px; font-weight: 600; color: #4a4a4a; margin-bottom: 16px; letter-spacing: 0.5px; }
+          .info-table { width: 100%; border-collapse: collapse; }
+          .info-table td { padding: 4px 0; font-size: 15px; }
+          .order-table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+          .order-table th { background: #f0f4ff; color: #22194f; font-size: 15px; font-weight: 700; padding: 10px 6px; border-bottom: 2px solid #e0e7ef; }
+          .order-table td { font-size: 15px; color: #333; }
+          .order-note-block { background: #fffbe6; border-left: 4px solid #ffe066; border-radius: 8px; padding: 12px 14px; margin-top: 18px; color: #7a5d00; font-size: 15px; }
+          .totals { margin-top: 24px; width: 100%; border-collapse: collapse; }
+          .totals td { font-size: 16px; padding: 8px 0; }
+          .totals .label { text-align: right; color: #666; font-weight: 600; }
+          .totals .value { text-align: right; font-weight: 700; }
+          .grand-total { font-size: 22px; color: #2d6cdf; font-weight: 700; border-top: 2px solid #eee; padding-top: 12px; }
+          .footer { margin-top: 48px; text-align: center; color: #888; font-size: 15px; border-top: 1px solid #eee; padding-top: 18px; letter-spacing: 0.2px; }
+          @media (max-width: 800px) { .container { padding: 18px 4vw; } }
+        </style>
+      </head>
+      <body>
+      <div class='container'>
+        <div class='header'>
+          <div>
+            <img src='${logoUrl}' alt='LipiPrint Logo' class='logo' />
+            <div class='company-info'>
+              <b>${companyName}</b><br />
+              ${companyAddress}<br />
+              ${companyEmail} | ${companyPhone}
+            </div>
+          </div>
+          <div class='invoice-meta'>
+            <div class='invoice-title'>INVOICE</div>
+            <div>Invoice #: <b>LP${orderId}</b></div>
+            <div>Date: <b>${orderDate}</b></div>
+            <div>Status: <b>${orderStatus}</b> ${paidBadge}</div>
+          </div>
+        </div>
+        <div class='section'>
+          <div class='section-title'>Bill To</div>
+          <table class='info-table'>
+            <tr><td><b>Name:</b></td><td>${customerName}</td></tr>
+            <tr><td><b>Email:</b></td><td>${customerEmail}</td></tr>
+            <tr><td><b>Phone:</b></td><td>${customerPhone}</td></tr>
+            <tr><td><b>Address:</b></td><td>${customerAddress}</td></tr>
+          </table>
+        </div>
+        <div class='section'>
+          <div class='section-title'>Order Items</div>
+          <table class='order-table'>
+            <tr>
+              <th>File(s)</th>
+              <th>Print Options</th>
+              <th>Pages</th>
+              <th>Date</th>
+            </tr>
+            ${printJobGroupsBlock}
+          </table>
+        </div>
+        ${orderNoteBlock}
+        <div class='section'>
+          <div class='section-title'>Summary</div>
+          <table class='totals'>
+            <tr><td class='label'>Subtotal</td><td class='value'>INR ${subtotal}</td></tr>
+            <tr><td class='label'>GST (18%)</td><td class='value'>INR ${gst}</td></tr>
+            <tr><td class='label'>Delivery</td><td class='value'>INR ${deliveryCharge}</td></tr>
+            <tr><td class='label grand-total'>Grand Total</td><td class='value grand-total'>INR ${grandTotal}</td></tr>
+          </table>
+        </div>
+        <div class='footer'>
+          Thank you for choosing <b>LipiPrint</b>! For support, contact <a href='mailto:support@lipiprint.in'>support@lipiprint.in</a><br>
+          <span style='font-size:13px; color:#bbb;'>This is a computer-generated invoice and does not require a signature.</span>
+        </div>
+      </div>
+      </body>
+      </html>
+    `;
+  }
+
+  // Helper to request storage permission only on Android < 11
+  async function requestStoragePermissionIfNeeded() {
+    if (Platform.OS === 'android' && Platform.Version < 30) {
+      const granted = await PermissionsAndroid.request(
+        PermissionsAndroid.PERMISSIONS.WRITE_EXTERNAL_STORAGE,
+        {
+          title: 'Storage Permission',
+          message: 'App needs access to your storage to save the invoice PDF.',
+          buttonNeutral: 'Ask Me Later',
+          buttonNegative: 'Cancel',
+          buttonPositive: 'OK',
+        },
+      );
+      return granted === PermissionsAndroid.RESULTS.GRANTED;
+    }
+    // On Android 11+ and iOS, permission is not needed for app's own directories
+    return true;
+  }
+
   const handleDownload = async () => {
     try {
       setDownloading(true);
-      const { dirs } = RNBlobUtil.fs;
-      const path = `${dirs.DownloadDir}/invoice-${orderId}.pdf`;
-      const apiUrl = `${process.env.EXPO_PUBLIC_API_URL || 'https://lipiprint-freelance.onrender.com/'}api/orders/${orderId}/invoice`;
-      const token = await AsyncStorage.getItem('authToken');
-      if (!token) {
+      const granted = await requestStoragePermissionIfNeeded();
+      if (!granted) {
         setDownloading(false);
-        showAlert('Not authenticated', 'Please log in again.', 'error');
+        showAlert('Permission Denied', 'Cannot save PDF without storage permission.', 'error');
         return;
       }
-      await RNBlobUtil.config({
-        path,
-        fileCache: true,
-        appendExt: 'pdf',
-        addAndroidDownloads: {
-          useDownloadManager: true,
-          notification: true,
-          title: `invoice-${orderId}.pdf`,
-          description: 'Invoice PDF',
-          mime: 'application/pdf',
-          mediaScannable: true,
-        },
-      }).fetch('GET', apiUrl, {
-        Authorization: `Bearer ${token}`,
+      // Build invoice HTML
+      const html = buildInvoiceHtml(order, printJobGroups, subtotal, gst, deliveryCharge, grandTotal);
+      const file = await RNHTMLtoPDF.convert({
+        html,
+        fileName: `invoice-${order.id}`,
+        directory: 'Download',
+        base64: false,
       });
+
+      // Move/copy to public Downloads folder (Android only)
+      let publicPath = file.filePath;
+      if (Platform.OS === 'android') {
+        publicPath = `/storage/emulated/0/Download/invoice-${order.id}.pdf`;
+        try {
+          await RNBlobUtil.fs.cp(file.filePath, publicPath);
+        } catch (copyErr) {
+          // If copy fails, fallback to original path
+          publicPath = file.filePath;
+        }
+      }
+
       setDownloading(false);
-      showAlert('Download Complete', `Invoice saved to Downloads as invoice-${orderId}.pdf`, 'success');
+      showAlert('Download Complete', `Invoice saved at:\n${publicPath}`, 'success');
     } catch (e) {
       setDownloading(false);
-      showAlert('Download Failed', 'Could not download invoice PDF.', 'error');
+      showAlert('Download Failed', 'Could not generate invoice PDF.', 'error');
     }
   };
 
@@ -122,7 +277,15 @@ export default function InvoiceDetailScreen() {
     setAlertVisible(true);
   };
 
-  if (loading) return <View style={styles.center}><ActivityIndicator size="large" color="#667eea" /><Text>Loading invoice...</Text></View>;
+  if (loading) return <View style={styles.center}>
+    <LottieView
+      source={searchForInvoiceAnim}
+      autoPlay
+      loop
+      style={{ width: 120, height: 120, alignSelf: 'center' }}
+    />
+    <Text>Loading invoice...</Text>
+  </View>;
   if (error) return <View style={styles.center}><Text>{error}</Text></View>;
   if (!order) return <View style={styles.center}><Text>No invoice data</Text></View>;
 
@@ -133,7 +296,7 @@ export default function InvoiceDetailScreen() {
   const gst = order.totalAmount ? (parseFloat(subtotal) * gstRate).toFixed(2) : '0.00';
   const grandTotal = order.totalAmount ? (parseFloat(subtotal) + parseFloat(gst) + parseFloat(deliveryCharge)).toFixed(2) : '0.00';
 
-  const invoiceUrl = `${process.env.EXPO_PUBLIC_API_URL || 'https://lipiprint-freelance.onrender.com/'}api/orders/${orderId}/invoice`;
+  const invoiceUrl = `${process.env.EXPO_PUBLIC_API_URL || 'http://192.168.1.11:8082/'}api/orders/${orderId}/invoice`;
 
   // Utility to get display file name
   const getDisplayFileName = (file) => {
@@ -199,7 +362,12 @@ export default function InvoiceDetailScreen() {
             alignItems: 'center',
             zIndex: 10,
           }}>
-            <ActivityIndicator size="large" color="#667eea" />
+            <LottieView
+              source={searchForInvoiceAnim}
+              autoPlay
+              loop
+              style={{ width: 120, height: 120, alignSelf: 'center' }}
+            />
             <Text style={{ marginTop: 12 }}>Generating invoice PDF...</Text>
           </View>
         )}
@@ -340,8 +508,14 @@ export default function InvoiceDetailScreen() {
       </TouchableOpacity>
       {downloading && (
         <View style={styles.downloadOverlay}>
-          <ActivityIndicator size="large" color="#667eea" />
+          <LottieView
+            source={searchForInvoiceAnim}
+            autoPlay
+            loop
+            style={{ width: 120, height: 120, alignSelf: 'center' }}
+          />
           <Text style={{ marginTop: 14, color: '#667eea', fontWeight: 'bold', fontSize: 16 }}>Downloading PDF...</Text>
+          <Text style={{ marginTop: 8, color: '#888', fontSize: 13 }}>If this takes more than a minute, check your internet or try again later.</Text>
         </View>
       )}
       <CustomAlert

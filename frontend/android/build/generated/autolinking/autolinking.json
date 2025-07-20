@@ -3,6 +3,30 @@
   "reactNativePath": "C:\\Users\\HP\\Desktop\\New folder\\frontend\\node_modules\\react-native",
   "reactNativeVersion": "0.80",
   "dependencies": {
+    "@notifee/react-native": {
+      "root": "C:\\Users\\HP\\Desktop\\New folder\\frontend\\node_modules\\@notifee\\react-native",
+      "name": "@notifee/react-native",
+      "platforms": {
+        "ios": {
+          "podspecPath": "C:\\Users\\HP\\Desktop\\New folder\\frontend\\node_modules\\@notifee\\react-native\\RNNotifee.podspec",
+          "version": "9.1.8",
+          "configurations": [],
+          "scriptPhases": []
+        },
+        "android": {
+          "sourceDir": "C:\\Users\\HP\\Desktop\\New folder\\frontend\\node_modules\\@notifee\\react-native\\android",
+          "packageImportPath": "import io.invertase.notifee.NotifeePackage;",
+          "packageInstance": "new NotifeePackage()",
+          "buildTypes": [],
+          "componentDescriptors": [],
+          "cmakeListsPath": "C:/Users/HP/Desktop/New folder/frontend/node_modules/@notifee/react-native/android/build/generated/source/codegen/jni/CMakeLists.txt",
+          "cxxModuleCMakeListsModuleName": null,
+          "cxxModuleCMakeListsPath": null,
+          "cxxModuleHeaderName": null,
+          "isPureCxxDependency": false
+        }
+      }
+    },
     "@react-native-async-storage/async-storage": {
       "root": "C:\\Users\\HP\\Desktop\\New folder\\frontend\\node_modules\\@react-native-async-storage\\async-storage",
       "name": "@react-native-async-storage/async-storage",
@@ -187,6 +211,30 @@
             "RNGestureHandlerRootViewComponentDescriptor"
           ],
           "cmakeListsPath": "C:/Users/HP/Desktop/New folder/frontend/node_modules/react-native-gesture-handler/android/build/generated/source/codegen/jni/CMakeLists.txt",
+          "cxxModuleCMakeListsModuleName": null,
+          "cxxModuleCMakeListsPath": null,
+          "cxxModuleHeaderName": null,
+          "isPureCxxDependency": false
+        }
+      }
+    },
+    "react-native-html-to-pdf": {
+      "root": "C:\\Users\\HP\\Desktop\\New folder\\frontend\\node_modules\\react-native-html-to-pdf",
+      "name": "react-native-html-to-pdf",
+      "platforms": {
+        "ios": {
+          "podspecPath": "C:\\Users\\HP\\Desktop\\New folder\\frontend\\node_modules\\react-native-html-to-pdf\\react-native-html-to-pdf.podspec",
+          "version": "0.12.0",
+          "configurations": [],
+          "scriptPhases": []
+        },
+        "android": {
+          "sourceDir": "C:\\Users\\HP\\Desktop\\New folder\\frontend\\node_modules\\react-native-html-to-pdf\\android",
+          "packageImportPath": "import com.christopherdro.htmltopdf.RNHTMLtoPDFPackage;",
+          "packageInstance": "new RNHTMLtoPDFPackage()",
+          "buildTypes": [],
+          "componentDescriptors": [],
+          "cmakeListsPath": "C:/Users/HP/Desktop/New folder/frontend/node_modules/react-native-html-to-pdf/android/build/generated/source/codegen/jni/CMakeLists.txt",
           "cxxModuleCMakeListsModuleName": null,
           "cxxModuleCMakeListsPath": null,
           "cxxModuleHeaderName": null,
@@ -402,7 +450,7 @@
       "platforms": {
         "ios": {
           "podspecPath": "C:\\Users\\HP\\Desktop\\New folder\\frontend\\node_modules\\react-native-screens\\RNScreens.podspec",
-          "version": "4.11.1",
+          "version": "4.13.1",
           "configurations": [],
           "scriptPhases": []
         },
@@ -423,7 +471,8 @@
             "RNSScreenComponentDescriptor",
             "RNSScreenFooterComponentDescriptor",
             "RNSScreenContentWrapperComponentDescriptor",
-            "RNSModalScreenComponentDescriptor"
+            "RNSModalScreenComponentDescriptor",
+            "RNSBottomTabsComponentDescriptor"
           ],
           "cmakeListsPath": "C:/Users/HP/Desktop/New folder/frontend/node_modules/react-native-screens/android/src/main/jni/CMakeLists.txt",
           "cxxModuleCMakeListsModuleName": null,

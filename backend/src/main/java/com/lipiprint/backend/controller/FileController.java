@@ -19,6 +19,8 @@ import java.util.Map;
 import java.util.stream.Collectors;
 import org.springframework.dao.DataIntegrityViolationException;
 import com.lipiprint.backend.dto.UserDTO;
+import org.springframework.core.io.ClassPathResource;
+import java.io.IOException;
 
 @RestController
 @RequestMapping("/api/files")
@@ -117,6 +119,14 @@ public class FileController {
                 .contentType(MediaType.parseMediaType(file.getContentType()))
                 .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + file.getOriginalFilename() + "\"")
                 .body(resource);
+    }
+
+    @GetMapping("/logo")
+    public ResponseEntity<Resource> getLogo() throws IOException {
+        ClassPathResource imgFile = new ClassPathResource("LipiPrintLogo.png");
+        return ResponseEntity.ok()
+                .contentType(MediaType.IMAGE_PNG)
+                .body(imgFile);
     }
 
     @DeleteMapping("/{id}")
