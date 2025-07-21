@@ -220,7 +220,7 @@ export default function DeliveryOptionsScreen({ navigation, route }) {
         source={LoadingWorld}
         autoPlay
         loop
-        speed={1.2}
+        speed={2}
         style={{ width: 180, height: 180 }}
       />
       <Text style={{ color: '#22194f', fontWeight: 'bold', fontSize: 18, marginTop: 18 }}>Loading delivery options...</Text>
@@ -245,14 +245,11 @@ export default function DeliveryOptionsScreen({ navigation, route }) {
         </LinearGradient>
 
         <View style={styles.content}>
-          {(totalPrice !== undefined && totalPrice !== null) && (
+          {/* {(totalPrice !== undefined && totalPrice !== null) && (
             <View style={{ marginBottom: 12 }}>
               <Text style={{ fontWeight: 'bold', fontSize: 16 }}>Total Price: ₹{totalPrice}</Text>
-              {Array.isArray(priceBreakdown) && priceBreakdown.length > 0 && priceBreakdown.map((b, i) => (
-                <Text key={i} style={{ fontSize: 13, color: '#888' }}>{b.fileName}: ₹{b.totalCost}</Text>
-              ))}
             </View>
-          )}
+          )} */}
           {/* Delivery Methods */}
           <Animatable.View animation="fadeInUp" delay={200} duration={500}>
             <Text style={styles.sectionTitle}>Delivery Method</Text>

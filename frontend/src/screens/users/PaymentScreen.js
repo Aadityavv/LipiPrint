@@ -194,14 +194,14 @@ export default function PaymentScreen({ navigation, route }) {
             </View>
           </Animatable.View>
 
-          {(totalPrice !== undefined && totalPrice !== null) && (
+          {/* {(totalPrice !== undefined && totalPrice !== null) && (
             <View style={{ marginBottom: 12 }}>
               <Text style={{ fontWeight: 'bold', fontSize: 16 }}>Total Price: ₹{totalPrice}</Text>
               {Array.isArray(priceBreakdown) && priceBreakdown.length > 0 && priceBreakdown.map((b, i) => (
                 <Text key={i} style={{ fontSize: 13, color: '#888' }}>{b.fileName}: ₹{b.totalCost}</Text>
               ))}
             </View>
-          )}
+          )} */}
 
           {/* Payment Method - Only Razorpay */}
           <Animatable.View animation="fadeInUp" delay={300} duration={500}>

@@ -49,7 +49,7 @@ export default function InvoiceDetailScreen() {
       try {
         setLoading(true);
         console.log('[InvoiceDetailScreen] orderId:', orderId);
-        const apiUrl = `${process.env.EXPO_PUBLIC_API_URL || 'http://192.168.1.11:8082/'}api/orders/${orderId}`;
+        const apiUrl = `${process.env.EXPO_PUBLIC_API_URL || 'https://lipiprint-freelance.onrender.com/'}api/orders/${orderId}`;
         console.log('[InvoiceDetailScreen] API URL:', apiUrl);
         const token = await AsyncStorage.getItem('authToken');
         console.log('[InvoiceDetailScreen] token:', token);
@@ -133,6 +133,14 @@ export default function InvoiceDetailScreen() {
       });
   }, [order]);
 
+  // Add a helper to truncate file names
+  function truncateFileName(name, maxLength = 30) {
+    if (!name) return '';
+    if (name.length <= maxLength) return name;
+    const ext = name.includes('.') ? '.' + name.split('.').pop() : '';
+    return name.slice(0, maxLength - ext.length - 3) + '...' + ext;
+  }
+
   // Helper to build invoice HTML (premium, professional, with public logo URL)
   function buildInvoiceHtml(order, printJobGroups) {
     // Company and customer info
@@ -181,10 +189,21 @@ export default function InvoiceDetailScreen() {
     let sNo = 1;
     let orderItemsRows = '';
     breakdown.forEach(item => {
+      // Try to extract file names from item.description (comma separated or multiple files)
+      let descHtml = item.description;
+      if (descHtml && descHtml.includes('Multiple files:')) {
+        // Extract file names after 'Multiple files:'
+        let filesStr = descHtml.split('Multiple files:')[1].trim();
+        let fileNames = filesStr.split(',').map(f => f.trim());
+        descHtml = 'Multiple files:<br>' + fileNames.map(fn => truncateFileName(fn)).join('<br>');
+      } else if (descHtml && descHtml.length > 40) {
+        // Truncate single long file name
+        descHtml = truncateFileName(descHtml);
+      }
       orderItemsRows += `
         <tr>
           <td style='padding:6px 4px;text-align:center;'>${sNo++}</td>
-          <td style='padding:6px 4px;'>${item.description}</td>
+          <td style='padding:6px 4px; max-width:240px; width:240px; word-break:break-all; white-space:pre-line; overflow:hidden; text-overflow:ellipsis;'>${descHtml}</td>
           <td style='padding:6px 4px;text-align:center;'>${item.quantity}</td>
           <td style='padding:6px 4px;text-align:center;'>${item.hsn}</td>
           <td style='padding:6px 4px;text-align:right;'>${item.rate.toFixed(2)}</td>
@@ -398,7 +417,7 @@ export default function InvoiceDetailScreen() {
   const delivery = order.delivery !== undefined && order.delivery !== null ? order.delivery.toFixed(2) : '0.00';
   const grandTotal = order.grandTotal !== undefined && order.grandTotal !== null ? order.grandTotal.toFixed(2) : '0.00';
 
-  const invoiceUrl = `${process.env.EXPO_PUBLIC_API_URL || 'http://192.168.1.11:8082/'}api/orders/${orderId}/invoice`;
+  const invoiceUrl = `${process.env.EXPO_PUBLIC_API_URL || 'https://lipiprint-freelance.onrender.com/'}api/orders/${orderId}/invoice`;
 
   // Utility to get display file name
   const getDisplayFileName = (file) => {
