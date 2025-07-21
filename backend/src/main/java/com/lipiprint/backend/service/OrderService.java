@@ -152,4 +152,13 @@ public class OrderService {
     public Page<OrderListDTO> findAllListPaged(Pageable pageable) {
         return orderRepository.findAllForList(pageable);
     }
+    public Page<OrderListDTO> findAllListByUserPaged(User user, Pageable pageable) {
+        return orderRepository.findAllForListByUser(user.getId(), pageable);
+    }
+    public Page<OrderListDTO> findAllListByStatusPaged(String status, Pageable pageable) {
+        return orderRepository.findAllForListByStatus(status, pageable);
+    }
+    public Page<OrderListDTO> findAllListByUserAndStatusPaged(User user, String status, Pageable pageable) {
+        return orderRepository.findAllForListByUserAndStatus(user.getId(), status, pageable);
+    }
 } 

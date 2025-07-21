@@ -11,20 +11,16 @@ const { width } = Dimensions.get('window');
 
 const statusIcons = {
   'PENDING': <Icon name="schedule" size={24} color="#FFA726" />,
-  'CONFIRMED': <Icon name="check-circle" size={24} color="#4CAF50" />,
-  'PRINTING': <Icon name="print" size={24} color="#42A5F5" />,
-  'READY': <Icon name="local-shipping" size={24} color="#66BB6A" />,
+  'PROCESSING': <Icon name="print" size={24} color="#42A5F5" />,
+  'COMPLETED': <Icon name="done-all" size={24} color="#4CAF50" />,
   'OUT_FOR_DELIVERY': <Icon name="local-shipping" size={24} color="#FFA726" />,
   'DELIVERED': <Icon name="done-all" size={24} color="#4CAF50" />,
-  'CANCELLED': <Icon name="cancel" size={24} color="#F44336" />,
 };
-
 const orderStatusSteps = [
   { key: 'PENDING', label: 'Order Pending', description: 'Your order is being processed' },
-  { key: 'CONFIRMED', label: 'Order Confirmed', description: 'Your order has been confirmed' },
-  { key: 'PRINTING', label: 'Printing in Progress', description: 'Your documents are being printed' },
-  { key: 'READY', label: 'Ready for Pickup/Delivery', description: 'Your order is ready' },
-  { key: 'OUT_FOR_DELIVERY', label: 'Out for Delivery', description: 'Your order is on its way' },
+  { key: 'PROCESSING', label: 'Processing', description: 'Your order is being processed' },
+  { key: 'COMPLETED', label: 'Completed', description: 'Your order is completed' },
+  { key: 'OUT_FOR_DELIVERY', label: 'Out for Delivery', description: 'Your order is out for delivery' },
   { key: 'DELIVERED', label: 'Delivered', description: 'Your order has been delivered' },
 ];
 
@@ -63,12 +59,10 @@ export default function TrackOrderScreen({ navigation, route }) {
   const getStatusColor = (status) => {
     const colors = {
       'PENDING': '#FFA726',
-      'CONFIRMED': '#4CAF50',
-      'PRINTING': '#42A5F5',
-      'READY': '#66BB6A',
+      'PROCESSING': '#42A5F5',
+      'COMPLETED': '#4CAF50',
       'OUT_FOR_DELIVERY': '#FFA726',
       'DELIVERED': '#4CAF50',
-      'CANCELLED': '#F44336',
     };
     return colors[status] || '#667eea';
   };

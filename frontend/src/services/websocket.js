@@ -13,7 +13,7 @@ class WebSocketService {
     connect(userId) {
         return new Promise((resolve, reject) => {
             try {
-                const socket = new SockJS('https://lipiprint-freelance.onrender.com/ws');
+                const socket = new SockJS('http://192.168.1.11:8082/ws');
                 this.stompClient = Stomp.over(socket);
 
                 this.stompClient.connect(

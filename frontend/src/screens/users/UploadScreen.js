@@ -11,6 +11,9 @@ import LottieView from 'lottie-react-native';
 
 const { width } = Dimensions.get('window');
 
+// Define maxSize for file uploads (e.g., 20MB)
+const maxSize = 20 * 1024 * 1024; // 20MB
+
 export default function UploadScreen({ navigation }) {
   const [uploadedFiles, setUploadedFiles] = useState([]); // [{file, printOptions}]
   const [showPrintOptionsModal, setShowPrintOptionsModal] = useState(false);
@@ -19,6 +22,7 @@ export default function UploadScreen({ navigation }) {
   const [currentPrintOptions, setCurrentPrintOptions] = useState({});
   const [lastPrintOptions, setLastPrintOptions] = useState(null);
   const [isUploading, setIsUploading] = useState(false);
+  const [uploadingFileId, setUploadingFileId] = useState(null); // NEW: Track which file is uploading
   const [combinations, setCombinations] = useState([]);
   const [loadingCombos, setLoadingCombos] = useState(true);
   const [comboError, setComboError] = useState(null);
@@ -124,8 +128,9 @@ export default function UploadScreen({ navigation }) {
     try {
       const res = await pick({ type: [types.allFiles], multiple: false });
       if (res) {
-        console.log('[LOG] Picked file:', res);
-        setCurrentFile(res);
+        const pickedFile = Array.isArray(res) ? res[0] : res;
+        console.log('[LOG] Picked file:', pickedFile);
+        setCurrentFile(pickedFile);
         setCurrentPrintOptions(lastPrintOptions || {
           color: uniqueColors[0],
           paper: uniquePapers[0],
@@ -195,48 +200,97 @@ export default function UploadScreen({ navigation }) {
 
   // Save print options and upload file
   const handleSavePrintOptions = async (options) => {
+    console.log('[UPLOAD DEBUG] handleSavePrintOptions called');
     setShowPrintOptionsModal(false);
     setIsUploading(true);
+    // Prepare file for upload
+    const fileToUpload = await prepareFileForUpload(currentFile);
+    const tempId = `temp_${Date.now()}`;
+    const printOptions = buildPrintOptions(options);
+    // Add placeholder to uploadedFiles
+    setUploadedFiles(prev => [
+      ...prev,
+      {
+        file: {
+          id: tempId,
+          name: fileToUpload.name,
+          type: fileToUpload.type,
+          size: fileToUpload.size,
+          pages: 1, // or null if unknown
+        },
+        printOptions,
+        isUploading: true,
+      }
+    ]);
+    setUploadingFileId(tempId);
     console.log('[LOG] Saving print options:', options);
     // File validation before upload
-    if (!currentFile) {
+    if (!fileToUpload) {
+      console.log('[UPLOAD VALIDATION] No file to upload.');
       setIsUploading(false);
+      setUploadingFileId(null);
       showCustomAlert('File Error', 'No file selected.', 'error');
+      // Remove temp file
+      setUploadedFiles(prev => prev.filter(item => item.file.id !== tempId));
       return;
     }
-    const allowedTypes = ['pdf', 'doc', 'docx', 'ppt', 'pptx', 'jpg', 'jpeg', 'png']; // Example allowed types
-    const maxSize = 10 * 1024 * 1024; // 10MB in bytes
-    const ext = currentFile.name ? currentFile.name.split('.').pop().toLowerCase() : '';
+    const allowedTypes = ['pdf', 'doc', 'docx', 'ppt', 'pptx', 'jpg', 'jpeg', 'png'];
+    const ext = fileToUpload.name ? fileToUpload.name.split('.').pop().toLowerCase() : '';
     if (!allowedTypes.includes(ext)) {
+      console.log('[UPLOAD VALIDATION] File extension not allowed:', ext);
       setIsUploading(false);
+      setUploadingFileId(null);
       showCustomAlert('File Error', `File type not allowed. Allowed: ${allowedTypes.join(', ')}`, 'error');
+      setUploadedFiles(prev => prev.filter(item => item.file.id !== tempId));
       return;
     }
-    if (currentFile.size && currentFile.size > maxSize) {
+    if (fileToUpload.size && fileToUpload.size > maxSize) {
+      console.log('[UPLOAD VALIDATION] File size too large:', fileToUpload.size, 'maxSize:', maxSize);
       setIsUploading(false);
+      setUploadingFileId(null);
       showCustomAlert('File Error', `File size exceeds ${(maxSize / (1024 * 1024)).toFixed(0)}MB limit.`, 'error');
+      setUploadedFiles(prev => prev.filter(item => item.file.id !== tempId));
       return;
     }
     try {
       // Upload file with options
       const formData = new FormData();
-      formData.append('file', currentFile);
-      const printOptions = buildPrintOptions(options);
+      const fileObj = {
+        uri: fileToUpload.uri,
+        name: fileToUpload.name || `upload_${Date.now()}.${ext}`,
+        type: fileToUpload.type || 'application/octet-stream',
+      };
+      console.log('[UPLOAD DEBUG] fileObj:', fileObj);
+      formData.append('file', fileObj);
       if (printOptions.color) formData.append('color', printOptions.color);
       if (printOptions.paper) formData.append('paper', printOptions.paper);
       if (printOptions.quality) formData.append('quality', printOptions.quality);
       if (printOptions.side) formData.append('side', printOptions.side);
       if (printOptions.binding) formData.append('binding', printOptions.binding);
+      // React Native FormData does not support .entries(), so we cannot log FormData contents here.
+      console.log('[UPLOAD DEBUG] Calling ApiService.uploadFile...');
       const response = await ApiService.uploadFile(formData);
+      console.log('[UPLOAD DEBUG] uploadFile response:', response);
       if (response && response.id) {
-        setUploadedFiles(prev => [...prev, { file: response, printOptions }]);
+        setUploadedFiles(prev =>
+          prev.map(item =>
+            item.file.id === tempId
+              ? { file: response, printOptions, isUploading: false }
+              : item
+          )
+        );
         setLastPrintOptions(printOptions);
       } else {
+        setUploadedFiles(prev => prev.filter(item => item.file.id !== tempId));
         showCustomAlert('Upload Error', 'File upload failed. Please try again.', 'error');
       }
       setIsUploading(false);
+      setUploadingFileId(null);
     } catch (e) {
       setIsUploading(false);
+      setUploadingFileId(null);
+      setUploadedFiles(prev => prev.filter(item => item.file.id !== tempId));
+      console.log('[UPLOAD DEBUG] Error during upload:', e);
       showCustomAlert('Upload Error', e.message || 'Failed to upload file.', 'error');
     }
   };
@@ -256,10 +310,11 @@ export default function UploadScreen({ navigation }) {
     try {
       const res = await pick({ type: [types.allFiles], multiple: false });
       if (res) {
-        setCurrentFile(res);
+        const pickedFile = Array.isArray(res) ? res[0] : res;
+        setCurrentFile(pickedFile);
         setCurrentPrintOptions(lastPrintOptions);
         setShowPrintOptionsModal(true);
-        console.log('[LOG] Picked file (use previous options):', res);
+        console.log('[LOG] Picked file (use previous options):', pickedFile);
       }
     } catch (err) {
       if (!isCancel(err)) showCustomAlert('File Picker Error', 'Could not pick file.', 'error');
@@ -296,6 +351,9 @@ export default function UploadScreen({ navigation }) {
         setPriceBreakdown([]);
       });
   }, [uploadedFiles]);
+
+  // Add a helper to check if any file is uploading
+  const anyUploading = uploadedFiles.some(item => item.isUploading);
 
   // Proceed to checkout (stub)
 const handleProceedToCheckout = async () => {
@@ -350,44 +408,27 @@ const handleProceedToCheckout = async () => {
 
   return (
     <ScrollView style={styles.container} contentContainerStyle={{ paddingBottom: 40 }}>
-      {isUploading && (
-        <View style={{
-          position: 'absolute', left: 0, top: 0, right: 0, bottom: 0,
-          backgroundColor: 'rgba(0,0,0,0.45)', justifyContent: 'center', alignItems: 'center', zIndex: 10
-        }}>
-          <View style={styles.lottieCardModern}>
-            <LottieView
-              source={require('../../assets/animations/Man-using-printing-machine.json')}
-              autoPlay
-              loop
-              style={{ width: 200, height: 200, marginBottom: 18 }}
-              speed={1.5}
-            />
-            <Text style={styles.lottieTitle}>Uploading your file...</Text>
-            <Text style={styles.lottieSubtitle}>Please wait while we securely upload and process your document.</Text>
-            <ActivityIndicator size="large" color="#667eea" style={{ marginTop: 12 }} />
-          </View>
-        </View>
-      )}
       <LinearGradient colors={['#22194f', '#22194f']} style={styles.headerGradient}>
         <Heading title="Upload Files" subtitle="Select files to print" variant="primary" />
       </LinearGradient>
       <View style={styles.content}>
-        <TouchableOpacity style={styles.uploadArea} onPress={pickAndPrompt} disabled={isUploading || loadingCombos}>
+        {/* Always show upload area and quick upload buttons */}
+        <TouchableOpacity style={styles.uploadArea} onPress={pickAndPrompt} disabled={loadingCombos}>
           <Icon name="folder" size={48} color="#667eea" style={styles.uploadIcon} />
           <Text style={styles.uploadTitle}>Choose Files</Text>
           <Text style={styles.uploadSubtitle}>Supported: PDF, DOC, DOCX, PPT, PPTX, JPG, PNG</Text>
         </TouchableOpacity>
         <View style={styles.quickUploadGrid}>
-          <TouchableOpacity style={styles.quickUploadBtn} onPress={pickFromCamera} disabled={isUploading || loadingCombos}>
+          <TouchableOpacity style={styles.quickUploadBtn} onPress={pickFromCamera} disabled={loadingCombos}>
             <Icon name="photo-camera" size={28} color="#fff" />
             <Text style={styles.quickUploadText}>Camera</Text>
           </TouchableOpacity>
-          <TouchableOpacity style={styles.quickUploadBtn} onPress={pickFromGallery} disabled={isUploading || loadingCombos}>
+          <TouchableOpacity style={styles.quickUploadBtn} onPress={pickFromGallery} disabled={loadingCombos}>
             <Icon name="photo-library" size={28} color="#fff" />
             <Text style={styles.quickUploadText}>Gallery</Text>
           </TouchableOpacity>
         </View>
+        {/* Only show file list, price summary, and checkout if files are uploaded */}
         {uploadedFiles.length > 0 && (
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>Files to Print</Text>
@@ -401,16 +442,30 @@ const handleProceedToCheckout = async () => {
                     <Text style={styles.printOptions}>{Object.entries(item.printOptions).map(([k, v]) => `${k}: ${v}`).join(', ')}</Text>
                   </View>
                 </View>
+                {item.isUploading ? (
+                  <View style={{ width: 40, height: 40, justifyContent: 'center', alignItems: 'center' }}>
+                    <LottieView
+                      source={require('../../assets/animations/Uploading-to-cloud.json')}
+                      autoPlay
+                      loop
+                      style={{ width: 46, height: 46 }}
+                      speed={1.5}
+                    />
+                  </View>
+                ) : (
                 <TouchableOpacity onPress={() => handleRemoveFile(item.file.id)} style={styles.removeBtn}>
                   <Icon name="delete" size={22} color="#ff4757" />
                 </TouchableOpacity>
+                )}
               </View>
             ))}
             {totalPrice !== null && (
               <View style={styles.priceSummaryModern}>
                 <Text style={styles.priceTotalModern}>Total Price: <Text style={{ color: '#22194f' }}>₹{totalPrice}</Text></Text>
-                {priceBreakdown.length > 0 && priceBreakdown.map((b, i) => (
-                  <Text key={i} style={styles.priceBreakdownModern}>{b.fileName}: ₹{b.totalCost}</Text>
+                {Array.isArray(priceBreakdown) && priceBreakdown.length > 0 && priceBreakdown.map((b, i) => (
+                  b.fileName && b.totalCost != null ? (
+                    <Text key={i} style={styles.priceBreakdownModern}>{b.fileName}: ₹{b.totalCost}</Text>
+                  ) : null
                 ))}
                 {backendSubtotal !== null && (
                   <View style={{ marginTop: 8, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
@@ -439,9 +494,9 @@ const handleProceedToCheckout = async () => {
               </View>
             )}
             <TouchableOpacity 
-              style={[styles.checkoutBtn, totalPrice === null && { opacity: 0.5 }]}
+              style={[styles.checkoutBtn, (totalPrice === null || anyUploading) && { opacity: 0.5 }]}
               onPress={handleProceedToCheckout}
-              disabled={totalPrice === null}
+              disabled={totalPrice === null || anyUploading}
             >
               <Text style={styles.checkoutBtnText}>Choose Delivery Options</Text>
             </TouchableOpacity>

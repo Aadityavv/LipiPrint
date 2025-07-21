@@ -9,7 +9,7 @@ import java.util.Map;
 @Table(name = "orders")
 public class Order {
     public enum Status {
-        PENDING, PROCESSING, COMPLETED, CANCELLED, DELIVERED
+        PENDING, PROCESSING, COMPLETED, OUT_FOR_DELIVERY, DELIVERED, CANCELLED
     }
 
     @Id

@@ -51,7 +51,7 @@ export default function AdminOrdersScreen({ navigation }) {
     if (!reset && (loading || loadingMore)) return;
     if (!reset && !hasMore) return;
     if (reset) {
-      setLoading(true);
+    setLoading(true);
       setPage(1);
       setHasMore(true);
     } else {
@@ -89,7 +89,7 @@ export default function AdminOrdersScreen({ navigation }) {
       }
       setPage(currentPage + 1);
     } catch (e) {
-      setError('Failed to load orders');
+        setError('Failed to load orders');
     } finally {
       setLoading(false);
       setLoadingMore(false);
@@ -144,26 +144,23 @@ export default function AdminOrdersScreen({ navigation }) {
 
   const filters = [
     { id: 'PENDING', label: 'Pending', count: orders.filter(o => (o.status || '').toUpperCase() === 'PENDING').length },
-    { id: 'all', label: 'All Orders', count: orders.length },
     { id: 'PROCESSING', label: 'Processing', count: orders.filter(o => (o.status || '').toUpperCase() === 'PROCESSING').length },
     { id: 'COMPLETED', label: 'Completed', count: orders.filter(o => (o.status || '').toUpperCase() === 'COMPLETED').length },
-    { id: 'CANCELLED', label: 'Cancelled', count: orders.filter(o => (o.status || '').toUpperCase() === 'CANCELLED').length },
+    { id: 'OUT_FOR_DELIVERY', label: 'Out for Delivery', count: orders.filter(o => (o.status || '').toUpperCase() === 'OUT_FOR_DELIVERY').length },
     { id: 'DELIVERED', label: 'Delivered', count: orders.filter(o => (o.status || '').toUpperCase() === 'DELIVERED').length },
   ];
-
   const statusColors = {
     PENDING: '#FF9800',
-    PROCESSING: '#1976D2', // Blue
-    COMPLETED: '#43B581',  // Green
-    CANCELLED: '#D7263D',  // Red
-    DELIVERED: '#FF9800',  // Orange
+    PROCESSING: '#1976D2',
+    COMPLETED: '#43B581',
+    OUT_FOR_DELIVERY: '#FBC02D',
+    DELIVERED: '#66BB6A',
   };
-
   const statusLabels = {
     PENDING: 'Pending',
     PROCESSING: 'Processing',
     COMPLETED: 'Completed',
-    CANCELLED: 'Cancelled',
+    OUT_FOR_DELIVERY: 'Out for Delivery',
     DELIVERED: 'Delivered',
   };
 
@@ -603,23 +600,23 @@ export default function AdminOrdersScreen({ navigation }) {
           <Text style={{ fontWeight: 'bold', fontSize: 17, color: '#22194f', flex: 1 }}>Order #{item.id}</Text>
           <View style={{ backgroundColor: statusColor, borderRadius: 8, paddingHorizontal: 10, paddingVertical: 4, marginLeft: 8 }}>
             <Text style={{ color: '#fff', fontWeight: 'bold', fontSize: 13 }}>{statusLabels[status] || status}</Text>
-          </View>
-        </View>
+              </View>
+            </View>
         <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 4 }}>
           <Icon name="person" size={16} color="#667eea" style={{ marginRight: 4 }} />
           <Text style={{ color: '#333', fontWeight: 'bold', fontSize: 15 }}>{item.userName}</Text>
           {item.deliveryType && (
             <Text style={{ color: '#888', fontSize: 13, marginLeft: 10 }}>({item.deliveryType})</Text>
-          )}
-        </View>
+                )}
+              </View>
         <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 4 }}>
           <Icon name="event" size={15} color="#764ba2" style={{ marginRight: 4 }} />
           <Text style={{ color: '#888', fontSize: 13 }}>{item.createdAt ? String(item.createdAt).slice(0, 10) : ''}</Text>
           <Icon name="" size={15} color="#43B581" style={{ marginLeft: 16, marginRight: 2 }} />
           <Text style={{ color: '#22194f', fontWeight: 'bold', fontSize: 15 }}>₹{item.totalAmount}</Text>
-        </View>
+            </View>
         <View style={{ flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'flex-start', marginTop: 10 }}>
-          <TouchableOpacity
+                <TouchableOpacity
             style={{
               backgroundColor: '#667eea',
               borderRadius: 8,
@@ -631,12 +628,12 @@ export default function AdminOrdersScreen({ navigation }) {
               alignItems: 'center',
             }}
             onPress={() => navigation.navigate('AdminOrderDetailScreen', { orderId: item.id })}
-            activeOpacity={0.85}
-          >
+                    activeOpacity={0.85}
+                >
             <Icon name="info" size={18} color="#fff" style={{ marginRight: 6 }} />
             <Text style={{ color: '#fff', fontWeight: 'bold' }}>Details</Text>
-          </TouchableOpacity>
-          <TouchableOpacity
+                </TouchableOpacity>
+                <TouchableOpacity
             style={{
               backgroundColor: '#43B581',
               borderRadius: 8,
@@ -649,11 +646,11 @@ export default function AdminOrdersScreen({ navigation }) {
             }}
             onPress={() => handleAdminDownloadInvoice(item.id)}
             disabled={downloadingInvoiceId === item.id}
-            activeOpacity={0.85}
-          >
+                    activeOpacity={0.85}
+                >
             <Icon name="file-download" size={18} color="#fff" style={{ marginRight: 6 }} />
             <Text style={{ color: '#fff', fontWeight: 'bold' }}>{downloadingInvoiceId === item.id ? 'Downloading...' : 'Invoice'}</Text>
-          </TouchableOpacity>
+                </TouchableOpacity>
           {(status === 'PENDING' || status === 'PROCESSING') && (
             <TouchableOpacity
               style={{
@@ -671,7 +668,7 @@ export default function AdminOrdersScreen({ navigation }) {
             >
               <Icon name={status === 'PENDING' ? 'autorenew' : 'check-circle'} size={18} color="#fff" style={{ marginRight: 6 }} />
               <Text style={{ color: '#fff', fontWeight: 'bold' }}>{status === 'PENDING' ? 'Start Processing' : 'Complete'}</Text>
-            </TouchableOpacity>
+        </TouchableOpacity>
           )}
         </View>
       </Animatable.View>
@@ -728,24 +725,24 @@ export default function AdminOrdersScreen({ navigation }) {
         {/* Sticky Search Bar */}
         <View style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: '#fff', borderRadius: 12, marginTop: 18, paddingHorizontal: 12, paddingVertical: 6, elevation: 2 }}>
           <Icon name="search" size={20} color="#667eea" style={{ marginRight: 6 }} />
-          <TextInput
+        <TextInput
             style={{ flex: 1, fontSize: 16, color: '#222', paddingVertical: 6 }}
             placeholder="Search by user, file, or date..."
             placeholderTextColor="#aaa"
-            value={search}
-            onChangeText={setSearch}
-            returnKeyType="search"
+          value={search}
+          onChangeText={setSearch}
+          returnKeyType="search"
             clearButtonMode="while-editing"
-          />
-          {search.length > 0 && (
+        />
+        {search.length > 0 && (
             <TouchableOpacity onPress={() => setSearch('')} style={{ marginLeft: 4 }}>
-              <Icon name="close" size={18} color="#667eea" />
-            </TouchableOpacity>
-          )}
+            <Icon name="close" size={18} color="#667eea" />
+          </TouchableOpacity>
+        )}
         </View>
         {/* Horizontal Status Tab Bar */}
         <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginTop: 16, paddingHorizontal: 0, marginHorizontal: 0 }} contentContainerStyle={{ paddingBottom: 2, paddingHorizontal: 0, marginHorizontal: 0 }}>
-          {['all', 'PENDING', 'PROCESSING', 'COMPLETED', 'CANCELLED', 'DELIVERED'].map((tab, idx, arr) => (
+          {['all', 'PENDING', 'PROCESSING', 'COMPLETED', 'OUT_FOR_DELIVERY', 'DELIVERED'].map((tab, idx, arr) => (
             <TouchableOpacity
               key={tab}
               style={{
@@ -781,15 +778,15 @@ export default function AdminOrdersScreen({ navigation }) {
             </Text>
           </TouchableOpacity>
           <Icon name="" size={18} color="#43B581" style={{ marginRight: 2 }} />
-          <TouchableOpacity
+              <TouchableOpacity
             style={{ backgroundColor: '#fff', borderRadius: 14, paddingHorizontal: 10, paddingVertical: 6, borderWidth: 1, borderColor: '#eee' }}
             onPress={() => setPriceSort(priceSort === 'none' ? 'desc' : priceSort === 'desc' ? 'asc' : 'none')}
             activeOpacity={0.85}
           >
             <Text style={{ color: '#22194f', fontWeight: 'bold', fontSize: 14 }}>
               {priceSort === 'none' ? 'Price' : priceSort === 'desc' ? 'High → Low' : 'Low → High'}
-            </Text>
-          </TouchableOpacity>
+                </Text>
+              </TouchableOpacity>
         </View>
       </LinearGradient>
 
@@ -810,26 +807,26 @@ export default function AdminOrdersScreen({ navigation }) {
             <Text style={{ color: '#888', fontWeight: 'bold', fontSize: 16, marginTop: 12 }}>No orders found for this filter.</Text>
           </View>
         ) : (
-          <FlatList
+        <FlatList
             ref={flatListRef}
             data={getFilteredSortedOrders()}
-            renderItem={renderOrderCard}
-            keyExtractor={item => item.id?.toString()}
+          renderItem={renderOrderCard}
+          keyExtractor={item => item.id?.toString()}
             contentContainerStyle={{ padding: 18, paddingTop: 10, paddingBottom: 40 }}
-            showsVerticalScrollIndicator={false}
+          showsVerticalScrollIndicator={false}
             onEndReached={() => {
               if (hasMore && !loadingMore && !loading) fetchOrders(false);
             }}
             onEndReachedThreshold={0.5}
             ListFooterComponent={hasMore && loadingMore ? (
               <View style={{ padding: 16, alignItems: 'center' }}>
-                <ActivityIndicator size="small" color="#667eea" />
-              </View>
+                <LottieView source={LoadingAnim} autoPlay loop style={{ width: 60, height: 60 }} />
+            </View>
             ) : null}
             getItemLayout={(data, index) => ({ length: 110, offset: 110 * index, index })}
           />
         )}
-      </View>
+            </View>
       <CustomAlert
         visible={alert.visible}
         title={alert.title}

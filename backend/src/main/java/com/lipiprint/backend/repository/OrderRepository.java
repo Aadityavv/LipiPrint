@@ -28,4 +28,13 @@ public interface OrderRepository extends JpaRepository<Order, Long> {
 
     @Query("SELECT new com.lipiprint.backend.dto.OrderListDTO(o.id, u.name, CAST(o.status AS string), o.totalAmount, o.createdAt, o.deliveryType) FROM Order o JOIN o.user u ORDER BY o.createdAt DESC")
     Page<OrderListDTO> findAllForList(Pageable pageable);
+
+    @Query("SELECT new com.lipiprint.backend.dto.OrderListDTO(o.id, u.name, CAST(o.status AS string), o.totalAmount, o.createdAt, o.deliveryType) FROM Order o JOIN o.user u WHERE u.id = :userId ORDER BY o.createdAt DESC")
+    Page<OrderListDTO> findAllForListByUser(@Param("userId") Long userId, Pageable pageable);
+
+    @Query("SELECT new com.lipiprint.backend.dto.OrderListDTO(o.id, u.name, CAST(o.status AS string), o.totalAmount, o.createdAt, o.deliveryType) FROM Order o JOIN o.user u WHERE o.status = :status ORDER BY o.createdAt DESC")
+    Page<OrderListDTO> findAllForListByStatus(@Param("status") String status, Pageable pageable);
+
+    @Query("SELECT new com.lipiprint.backend.dto.OrderListDTO(o.id, u.name, CAST(o.status AS string), o.totalAmount, o.createdAt, o.deliveryType) FROM Order o JOIN o.user u WHERE u.id = :userId AND o.status = :status ORDER BY o.createdAt DESC")
+    Page<OrderListDTO> findAllForListByUserAndStatus(@Param("userId") Long userId, @Param("status") String status, Pageable pageable);
 } 

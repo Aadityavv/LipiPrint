@@ -114,9 +114,21 @@ export default function AdminOrderDetailScreen() {
     try {
       // 1. Update print job status to PRINTING
       await api.request(`/print-jobs/${printJobId}/status?status=PRINTING`, { method: 'PUT' });
-      // 2. Open print dialog
-      await RNPrint.print({ filePath: file.url });
-      // 3. After print, show modal
+      // 2. Download file if remote
+      let localPath = file.url;
+      if (file.url.startsWith('http')) {
+        const ext = file.originalFilename ? file.originalFilename.split('.').pop() : 'pdf';
+        const baseName = file.originalFilename ? file.originalFilename.replace(/\s/g, '_') : `downloaded_file.${ext}`;
+        if (Platform.OS === 'android' && RNFS.DownloadDirectoryPath) {
+          localPath = `${RNFS.DownloadDirectoryPath}/${baseName}`;
+        } else {
+          localPath = `${RNFS.DocumentDirectoryPath}/${baseName}`;
+        }
+        await RNFS.downloadFile({ fromUrl: file.url, toFile: localPath }).promise;
+      }
+      // 3. Open print dialog
+      await RNPrint.print({ filePath: localPath });
+      // 4. After print, show modal
       setPrintingFileIdx(idx);
       setShowPrintModal(true);
     } catch (e) {

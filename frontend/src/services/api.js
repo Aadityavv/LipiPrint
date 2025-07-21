@@ -1,6 +1,6 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
-const baseUrl = 'https://lipiprint-freelance.onrender.com/api'; // Ensure no trailing slash
+const baseUrl = 'http://192.168.1.11:8082/api'; // Ensure no trailing slash
 class ApiService {
     constructor() {
         this.baseURL = baseUrl;
@@ -25,20 +25,17 @@ class ApiService {
         await AsyncStorage.removeItem('authToken');
     }
 
-    async getHeaders(isFormData = false, isDeleteNoBody = false) {
+    async getHeaders() {
         let token = this.token;
         if (!token) {
             token = await AsyncStorage.getItem('authToken');
             this.token = token;
         }
         const headers = {};
-        if (!isFormData && !isDeleteNoBody) {
-            headers['Content-Type'] = 'application/json';
-        }
         if (token) {
             headers['Authorization'] = `Bearer ${token}`;
         }
-        console.log('API headers:', headers);
+        // console.log('API headers:', headers); // This will be logged in request()
         return headers;
     }
 
@@ -46,9 +43,16 @@ class ApiService {
         // Ensure endpoint starts with a single slash and baseURL does not end with a slash
         let cleanEndpoint = endpoint.startsWith('/') ? endpoint : `/${endpoint}`;
         const url = `${this.baseURL}${cleanEndpoint}`;
+
+        const headers = await this.getHeaders();
         const isFormData = options.body instanceof FormData;
-        const isDeleteNoBody = options.method === 'DELETE' && !options.body;
-        const headers = await this.getHeaders(isFormData, isDeleteNoBody);
+
+        // Set Content-Type header correctly
+        if (!isFormData) {
+            headers['Content-Type'] = 'application/json';
+        }
+        // For FormData, we DO NOT set Content-Type, fetch does it automatically with the boundary.
+
         const config = {
             headers,
             ...options,
@@ -208,7 +212,10 @@ class ApiService {
     }
 
     async getOrders() {
-        return await this.request('/orders');
+        const res = await this.request('/orders');
+        if (res && Array.isArray(res.content)) return res.content;
+        if (Array.isArray(res)) return res;
+        return [];
     }
 
     async getOrder(id) {

@@ -68,7 +68,7 @@ export default function OrdersScreen({ navigation }) {
     { id: 'PENDING', label: 'Pending', count: orders.filter(o => o.status === 'PENDING').length },
     { id: 'PROCESSING', label: 'Processing', count: orders.filter(o => o.status === 'PROCESSING').length },
     { id: 'COMPLETED', label: 'Completed', count: orders.filter(o => o.status === 'COMPLETED').length },
-    { id: 'CANCELLED', label: 'Cancelled', count: orders.filter(o => o.status === 'CANCELLED').length },
+    { id: 'OUT_FOR_DELIVERY', label: 'Out for Delivery', count: orders.filter(o => o.status === 'OUT_FOR_DELIVERY').length },
     { id: 'DELIVERED', label: 'Delivered', count: orders.filter(o => o.status === 'DELIVERED').length },
   ];
 
@@ -76,9 +76,8 @@ export default function OrdersScreen({ navigation }) {
   const statusBadgeColors = {
     PENDING: '#FFC107',      // Opaque amber
     PROCESSING: '#039BE5',  // Opaque blue
-    READY: '#43A047',       // Opaque green
     COMPLETED: '#8E24AA',   // Opaque purple
-    CANCELLED: '#E53935',   // Opaque red
+    OUT_FOR_DELIVERY: '#FBC02D',
     DELIVERED: '#00897B',   // Opaque teal
   };
 
@@ -88,9 +87,8 @@ export default function OrdersScreen({ navigation }) {
     switch (status) {
       case 'PENDING': return 'Pending';
       case 'PROCESSING': return 'Processing';
-      case 'READY': return 'Ready for Pickup';
       case 'COMPLETED': return 'Completed';
-      case 'CANCELLED': return 'Cancelled';
+      case 'OUT_FOR_DELIVERY': return 'Out for Delivery';
       case 'DELIVERED': return 'Delivered';
       default: return status ? status.charAt(0) + status.slice(1).toLowerCase() : 'Unknown';
     }
@@ -100,9 +98,8 @@ export default function OrdersScreen({ navigation }) {
     switch (status) {
       case 'PENDING': return <Icon name="check-circle" size={20} color="#fff" />;
       case 'PROCESSING': return <Icon name="print" size={20} color="#fff" />;
-      case 'READY': return <Icon name="local-shipping" size={20} color="#fff" />;
       case 'COMPLETED': return <Icon name="done-all" size={20} color="#fff" />;
-      case 'CANCELLED': return <Icon name="cancel" size={20} color="#fff" />;
+      case 'OUT_FOR_DELIVERY': return <Icon name="local-shipping" size={20} color="#fff" />;
       case 'DELIVERED': return <Icon name="local-shipping" size={20} color="#fff" />;
       default: return <Icon name="info" size={20} color="#fff" />;
     }

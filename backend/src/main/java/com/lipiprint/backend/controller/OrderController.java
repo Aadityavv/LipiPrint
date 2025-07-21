@@ -47,6 +47,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import com.lipiprint.backend.dto.OrderListDTO;
 
 @RestController
 @RequestMapping("/api/orders")
@@ -170,72 +171,21 @@ public class OrderController {
             User user = userService.findByPhone(authentication.getName()).orElseThrow();
             boolean isAdmin = authentication.getAuthorities().stream().map(GrantedAuthority::getAuthority).anyMatch(a -> a.equals("ROLE_ADMIN"));
             Pageable pageable = PageRequest.of(page, limit);
+            Page<OrderListDTO> dtoPage;
             if (isAdmin && status == null) {
                 logger.info("[OrderController] Admin order list fetch (lightweight DTO)");
-                Page<com.lipiprint.backend.dto.OrderListDTO> dtoPage = orderService.findAllListPaged(pageable);
-                logger.info("[OrderController] Admin order list fetched: {} orders, totalElements={}, totalPages={}, time={}ms", dtoPage.getNumberOfElements(), dtoPage.getTotalElements(), dtoPage.getTotalPages(), (System.currentTimeMillis() - startTime));
-                return ResponseEntity.ok(java.util.Map.of(
-                    "content", dtoPage.getContent(),
-                    "totalElements", dtoPage.getTotalElements(),
-                    "totalPages", dtoPage.getTotalPages(),
-                    "page", dtoPage.getNumber(),
-                    "size", dtoPage.getSize()
-                ));
-            }
-            // Fallback to previous logic for status/user filtering
-            logger.info("[OrderController] Non-admin or status-filtered order list fetch");
-            Page<Order> orderPage;
-            if (isAdmin) {
-                orderPage = orderService.findAllByStatusPaged(status, pageable);
+                dtoPage = orderService.findAllListPaged(pageable);
+            } else if (!isAdmin && status == null) {
+                logger.info("[OrderController] User order list fetch (lightweight DTO)");
+                dtoPage = orderService.findAllListByUserPaged(user, pageable);
+            } else if (isAdmin) {
+                // Admin with status filter
+                dtoPage = orderService.findAllListByStatusPaged(status, pageable);
             } else {
-                orderPage = orderService.findAllByUserPaged(user, pageable);
+                // User with status filter
+                dtoPage = orderService.findAllListByUserAndStatusPaged(user, status, pageable);
             }
-            Page<OrderDTO> dtoPage = orderPage.map(saved -> {
-                try {
-                    User u = saved.getUser();
-                    java.util.List<PrintJob> printJobs = saved.getPrintJobs();
-                    java.util.List<File> files = printJobs != null ? printJobs.stream().map(PrintJob::getFile).toList() : null;
-                    UserDTO userDTO = u == null ? null : new UserDTO(u.getId(), u.getName(), u.getPhone(), u.getEmail(), u.getRole() != null ? u.getRole().name() : null, u.isBlocked(), u.getCreatedAt(), u.getUpdatedAt());
-                    java.util.List<FileDTO> fileDTOs = files != null ? files.stream().map(f -> new FileDTO(f.getId(), f.getFilename(), f.getOriginalFilename(), f.getContentType(), f.getSize(), f.getUrl(), null, f.getCreatedAt(), f.getUpdatedAt(), f.getPages())).toList() : null;
-                    java.util.List<PrintJobDTO> printJobDTOs = printJobs != null ? printJobs.stream().map(pj -> {
-                        User pjUser = pj.getUser();
-                        UserDTO pjUserDTO = pjUser == null ? null : new UserDTO(pjUser.getId(), pjUser.getName(), pjUser.getPhone(), pjUser.getEmail(), pjUser.getRole() != null ? pjUser.getRole().name() : null, pjUser.isBlocked(), pjUser.getCreatedAt(), pjUser.getUpdatedAt());
-                        return new PrintJobDTO(
-                            pj.getId(),
-                            new FileDTO(pj.getFile().getId(), pj.getFile().getFilename(), pj.getFile().getOriginalFilename(), pj.getFile().getContentType(), pj.getFile().getSize(), pj.getFile().getUrl(), null, pj.getFile().getCreatedAt(), pj.getFile().getUpdatedAt(), pj.getFile().getPages()),
-                            pjUserDTO,
-                            pj.getStatus() != null ? pj.getStatus().name() : null,
-                            pj.getOptions(),
-                            pj.getCreatedAt(),
-                            pj.getUpdatedAt()
-                        );
-                    }).toList() : null;
-                    return new OrderDTO(
-                        saved.getId(),
-                        userDTO,
-                        printJobDTOs,
-                        saved.getStatus() != null ? saved.getStatus().name() : null,
-                        saved.getTotalAmount(),
-                        saved.getCreatedAt(),
-                        saved.getUpdatedAt(),
-                        saved.getDeliveryType(),
-                        saved.getDeliveryAddress(),
-                        saved.getRazorpayOrderId(),
-                        saved.getOrderNote(),
-                        saved.getSubtotal(),
-                        saved.getDiscount(),
-                        saved.getDiscountedSubtotal(),
-                        saved.getGst(),
-                        saved.getDelivery(),
-                        saved.getGrandTotal(),
-                        null // no breakdown for list
-                    );
-                } catch (Exception e) {
-                    logger.error("[OrderController] Error mapping order to DTO (order id: {}): {}", saved.getId(), e.getMessage(), e);
-                    return null;
-                }
-            });
-            logger.info("[OrderController] Non-admin/status-filtered order list fetched: {} orders, totalElements={}, totalPages={}, time={}ms", dtoPage.getNumberOfElements(), dtoPage.getTotalElements(), dtoPage.getTotalPages(), (System.currentTimeMillis() - startTime));
+            logger.info("[OrderController] Order list fetched: {} orders, totalElements={}, totalPages={}, time={}ms", dtoPage.getNumberOfElements(), dtoPage.getTotalElements(), dtoPage.getTotalPages(), (System.currentTimeMillis() - startTime));
             return ResponseEntity.ok(java.util.Map.of(
                 "content", dtoPage.getContent(),
                 "totalElements", dtoPage.getTotalElements(),

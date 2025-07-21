@@ -80,7 +80,7 @@ public class PaymentController {
                 paymentRecord.setStatus(Payment.Status.FAILED);
                 if (paymentRecord.getOrder() != null) {
                     Order order = paymentRecord.getOrder();
-                    order.setStatus(Order.Status.CANCELLED);
+                    order.setStatus(Order.Status.OUT_FOR_DELIVERY);
                     orderService.save(order, razorpayOrderId);
                 }
             } else {
