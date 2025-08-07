@@ -414,7 +414,7 @@ const handleProceedToCheckout = async () => {
       <View style={styles.content}>
         {/* Always show upload area and quick upload buttons */}
         <TouchableOpacity style={styles.uploadArea} onPress={pickAndPrompt} disabled={loadingCombos}>
-          <Icon name="folder" size={48} color="#667eea" style={styles.uploadIcon} />
+          <Icon name="cloud" size={48} color="#667eea" style={styles.uploadIcon} />
           <Text style={styles.uploadTitle}>Choose Files</Text>
           <Text style={styles.uploadSubtitle}>Supported: PDF, DOC, DOCX, PPT, PPTX, JPG, PNG</Text>
         </TouchableOpacity>
@@ -504,7 +504,7 @@ const handleProceedToCheckout = async () => {
         )}
       </View>
       <View style={styles.orderNoteSectionModern}>
-        <Text style={styles.orderNoteLabelModern}>Order Note (optional):</Text>
+        <Text style={styles.orderNoteLabelModern}>Remarks:</Text>
         <TextInput
           style={styles.orderNoteInputModern}
           value={orderNote}
@@ -617,10 +617,10 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#f8f9fa' },
   headerGradient: { paddingTop: 50, paddingBottom: 30, paddingHorizontal: 20 },
   content: { padding: 20 },
-  uploadArea: { backgroundColor: '#fff', borderRadius: 16, alignItems: 'center', padding: 32, marginBottom: 24, elevation: 2 },
+  uploadArea: { backgroundColor: '#f25f73ff', borderRadius: 16, alignItems: 'center', padding: 32, marginBottom: 24, elevation: 2 },
   uploadIcon: { marginBottom: 16 },
   uploadTitle: { fontSize: 20, fontWeight: 'bold', color: '#1a1a1a', marginBottom: 8 },
-  uploadSubtitle: { fontSize: 14, color: '#666', textAlign: 'center', marginBottom: 20 },
+  uploadSubtitle: { fontSize: 14, color: '#fff', textAlign: 'center', marginBottom: 20 },
   quickUploadGrid: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 24 },
   quickUploadBtn: { backgroundColor: '#22194f', borderRadius: 12, padding: 18, alignItems: 'center', flex: 1, marginHorizontal: 6 },
   quickUploadText: { color: '#fff', fontWeight: 'bold', marginTop: 6 },

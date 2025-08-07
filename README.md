@@ -39,7 +39,7 @@ LipiPrint is a smart, easy, and fast printing solution for users and admins. Use
 
 ## 📁 Folder Structure
 ```
-New folder/
+LipiP/
   backend/         # Java Spring Boot backend
     src/main/java/com/lipiprint/backend/...
     src/main/resources/

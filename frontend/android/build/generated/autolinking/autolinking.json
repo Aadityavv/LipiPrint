@@ -1,25 +1,25 @@
 {
-  "root": "C:\\Users\\HP\\Desktop\\New folder\\frontend",
-  "reactNativePath": "C:\\Users\\HP\\Desktop\\New folder\\frontend\\node_modules\\react-native",
+  "root": "C:\\Users\\HP\\Desktop\\LipiP\\frontend",
+  "reactNativePath": "C:\\Users\\HP\\Desktop\\LipiP\\frontend\\node_modules\\react-native",
   "reactNativeVersion": "0.80",
   "dependencies": {
     "@notifee/react-native": {
-      "root": "C:\\Users\\HP\\Desktop\\New folder\\frontend\\node_modules\\@notifee\\react-native",
+      "root": "C:\\Users\\HP\\Desktop\\LipiP\\frontend\\node_modules\\@notifee\\react-native",
       "name": "@notifee/react-native",
       "platforms": {
         "ios": {
-          "podspecPath": "C:\\Users\\HP\\Desktop\\New folder\\frontend\\node_modules\\@notifee\\react-native\\RNNotifee.podspec",
+          "podspecPath": "C:\\Users\\HP\\Desktop\\LipiP\\frontend\\node_modules\\@notifee\\react-native\\RNNotifee.podspec",
           "version": "9.1.8",
           "configurations": [],
           "scriptPhases": []
         },
         "android": {
-          "sourceDir": "C:\\Users\\HP\\Desktop\\New folder\\frontend\\node_modules\\@notifee\\react-native\\android",
+          "sourceDir": "C:\\Users\\HP\\Desktop\\LipiP\\frontend\\node_modules\\@notifee\\react-native\\android",
           "packageImportPath": "import io.invertase.notifee.NotifeePackage;",
           "packageInstance": "new NotifeePackage()",
           "buildTypes": [],
           "componentDescriptors": [],
-          "cmakeListsPath": "C:/Users/HP/Desktop/New folder/frontend/node_modules/@notifee/react-native/android/build/generated/source/codegen/jni/CMakeLists.txt",
+          "cmakeListsPath": "C:/Users/HP/Desktop/LipiP/frontend/node_modules/@notifee/react-native/android/build/generated/source/codegen/jni/CMakeLists.txt",
           "cxxModuleCMakeListsModuleName": null,
           "cxxModuleCMakeListsPath": null,
           "cxxModuleHeaderName": null,
@@ -28,23 +28,23 @@
       }
     },
     "@react-native-async-storage/async-storage": {
-      "root": "C:\\Users\\HP\\Desktop\\New folder\\frontend\\node_modules\\@react-native-async-storage\\async-storage",
+      "root": "C:\\Users\\HP\\Desktop\\LipiP\\frontend\\node_modules\\@react-native-async-storage\\async-storage",
       "name": "@react-native-async-storage/async-storage",
       "platforms": {
         "ios": {
-          "podspecPath": "C:\\Users\\HP\\Desktop\\New folder\\frontend\\node_modules\\@react-native-async-storage\\async-storage\\RNCAsyncStorage.podspec",
+          "podspecPath": "C:\\Users\\HP\\Desktop\\LipiP\\frontend\\node_modules\\@react-native-async-storage\\async-storage\\RNCAsyncStorage.podspec",
           "version": "2.2.0",
           "configurations": [],
           "scriptPhases": []
         },
         "android": {
-          "sourceDir": "C:\\Users\\HP\\Desktop\\New folder\\frontend\\node_modules\\@react-native-async-storage\\async-storage\\android",
+          "sourceDir": "C:\\Users\\HP\\Desktop\\LipiP\\frontend\\node_modules\\@react-native-async-storage\\async-storage\\android",
           "packageImportPath": "import com.reactnativecommunity.asyncstorage.AsyncStoragePackage;",
           "packageInstance": "new AsyncStoragePackage()",
           "buildTypes": [],
           "libraryName": "rnasyncstorage",
           "componentDescriptors": [],
-          "cmakeListsPath": "C:/Users/HP/Desktop/New folder/frontend/node_modules/@react-native-async-storage/async-storage/android/build/generated/source/codegen/jni/CMakeLists.txt",
+          "cmakeListsPath": "C:/Users/HP/Desktop/LipiP/frontend/node_modules/@react-native-async-storage/async-storage/android/build/generated/source/codegen/jni/CMakeLists.txt",
           "cxxModuleCMakeListsModuleName": null,
           "cxxModuleCMakeListsPath": null,
           "cxxModuleHeaderName": null,
@@ -53,22 +53,22 @@
       }
     },
     "@react-native-community/masked-view": {
-      "root": "C:\\Users\\HP\\Desktop\\New folder\\frontend\\node_modules\\@react-native-community\\masked-view",
+      "root": "C:\\Users\\HP\\Desktop\\LipiP\\frontend\\node_modules\\@react-native-community\\masked-view",
       "name": "@react-native-community/masked-view",
       "platforms": {
         "ios": {
-          "podspecPath": "C:\\Users\\HP\\Desktop\\New folder\\frontend\\node_modules\\@react-native-community\\masked-view\\RNCMaskedView.podspec",
+          "podspecPath": "C:\\Users\\HP\\Desktop\\LipiP\\frontend\\node_modules\\@react-native-community\\masked-view\\RNCMaskedView.podspec",
           "version": "0.1.11",
           "configurations": [],
           "scriptPhases": []
         },
         "android": {
-          "sourceDir": "C:\\Users\\HP\\Desktop\\New folder\\frontend\\node_modules\\@react-native-community\\masked-view\\android",
+          "sourceDir": "C:\\Users\\HP\\Desktop\\LipiP\\frontend\\node_modules\\@react-native-community\\masked-view\\android",
           "packageImportPath": "import org.reactnative.maskedview.RNCMaskedViewPackage;",
           "packageInstance": "new RNCMaskedViewPackage()",
           "buildTypes": [],
           "componentDescriptors": [],
-          "cmakeListsPath": "C:/Users/HP/Desktop/New folder/frontend/node_modules/@react-native-community/masked-view/android/build/generated/source/codegen/jni/CMakeLists.txt",
+          "cmakeListsPath": "C:/Users/HP/Desktop/LipiP/frontend/node_modules/@react-native-community/masked-view/android/build/generated/source/codegen/jni/CMakeLists.txt",
           "cxxModuleCMakeListsModuleName": null,
           "cxxModuleCMakeListsPath": null,
           "cxxModuleHeaderName": null,
@@ -77,23 +77,23 @@
       }
     },
     "@react-native-documents/picker": {
-      "root": "C:\\Users\\HP\\Desktop\\New folder\\frontend\\node_modules\\@react-native-documents\\picker",
+      "root": "C:\\Users\\HP\\Desktop\\LipiP\\frontend\\node_modules\\@react-native-documents\\picker",
       "name": "@react-native-documents/picker",
       "platforms": {
         "ios": {
-          "podspecPath": "C:\\Users\\HP\\Desktop\\New folder\\frontend\\node_modules\\@react-native-documents\\picker\\react-native-document-picker.podspec",
+          "podspecPath": "C:\\Users\\HP\\Desktop\\LipiP\\frontend\\node_modules\\@react-native-documents\\picker\\react-native-document-picker.podspec",
           "version": "10.1.5",
           "configurations": [],
           "scriptPhases": []
         },
         "android": {
-          "sourceDir": "C:\\Users\\HP\\Desktop\\New folder\\frontend\\node_modules\\@react-native-documents\\picker\\android",
+          "sourceDir": "C:\\Users\\HP\\Desktop\\LipiP\\frontend\\node_modules\\@react-native-documents\\picker\\android",
           "packageImportPath": "import com.reactnativedocumentpicker.RNDocumentPickerPackage;",
           "packageInstance": "new RNDocumentPickerPackage()",
           "buildTypes": [],
           "libraryName": "rndocumentpickerCGen",
           "componentDescriptors": [],
-          "cmakeListsPath": "C:/Users/HP/Desktop/New folder/frontend/node_modules/@react-native-documents/picker/android/build/generated/source/codegen/jni/CMakeLists.txt",
+          "cmakeListsPath": "C:/Users/HP/Desktop/LipiP/frontend/node_modules/@react-native-documents/picker/android/build/generated/source/codegen/jni/CMakeLists.txt",
           "cxxModuleCMakeListsModuleName": null,
           "cxxModuleCMakeListsPath": null,
           "cxxModuleHeaderName": null,
@@ -102,11 +102,11 @@
       }
     },
     "lottie-ios": {
-      "root": "C:\\Users\\HP\\Desktop\\New folder\\frontend\\node_modules\\lottie-ios",
+      "root": "C:\\Users\\HP\\Desktop\\LipiP\\frontend\\node_modules\\lottie-ios",
       "name": "lottie-ios",
       "platforms": {
         "ios": {
-          "podspecPath": "C:\\Users\\HP\\Desktop\\New folder\\frontend\\node_modules\\lottie-ios\\lottie-ios.podspec",
+          "podspecPath": "C:\\Users\\HP\\Desktop\\LipiP\\frontend\\node_modules\\lottie-ios\\lottie-ios.podspec",
           "version": "4.5.1",
           "configurations": [],
           "scriptPhases": []
@@ -115,17 +115,17 @@
       }
     },
     "lottie-react-native": {
-      "root": "C:\\Users\\HP\\Desktop\\New folder\\frontend\\node_modules\\lottie-react-native",
+      "root": "C:\\Users\\HP\\Desktop\\LipiP\\frontend\\node_modules\\lottie-react-native",
       "name": "lottie-react-native",
       "platforms": {
         "ios": {
-          "podspecPath": "C:\\Users\\HP\\Desktop\\New folder\\frontend\\node_modules\\lottie-react-native\\lottie-react-native.podspec",
+          "podspecPath": "C:\\Users\\HP\\Desktop\\LipiP\\frontend\\node_modules\\lottie-react-native\\lottie-react-native.podspec",
           "version": "7.2.4",
           "configurations": [],
           "scriptPhases": []
         },
         "android": {
-          "sourceDir": "C:\\Users\\HP\\Desktop\\New folder\\frontend\\node_modules\\lottie-react-native\\android",
+          "sourceDir": "C:\\Users\\HP\\Desktop\\LipiP\\frontend\\node_modules\\lottie-react-native\\android",
           "packageImportPath": "import com.airbnb.android.react.lottie.LottiePackage;",
           "packageInstance": "new LottiePackage()",
           "buildTypes": [],
@@ -133,7 +133,7 @@
           "componentDescriptors": [
             "LottieAnimationViewComponentDescriptor"
           ],
-          "cmakeListsPath": "C:/Users/HP/Desktop/New folder/frontend/node_modules/lottie-react-native/android/build/generated/source/codegen/jni/CMakeLists.txt",
+          "cmakeListsPath": "C:/Users/HP/Desktop/LipiP/frontend/node_modules/lottie-react-native/android/build/generated/source/codegen/jni/CMakeLists.txt",
           "cxxModuleCMakeListsModuleName": null,
           "cxxModuleCMakeListsPath": null,
           "cxxModuleHeaderName": null,
@@ -142,23 +142,23 @@
       }
     },
     "react-native-blob-util": {
-      "root": "C:\\Users\\HP\\Desktop\\New folder\\frontend\\node_modules\\react-native-blob-util",
+      "root": "C:\\Users\\HP\\Desktop\\LipiP\\frontend\\node_modules\\react-native-blob-util",
       "name": "react-native-blob-util",
       "platforms": {
         "ios": {
-          "podspecPath": "C:\\Users\\HP\\Desktop\\New folder\\frontend\\node_modules\\react-native-blob-util\\react-native-blob-util.podspec",
+          "podspecPath": "C:\\Users\\HP\\Desktop\\LipiP\\frontend\\node_modules\\react-native-blob-util\\react-native-blob-util.podspec",
           "version": "0.22.2",
           "configurations": [],
           "scriptPhases": []
         },
         "android": {
-          "sourceDir": "C:\\Users\\HP\\Desktop\\New folder\\frontend\\node_modules\\react-native-blob-util\\android",
+          "sourceDir": "C:\\Users\\HP\\Desktop\\LipiP\\frontend\\node_modules\\react-native-blob-util\\android",
           "packageImportPath": "import com.ReactNativeBlobUtil.ReactNativeBlobUtilPackage;",
           "packageInstance": "new ReactNativeBlobUtilPackage()",
           "buildTypes": [],
           "libraryName": "ReactNativeBlobUtilSpec",
           "componentDescriptors": [],
-          "cmakeListsPath": "C:/Users/HP/Desktop/New folder/frontend/node_modules/react-native-blob-util/android/build/generated/source/codegen/jni/CMakeLists.txt",
+          "cmakeListsPath": "C:/Users/HP/Desktop/LipiP/frontend/node_modules/react-native-blob-util/android/build/generated/source/codegen/jni/CMakeLists.txt",
           "cxxModuleCMakeListsModuleName": null,
           "cxxModuleCMakeListsPath": null,
           "cxxModuleHeaderName": null,
@@ -167,22 +167,22 @@
       }
     },
     "react-native-fs": {
-      "root": "C:\\Users\\HP\\Desktop\\New folder\\frontend\\node_modules\\react-native-fs",
+      "root": "C:\\Users\\HP\\Desktop\\LipiP\\frontend\\node_modules\\react-native-fs",
       "name": "react-native-fs",
       "platforms": {
         "ios": {
-          "podspecPath": "C:\\Users\\HP\\Desktop\\New folder\\frontend\\node_modules\\react-native-fs\\RNFS.podspec",
+          "podspecPath": "C:\\Users\\HP\\Desktop\\LipiP\\frontend\\node_modules\\react-native-fs\\RNFS.podspec",
           "version": "2.20.0",
           "configurations": [],
           "scriptPhases": []
         },
         "android": {
-          "sourceDir": "C:\\Users\\HP\\Desktop\\New folder\\frontend\\node_modules\\react-native-fs\\android",
+          "sourceDir": "C:\\Users\\HP\\Desktop\\LipiP\\frontend\\node_modules\\react-native-fs\\android",
           "packageImportPath": "import com.rnfs.RNFSPackage;",
           "packageInstance": "new RNFSPackage()",
           "buildTypes": [],
           "componentDescriptors": [],
-          "cmakeListsPath": "C:/Users/HP/Desktop/New folder/frontend/node_modules/react-native-fs/android/build/generated/source/codegen/jni/CMakeLists.txt",
+          "cmakeListsPath": "C:/Users/HP/Desktop/LipiP/frontend/node_modules/react-native-fs/android/build/generated/source/codegen/jni/CMakeLists.txt",
           "cxxModuleCMakeListsModuleName": null,
           "cxxModuleCMakeListsPath": null,
           "cxxModuleHeaderName": null,
@@ -191,17 +191,17 @@
       }
     },
     "react-native-gesture-handler": {
-      "root": "C:\\Users\\HP\\Desktop\\New folder\\frontend\\node_modules\\react-native-gesture-handler",
+      "root": "C:\\Users\\HP\\Desktop\\LipiP\\frontend\\node_modules\\react-native-gesture-handler",
       "name": "react-native-gesture-handler",
       "platforms": {
         "ios": {
-          "podspecPath": "C:\\Users\\HP\\Desktop\\New folder\\frontend\\node_modules\\react-native-gesture-handler\\RNGestureHandler.podspec",
+          "podspecPath": "C:\\Users\\HP\\Desktop\\LipiP\\frontend\\node_modules\\react-native-gesture-handler\\RNGestureHandler.podspec",
           "version": "2.27.1",
           "configurations": [],
           "scriptPhases": []
         },
         "android": {
-          "sourceDir": "C:\\Users\\HP\\Desktop\\New folder\\frontend\\node_modules\\react-native-gesture-handler\\android",
+          "sourceDir": "C:\\Users\\HP\\Desktop\\LipiP\\frontend\\node_modules\\react-native-gesture-handler\\android",
           "packageImportPath": "import com.swmansion.gesturehandler.RNGestureHandlerPackage;",
           "packageInstance": "new RNGestureHandlerPackage()",
           "buildTypes": [],
@@ -210,7 +210,7 @@
             "RNGestureHandlerButtonComponentDescriptor",
             "RNGestureHandlerRootViewComponentDescriptor"
           ],
-          "cmakeListsPath": "C:/Users/HP/Desktop/New folder/frontend/node_modules/react-native-gesture-handler/android/build/generated/source/codegen/jni/CMakeLists.txt",
+          "cmakeListsPath": "C:/Users/HP/Desktop/LipiP/frontend/node_modules/react-native-gesture-handler/android/build/generated/source/codegen/jni/CMakeLists.txt",
           "cxxModuleCMakeListsModuleName": null,
           "cxxModuleCMakeListsPath": null,
           "cxxModuleHeaderName": null,
@@ -219,22 +219,22 @@
       }
     },
     "react-native-html-to-pdf": {
-      "root": "C:\\Users\\HP\\Desktop\\New folder\\frontend\\node_modules\\react-native-html-to-pdf",
+      "root": "C:\\Users\\HP\\Desktop\\LipiP\\frontend\\node_modules\\react-native-html-to-pdf",
       "name": "react-native-html-to-pdf",
       "platforms": {
         "ios": {
-          "podspecPath": "C:\\Users\\HP\\Desktop\\New folder\\frontend\\node_modules\\react-native-html-to-pdf\\react-native-html-to-pdf.podspec",
+          "podspecPath": "C:\\Users\\HP\\Desktop\\LipiP\\frontend\\node_modules\\react-native-html-to-pdf\\react-native-html-to-pdf.podspec",
           "version": "0.12.0",
           "configurations": [],
           "scriptPhases": []
         },
         "android": {
-          "sourceDir": "C:\\Users\\HP\\Desktop\\New folder\\frontend\\node_modules\\react-native-html-to-pdf\\android",
+          "sourceDir": "C:\\Users\\HP\\Desktop\\LipiP\\frontend\\node_modules\\react-native-html-to-pdf\\android",
           "packageImportPath": "import com.christopherdro.htmltopdf.RNHTMLtoPDFPackage;",
           "packageInstance": "new RNHTMLtoPDFPackage()",
           "buildTypes": [],
           "componentDescriptors": [],
-          "cmakeListsPath": "C:/Users/HP/Desktop/New folder/frontend/node_modules/react-native-html-to-pdf/android/build/generated/source/codegen/jni/CMakeLists.txt",
+          "cmakeListsPath": "C:/Users/HP/Desktop/LipiP/frontend/node_modules/react-native-html-to-pdf/android/build/generated/source/codegen/jni/CMakeLists.txt",
           "cxxModuleCMakeListsModuleName": null,
           "cxxModuleCMakeListsPath": null,
           "cxxModuleHeaderName": null,
@@ -243,23 +243,23 @@
       }
     },
     "react-native-image-crop-picker": {
-      "root": "C:\\Users\\HP\\Desktop\\New folder\\frontend\\node_modules\\react-native-image-crop-picker",
+      "root": "C:\\Users\\HP\\Desktop\\LipiP\\frontend\\node_modules\\react-native-image-crop-picker",
       "name": "react-native-image-crop-picker",
       "platforms": {
         "ios": {
-          "podspecPath": "C:\\Users\\HP\\Desktop\\New folder\\frontend\\node_modules\\react-native-image-crop-picker\\RNImageCropPicker.podspec",
+          "podspecPath": "C:\\Users\\HP\\Desktop\\LipiP\\frontend\\node_modules\\react-native-image-crop-picker\\RNImageCropPicker.podspec",
           "version": "0.50.1",
           "configurations": [],
           "scriptPhases": []
         },
         "android": {
-          "sourceDir": "C:\\Users\\HP\\Desktop\\New folder\\frontend\\node_modules\\react-native-image-crop-picker\\android",
+          "sourceDir": "C:\\Users\\HP\\Desktop\\LipiP\\frontend\\node_modules\\react-native-image-crop-picker\\android",
           "packageImportPath": "import com.reactnative.ivpusic.imagepicker.PickerPackage;",
           "packageInstance": "new PickerPackage()",
           "buildTypes": [],
           "libraryName": "RNCImageCropPickerSpec",
           "componentDescriptors": [],
-          "cmakeListsPath": "C:/Users/HP/Desktop/New folder/frontend/node_modules/react-native-image-crop-picker/android/build/generated/source/codegen/jni/CMakeLists.txt",
+          "cmakeListsPath": "C:/Users/HP/Desktop/LipiP/frontend/node_modules/react-native-image-crop-picker/android/build/generated/source/codegen/jni/CMakeLists.txt",
           "cxxModuleCMakeListsModuleName": null,
           "cxxModuleCMakeListsPath": null,
           "cxxModuleHeaderName": null,
@@ -268,22 +268,22 @@
       }
     },
     "react-native-linear-gradient": {
-      "root": "C:\\Users\\HP\\Desktop\\New folder\\frontend\\node_modules\\react-native-linear-gradient",
+      "root": "C:\\Users\\HP\\Desktop\\LipiP\\frontend\\node_modules\\react-native-linear-gradient",
       "name": "react-native-linear-gradient",
       "platforms": {
         "ios": {
-          "podspecPath": "C:\\Users\\HP\\Desktop\\New folder\\frontend\\node_modules\\react-native-linear-gradient\\BVLinearGradient.podspec",
+          "podspecPath": "C:\\Users\\HP\\Desktop\\LipiP\\frontend\\node_modules\\react-native-linear-gradient\\BVLinearGradient.podspec",
           "version": "2.8.3",
           "configurations": [],
           "scriptPhases": []
         },
         "android": {
-          "sourceDir": "C:\\Users\\HP\\Desktop\\New folder\\frontend\\node_modules\\react-native-linear-gradient\\android",
+          "sourceDir": "C:\\Users\\HP\\Desktop\\LipiP\\frontend\\node_modules\\react-native-linear-gradient\\android",
           "packageImportPath": "import com.BV.LinearGradient.LinearGradientPackage;",
           "packageInstance": "new LinearGradientPackage()",
           "buildTypes": [],
           "componentDescriptors": [],
-          "cmakeListsPath": "C:/Users/HP/Desktop/New folder/frontend/node_modules/react-native-linear-gradient/android/build/generated/source/codegen/jni/CMakeLists.txt",
+          "cmakeListsPath": "C:/Users/HP/Desktop/LipiP/frontend/node_modules/react-native-linear-gradient/android/build/generated/source/codegen/jni/CMakeLists.txt",
           "cxxModuleCMakeListsModuleName": null,
           "cxxModuleCMakeListsPath": null,
           "cxxModuleHeaderName": null,
@@ -292,17 +292,17 @@
       }
     },
     "react-native-pdf": {
-      "root": "C:\\Users\\HP\\Desktop\\New folder\\frontend\\node_modules\\react-native-pdf",
+      "root": "C:\\Users\\HP\\Desktop\\LipiP\\frontend\\node_modules\\react-native-pdf",
       "name": "react-native-pdf",
       "platforms": {
         "ios": {
-          "podspecPath": "C:\\Users\\HP\\Desktop\\New folder\\frontend\\node_modules\\react-native-pdf\\react-native-pdf.podspec",
+          "podspecPath": "C:\\Users\\HP\\Desktop\\LipiP\\frontend\\node_modules\\react-native-pdf\\react-native-pdf.podspec",
           "version": "6.7.7",
           "configurations": [],
           "scriptPhases": []
         },
         "android": {
-          "sourceDir": "C:\\Users\\HP\\Desktop\\New folder\\frontend\\node_modules\\react-native-pdf\\android",
+          "sourceDir": "C:\\Users\\HP\\Desktop\\LipiP\\frontend\\node_modules\\react-native-pdf\\android",
           "packageImportPath": "import org.wonday.pdf.RNPDFPackage;",
           "packageInstance": "new RNPDFPackage()",
           "buildTypes": [],
@@ -310,7 +310,7 @@
           "componentDescriptors": [
             "RNPDFPdfViewComponentDescriptor"
           ],
-          "cmakeListsPath": "C:/Users/HP/Desktop/New folder/frontend/node_modules/react-native-pdf/android/build/generated/source/codegen/jni/CMakeLists.txt",
+          "cmakeListsPath": "C:/Users/HP/Desktop/LipiP/frontend/node_modules/react-native-pdf/android/build/generated/source/codegen/jni/CMakeLists.txt",
           "cxxModuleCMakeListsModuleName": null,
           "cxxModuleCMakeListsPath": null,
           "cxxModuleHeaderName": null,
@@ -319,23 +319,23 @@
       }
     },
     "react-native-permissions": {
-      "root": "C:\\Users\\HP\\Desktop\\New folder\\frontend\\node_modules\\react-native-permissions",
+      "root": "C:\\Users\\HP\\Desktop\\LipiP\\frontend\\node_modules\\react-native-permissions",
       "name": "react-native-permissions",
       "platforms": {
         "ios": {
-          "podspecPath": "C:\\Users\\HP\\Desktop\\New folder\\frontend\\node_modules\\react-native-permissions\\RNPermissions.podspec",
+          "podspecPath": "C:\\Users\\HP\\Desktop\\LipiP\\frontend\\node_modules\\react-native-permissions\\RNPermissions.podspec",
           "version": "5.4.1",
           "configurations": [],
           "scriptPhases": []
         },
         "android": {
-          "sourceDir": "C:\\Users\\HP\\Desktop\\New folder\\frontend\\node_modules\\react-native-permissions\\android",
+          "sourceDir": "C:\\Users\\HP\\Desktop\\LipiP\\frontend\\node_modules\\react-native-permissions\\android",
           "packageImportPath": "import com.zoontek.rnpermissions.RNPermissionsPackage;",
           "packageInstance": "new RNPermissionsPackage()",
           "buildTypes": [],
           "libraryName": "RNPermissionsSpec",
           "componentDescriptors": [],
-          "cmakeListsPath": "C:/Users/HP/Desktop/New folder/frontend/node_modules/react-native-permissions/android/build/generated/source/codegen/jni/CMakeLists.txt",
+          "cmakeListsPath": "C:/Users/HP/Desktop/LipiP/frontend/node_modules/react-native-permissions/android/build/generated/source/codegen/jni/CMakeLists.txt",
           "cxxModuleCMakeListsModuleName": null,
           "cxxModuleCMakeListsPath": null,
           "cxxModuleHeaderName": null,
@@ -344,22 +344,22 @@
       }
     },
     "react-native-print": {
-      "root": "C:\\Users\\HP\\Desktop\\New folder\\frontend\\node_modules\\react-native-print",
+      "root": "C:\\Users\\HP\\Desktop\\LipiP\\frontend\\node_modules\\react-native-print",
       "name": "react-native-print",
       "platforms": {
         "ios": {
-          "podspecPath": "C:\\Users\\HP\\Desktop\\New folder\\frontend\\node_modules\\react-native-print\\react-native-print.podspec",
+          "podspecPath": "C:\\Users\\HP\\Desktop\\LipiP\\frontend\\node_modules\\react-native-print\\react-native-print.podspec",
           "version": "0.11.0",
           "configurations": [],
           "scriptPhases": []
         },
         "android": {
-          "sourceDir": "C:\\Users\\HP\\Desktop\\New folder\\frontend\\node_modules\\react-native-print\\android",
+          "sourceDir": "C:\\Users\\HP\\Desktop\\LipiP\\frontend\\node_modules\\react-native-print\\android",
           "packageImportPath": "import com.christopherdro.RNPrint.RNPrintPackage;",
           "packageInstance": "new RNPrintPackage()",
           "buildTypes": [],
           "componentDescriptors": [],
-          "cmakeListsPath": "C:/Users/HP/Desktop/New folder/frontend/node_modules/react-native-print/android/build/generated/source/codegen/jni/CMakeLists.txt",
+          "cmakeListsPath": "C:/Users/HP/Desktop/LipiP/frontend/node_modules/react-native-print/android/build/generated/source/codegen/jni/CMakeLists.txt",
           "cxxModuleCMakeListsModuleName": null,
           "cxxModuleCMakeListsPath": null,
           "cxxModuleHeaderName": null,
@@ -368,22 +368,22 @@
       }
     },
     "react-native-razorpay": {
-      "root": "C:\\Users\\HP\\Desktop\\New folder\\frontend\\node_modules\\react-native-razorpay",
+      "root": "C:\\Users\\HP\\Desktop\\LipiP\\frontend\\node_modules\\react-native-razorpay",
       "name": "react-native-razorpay",
       "platforms": {
         "ios": {
-          "podspecPath": "C:\\Users\\HP\\Desktop\\New folder\\frontend\\node_modules\\react-native-razorpay\\react-native-razorpay.podspec",
+          "podspecPath": "C:\\Users\\HP\\Desktop\\LipiP\\frontend\\node_modules\\react-native-razorpay\\react-native-razorpay.podspec",
           "version": "2.3.0",
           "configurations": [],
           "scriptPhases": []
         },
         "android": {
-          "sourceDir": "C:\\Users\\HP\\Desktop\\New folder\\frontend\\node_modules\\react-native-razorpay\\android",
+          "sourceDir": "C:\\Users\\HP\\Desktop\\LipiP\\frontend\\node_modules\\react-native-razorpay\\android",
           "packageImportPath": "import com.razorpay.rn.RazorpayPackage;",
           "packageInstance": "new RazorpayPackage()",
           "buildTypes": [],
           "componentDescriptors": [],
-          "cmakeListsPath": "C:/Users/HP/Desktop/New folder/frontend/node_modules/react-native-razorpay/android/build/generated/source/codegen/jni/CMakeLists.txt",
+          "cmakeListsPath": "C:/Users/HP/Desktop/LipiP/frontend/node_modules/react-native-razorpay/android/build/generated/source/codegen/jni/CMakeLists.txt",
           "cxxModuleCMakeListsModuleName": null,
           "cxxModuleCMakeListsPath": null,
           "cxxModuleHeaderName": null,
@@ -392,23 +392,23 @@
       }
     },
     "react-native-reanimated": {
-      "root": "C:\\Users\\HP\\Desktop\\New folder\\frontend\\node_modules\\react-native-reanimated",
+      "root": "C:\\Users\\HP\\Desktop\\LipiP\\frontend\\node_modules\\react-native-reanimated",
       "name": "react-native-reanimated",
       "platforms": {
         "ios": {
-          "podspecPath": "C:\\Users\\HP\\Desktop\\New folder\\frontend\\node_modules\\react-native-reanimated\\RNReanimated.podspec",
+          "podspecPath": "C:\\Users\\HP\\Desktop\\LipiP\\frontend\\node_modules\\react-native-reanimated\\RNReanimated.podspec",
           "version": "3.18.0",
           "configurations": [],
           "scriptPhases": []
         },
         "android": {
-          "sourceDir": "C:\\Users\\HP\\Desktop\\New folder\\frontend\\node_modules\\react-native-reanimated\\android",
+          "sourceDir": "C:\\Users\\HP\\Desktop\\LipiP\\frontend\\node_modules\\react-native-reanimated\\android",
           "packageImportPath": "import com.swmansion.reanimated.ReanimatedPackage;",
           "packageInstance": "new ReanimatedPackage()",
           "buildTypes": [],
           "libraryName": "rnreanimated",
           "componentDescriptors": [],
-          "cmakeListsPath": "C:/Users/HP/Desktop/New folder/frontend/node_modules/react-native-reanimated/android/build/generated/source/codegen/jni/CMakeLists.txt",
+          "cmakeListsPath": "C:/Users/HP/Desktop/LipiP/frontend/node_modules/react-native-reanimated/android/build/generated/source/codegen/jni/CMakeLists.txt",
           "cxxModuleCMakeListsModuleName": null,
           "cxxModuleCMakeListsPath": null,
           "cxxModuleHeaderName": null,
@@ -417,17 +417,17 @@
       }
     },
     "react-native-safe-area-context": {
-      "root": "C:\\Users\\HP\\Desktop\\New folder\\frontend\\node_modules\\react-native-safe-area-context",
+      "root": "C:\\Users\\HP\\Desktop\\LipiP\\frontend\\node_modules\\react-native-safe-area-context",
       "name": "react-native-safe-area-context",
       "platforms": {
         "ios": {
-          "podspecPath": "C:\\Users\\HP\\Desktop\\New folder\\frontend\\node_modules\\react-native-safe-area-context\\react-native-safe-area-context.podspec",
+          "podspecPath": "C:\\Users\\HP\\Desktop\\LipiP\\frontend\\node_modules\\react-native-safe-area-context\\react-native-safe-area-context.podspec",
           "version": "5.5.2",
           "configurations": [],
           "scriptPhases": []
         },
         "android": {
-          "sourceDir": "C:\\Users\\HP\\Desktop\\New folder\\frontend\\node_modules\\react-native-safe-area-context\\android",
+          "sourceDir": "C:\\Users\\HP\\Desktop\\LipiP\\frontend\\node_modules\\react-native-safe-area-context\\android",
           "packageImportPath": "import com.th3rdwave.safeareacontext.SafeAreaContextPackage;",
           "packageInstance": "new SafeAreaContextPackage()",
           "buildTypes": [],
@@ -436,7 +436,7 @@
             "RNCSafeAreaProviderComponentDescriptor",
             "RNCSafeAreaViewComponentDescriptor"
           ],
-          "cmakeListsPath": "C:/Users/HP/Desktop/New folder/frontend/node_modules/react-native-safe-area-context/android/src/main/jni/CMakeLists.txt",
+          "cmakeListsPath": "C:/Users/HP/Desktop/LipiP/frontend/node_modules/react-native-safe-area-context/android/src/main/jni/CMakeLists.txt",
           "cxxModuleCMakeListsModuleName": null,
           "cxxModuleCMakeListsPath": null,
           "cxxModuleHeaderName": null,
@@ -445,17 +445,17 @@
       }
     },
     "react-native-screens": {
-      "root": "C:\\Users\\HP\\Desktop\\New folder\\frontend\\node_modules\\react-native-screens",
+      "root": "C:\\Users\\HP\\Desktop\\LipiP\\frontend\\node_modules\\react-native-screens",
       "name": "react-native-screens",
       "platforms": {
         "ios": {
-          "podspecPath": "C:\\Users\\HP\\Desktop\\New folder\\frontend\\node_modules\\react-native-screens\\RNScreens.podspec",
+          "podspecPath": "C:\\Users\\HP\\Desktop\\LipiP\\frontend\\node_modules\\react-native-screens\\RNScreens.podspec",
           "version": "4.13.1",
           "configurations": [],
           "scriptPhases": []
         },
         "android": {
-          "sourceDir": "C:\\Users\\HP\\Desktop\\New folder\\frontend\\node_modules\\react-native-screens\\android",
+          "sourceDir": "C:\\Users\\HP\\Desktop\\LipiP\\frontend\\node_modules\\react-native-screens\\android",
           "packageImportPath": "import com.swmansion.rnscreens.RNScreensPackage;",
           "packageInstance": "new RNScreensPackage()",
           "buildTypes": [],
@@ -474,7 +474,7 @@
             "RNSModalScreenComponentDescriptor",
             "RNSBottomTabsComponentDescriptor"
           ],
-          "cmakeListsPath": "C:/Users/HP/Desktop/New folder/frontend/node_modules/react-native-screens/android/src/main/jni/CMakeLists.txt",
+          "cmakeListsPath": "C:/Users/HP/Desktop/LipiP/frontend/node_modules/react-native-screens/android/src/main/jni/CMakeLists.txt",
           "cxxModuleCMakeListsModuleName": null,
           "cxxModuleCMakeListsPath": null,
           "cxxModuleHeaderName": null,
@@ -483,17 +483,17 @@
       }
     },
     "react-native-svg": {
-      "root": "C:\\Users\\HP\\Desktop\\New folder\\frontend\\node_modules\\react-native-svg",
+      "root": "C:\\Users\\HP\\Desktop\\LipiP\\frontend\\node_modules\\react-native-svg",
       "name": "react-native-svg",
       "platforms": {
         "ios": {
-          "podspecPath": "C:\\Users\\HP\\Desktop\\New folder\\frontend\\node_modules\\react-native-svg\\RNSVG.podspec",
+          "podspecPath": "C:\\Users\\HP\\Desktop\\LipiP\\frontend\\node_modules\\react-native-svg\\RNSVG.podspec",
           "version": "15.12.0",
           "configurations": [],
           "scriptPhases": []
         },
         "android": {
-          "sourceDir": "C:\\Users\\HP\\Desktop\\New folder\\frontend\\node_modules\\react-native-svg\\android",
+          "sourceDir": "C:\\Users\\HP\\Desktop\\LipiP\\frontend\\node_modules\\react-native-svg\\android",
           "packageImportPath": "import com.horcrux.svg.SvgPackage;",
           "packageInstance": "new SvgPackage()",
           "buildTypes": [],
@@ -529,7 +529,7 @@
             "RNSVGTSpanComponentDescriptor",
             "RNSVGUseComponentDescriptor"
           ],
-          "cmakeListsPath": "C:/Users/HP/Desktop/New folder/frontend/node_modules/react-native-svg/android/src/main/jni/CMakeLists.txt",
+          "cmakeListsPath": "C:/Users/HP/Desktop/LipiP/frontend/node_modules/react-native-svg/android/src/main/jni/CMakeLists.txt",
           "cxxModuleCMakeListsModuleName": null,
           "cxxModuleCMakeListsPath": null,
           "cxxModuleHeaderName": null,
@@ -538,23 +538,23 @@
       }
     },
     "react-native-vector-icons": {
-      "root": "C:\\Users\\HP\\Desktop\\New folder\\frontend\\node_modules\\react-native-vector-icons",
+      "root": "C:\\Users\\HP\\Desktop\\LipiP\\frontend\\node_modules\\react-native-vector-icons",
       "name": "react-native-vector-icons",
       "platforms": {
         "ios": {
-          "podspecPath": "C:\\Users\\HP\\Desktop\\New folder\\frontend\\node_modules\\react-native-vector-icons\\RNVectorIcons.podspec",
+          "podspecPath": "C:\\Users\\HP\\Desktop\\LipiP\\frontend\\node_modules\\react-native-vector-icons\\RNVectorIcons.podspec",
           "version": "10.2.0",
           "configurations": [],
           "scriptPhases": []
         },
         "android": {
-          "sourceDir": "C:\\Users\\HP\\Desktop\\New folder\\frontend\\node_modules\\react-native-vector-icons\\android",
+          "sourceDir": "C:\\Users\\HP\\Desktop\\LipiP\\frontend\\node_modules\\react-native-vector-icons\\android",
           "packageImportPath": "import com.oblador.vectoricons.VectorIconsPackage;",
           "packageInstance": "new VectorIconsPackage()",
           "buildTypes": [],
           "libraryName": "RNVectorIconsSpec",
           "componentDescriptors": [],
-          "cmakeListsPath": "C:/Users/HP/Desktop/New folder/frontend/node_modules/react-native-vector-icons/android/build/generated/source/codegen/jni/CMakeLists.txt",
+          "cmakeListsPath": "C:/Users/HP/Desktop/LipiP/frontend/node_modules/react-native-vector-icons/android/build/generated/source/codegen/jni/CMakeLists.txt",
           "cxxModuleCMakeListsModuleName": null,
           "cxxModuleCMakeListsPath": null,
           "cxxModuleHeaderName": null,
@@ -725,7 +725,7 @@
         {
           "name": "--path <path>",
           "description": "Path to the React Native project root.",
-          "default": "C:\\Users\\HP\\Desktop\\New folder\\frontend"
+          "default": "C:\\Users\\HP\\Desktop\\LipiP\\frontend"
         },
         {
           "name": "--platform <string>",
@@ -1025,7 +1025,7 @@
   "assets": [],
   "project": {
     "ios": {
-      "sourceDir": "C:\\Users\\HP\\Desktop\\New folder\\frontend\\ios",
+      "sourceDir": "C:\\Users\\HP\\Desktop\\LipiP\\frontend\\ios",
       "xcodeProject": {
         "name": "LipiPrintApp.xcodeproj",
         "path": ".",
@@ -1034,7 +1034,7 @@
       "assets": []
     },
     "android": {
-      "sourceDir": "C:\\Users\\HP\\Desktop\\New folder\\frontend\\android",
+      "sourceDir": "C:\\Users\\HP\\Desktop\\LipiP\\frontend\\android",
       "appName": "app",
       "packageName": "com.lipiprintapp",
       "applicationId": "com.lipiprintapp",

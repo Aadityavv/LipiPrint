@@ -64,24 +64,25 @@ export default function HomeScreen({ navigation }) {
   }, []);
 
   // Add Profile back to quickActions
-  const quickActions = [
-    {
-      title: 'Documentation A4 and A3',
-      icon: <Icon name="cloud-upload" size={42} color="#FFFFFF" />,
-      color: ['#4e54c8', '#8f94fb'],
-      onPress: () => navigation.navigate('Upload'),
+const quickActions = [
+  {
+    title: 'Documentation', // Keep it simple
+    subtitle: 'colour & b/w prints of A3 & A4', // Add subtitle property
+    color: ['#4e54c8', '#8f94fb'],
+    onPress: () => navigation.navigate('Upload'),
+  },
+  {
+    title: 'Many more options to come',
+    color: ['#ff512f', '#dd2476'],
+    onPress: () => {
+      setAlertTitle('Heads up');
+      setAlertMessage('Yet to come');
+      setAlertVisible(true);
     },
-    {
-      title: 'Many more options to come',
-      icon: <Icon name="print" size={42} color="#FFFFFF" />,
-      color: ['#ff512f', '#dd2476'],
-      onPress: () => {
-        setAlertTitle('Heads up');
-        setAlertMessage('Yet to come');
-        setAlertVisible(true);
-      },
-    },
-  ];
+  },
+];
+
+
 
   const getStatusColor = (status) => {
     switch (status) {
@@ -103,16 +104,17 @@ export default function HomeScreen({ navigation }) {
     }
   };
 
-  function getGradientColors(title) {
-    switch (title) {
-      case 'Documentation A4 and A3':
-        return ['#4e54c8', '#8f94fb'];
-      case 'Many more options to come':
-        return ['#ff512f', '#dd2476'];
-      default:
-        return ['#667eea', '#764ba2'];
-    }
+function getGradientColors(title) {
+  switch (title) {
+    case 'Documentation': // Updated to match new title
+      return ['#4e54c8', '#8f94fb'];
+    case 'Many more options to come':
+      return ['#ff512f', '#dd2476'];
+    default:
+      return ['#667eea', '#764ba2'];
   }
+}
+
 
   if (loading) {
     return (
@@ -200,10 +202,14 @@ export default function HomeScreen({ navigation }) {
                     end={{ x: 1, y: 0 }}
                     style={StyleSheet.absoluteFill}
                   />
-                  <View style={{ zIndex: 1, alignItems: 'center', justifyContent: 'center' }}>
-                    {action.icon}
-                    <Text style={styles.actionTitleVertical}>{action.title}</Text>
-                  </View>
+<View style={{ zIndex: 1, alignItems: 'center', justifyContent: 'center' }}>
+  {action.icon}
+  <Text style={styles.actionTitleVertical}>{action.title}</Text>
+  {action.subtitle && (
+    <Text style={styles.actionSubtitleVertical}>{action.subtitle}</Text>
+  )}
+</View>
+
                 </TouchableOpacity>
               </Animatable.View>
             ))}
@@ -480,11 +486,20 @@ const styles = StyleSheet.create({
     elevation: 5,
   },
   actionTitleVertical: {
-    fontSize: 17,
+    fontSize: 18,
     fontWeight: '700',
     color: 'white',
     textAlign: 'center',
     marginTop: 8,
     letterSpacing: 0.2,
   },
+  actionSubtitleVertical: {
+  fontSize: 14,
+  fontWeight: '400',
+  color: 'white',
+  textAlign: 'center',
+  marginTop: 2,
+  letterSpacing: 0.1,
+},
+
 });

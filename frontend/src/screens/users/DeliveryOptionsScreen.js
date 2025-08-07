@@ -23,7 +23,7 @@ const { width } = Dimensions.get('window');
 
 export default function DeliveryOptionsScreen({ navigation, route }) {
   const { files, selectedOptions, selectedPaper, selectedPrint, total, totalPrice, priceBreakdown, subtotal, gst, discount } = route.params || {};
-  const [deliveryMethod, setDeliveryMethod] = useState('pickup');
+  const [deliveryMethod, setDeliveryMethod] = useState('delivery');
   const [selectedLocation, setSelectedLocation] = useState(null);
   const [pickupLocations, setPickupLocations] = useState([]);
   const [addressLine1, setAddressLine1] = useState('');
@@ -48,8 +48,8 @@ export default function DeliveryOptionsScreen({ navigation, route }) {
         // Assume settings contains delivery options/prices as a JSON string under key 'delivery_options'
         const deliverySetting = settings.find(s => s.key === 'delivery_options');
         let options = [
-          { id: 'pickup', title: 'Store Pickup', description: 'Collect from our store', price: 0, icon: '🏪', color: '#4ECDC4' },
           { id: 'delivery', title: 'Home Delivery', description: 'Delivered to your address', price: 30, icon: '🚚', color: '#FF6B6B' },
+          { id: 'pickup', title: 'Store Pickup', description: 'Collect from our store', price: 0, icon: '🏪', color: '#4ECDC4' },
         ];
         if (deliverySetting && deliverySetting.value) {
           try {
