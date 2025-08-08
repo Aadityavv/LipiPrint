@@ -21,11 +21,18 @@ public class TrackingResponse {
     
     @JsonProperty("tracking_data")
     private List<TrackingEvent> trackingData;
+    
+    // ✅ ADDED: Missing fields needed for NimbusPost integration
+    @JsonProperty("last_location")
+    private String lastLocation;
+    
+    @JsonProperty("courier_name")
+    private String courierName;
 
     // Constructors
     public TrackingResponse() {}
 
-    // Getters and Setters
+    // ✅ COMPLETE: All Getters and Setters
     public boolean isStatus() { return status; }
     public void setStatus(boolean status) { this.status = status; }
 
@@ -42,19 +49,69 @@ public class TrackingResponse {
     public void setDeliveredDate(String deliveredDate) { this.deliveredDate = deliveredDate; }
 
     public String getExpectedDeliveryDate() { return expectedDeliveryDate; }
-    public void setExpectedDeliveryDate(String expectedDeliveryDate) { this.expectedDeliveryDate = expectedDeliveryDate; }
+    public void setExpectedDeliveryDate(String expectedDeliveryDate) { 
+        this.expectedDeliveryDate = expectedDeliveryDate; 
+    }
 
     public List<TrackingEvent> getTrackingData() { return trackingData; }
     public void setTrackingData(List<TrackingEvent> trackingData) { this.trackingData = trackingData; }
+
+    // ✅ ADDED: Missing getters/setters for new fields
+    public String getLastLocation() { return lastLocation; }
+    public void setLastLocation(String lastLocation) { this.lastLocation = lastLocation; }
+
+    public String getCourierName() { return courierName; }
+    public void setCourierName(String courierName) { this.courierName = courierName; }
+
+    // ✅ ADDED: Convenience method for NimbusPost parsing compatibility
+    public void setStatus(String statusString) {
+        // Handle both boolean and string status from different API responses
+        if ("true".equalsIgnoreCase(statusString) || "success".equalsIgnoreCase(statusString)) {
+            this.status = true;
+        } else if ("false".equalsIgnoreCase(statusString) || "failed".equalsIgnoreCase(statusString)) {
+            this.status = false;
+        } else {
+            // If it's a status description, set currentStatus instead
+            this.currentStatus = statusString;
+        }
+    }
+
+    // ✅ ADDED: Convenience method for expected delivery
+    public void setExpectedDelivery(String expectedDelivery) {
+        this.expectedDeliveryDate = expectedDelivery;
+    }
+
+    @Override
+    public String toString() {
+        return "TrackingResponse{" +
+                "status=" + status +
+                ", message='" + message + '\'' +
+                ", awbNumber='" + awbNumber + '\'' +
+                ", currentStatus='" + currentStatus + '\'' +
+                ", lastLocation='" + lastLocation + '\'' +
+                ", expectedDeliveryDate='" + expectedDeliveryDate + '\'' +
+                ", courierName='" + courierName + '\'' +
+                '}';
+    }
 
     // Inner class for tracking events
     public static class TrackingEvent {
         private String date;
         private String activity;
         private String location;
+        
+        @JsonProperty("status")
+        private String status;
+        
+        @JsonProperty("timestamp")
+        private String timestamp;
+        
+        @JsonProperty("description")
+        private String description;
 
         public TrackingEvent() {}
 
+        // ✅ COMPLETE: All getters and setters for tracking events
         public String getDate() { return date; }
         public void setDate(String date) { this.date = date; }
 
@@ -63,5 +120,24 @@ public class TrackingResponse {
 
         public String getLocation() { return location; }
         public void setLocation(String location) { this.location = location; }
+
+        public String getStatus() { return status; }
+        public void setStatus(String status) { this.status = status; }
+
+        public String getTimestamp() { return timestamp; }
+        public void setTimestamp(String timestamp) { this.timestamp = timestamp; }
+
+        public String getDescription() { return description; }
+        public void setDescription(String description) { this.description = description; }
+
+        @Override
+        public String toString() {
+            return "TrackingEvent{" +
+                    "date='" + date + '\'' +
+                    ", activity='" + activity + '\'' +
+                    ", location='" + location + '\'' +
+                    ", status='" + status + '\'' +
+                    '}';
+        }
     }
 }

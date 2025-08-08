@@ -29,11 +29,15 @@ public class ShipmentResponse {
     
     @JsonProperty("manifest_url")
     private String manifestUrl;
+    
+    // ✅ ADDED: Missing fields needed for NimbusPost integration
+    @JsonProperty("tracking_url")
+    private String trackingUrl;
 
     // Constructors
     public ShipmentResponse() {}
 
-    // Getters and Setters
+    // ✅ COMPLETE: All Getters and Setters
     public boolean isStatus() { return status; }
     public void setStatus(boolean status) { this.status = status; }
 
@@ -56,11 +60,32 @@ public class ShipmentResponse {
     public void setCourierName(String courierName) { this.courierName = courierName; }
 
     public String getExpectedDeliveryDate() { return expectedDeliveryDate; }
-    public void setExpectedDeliveryDate(String expectedDeliveryDate) { this.expectedDeliveryDate = expectedDeliveryDate; }
+    public void setExpectedDeliveryDate(String expectedDeliveryDate) { 
+        this.expectedDeliveryDate = expectedDeliveryDate; 
+    }
 
     public String getLabelUrl() { return labelUrl; }
     public void setLabelUrl(String labelUrl) { this.labelUrl = labelUrl; }
 
     public String getManifestUrl() { return manifestUrl; }
     public void setManifestUrl(String manifestUrl) { this.manifestUrl = manifestUrl; }
+
+    // ✅ ADDED: Missing getter/setter for trackingUrl
+    public String getTrackingUrl() { return trackingUrl; }
+    public void setTrackingUrl(String trackingUrl) { this.trackingUrl = trackingUrl; }
+
+    @Override
+    public String toString() {
+        return "ShipmentResponse{" +
+                "status=" + status +
+                ", message='" + message + '\'' +
+                ", orderId='" + orderId + '\'' +
+                ", shipmentId='" + shipmentId + '\'' +
+                ", awbNumber='" + awbNumber + '\'' +
+                ", courierId='" + courierId + '\'' +
+                ", courierName='" + courierName + '\'' +
+                ", expectedDeliveryDate='" + expectedDeliveryDate + '\'' +
+                ", trackingUrl='" + trackingUrl + '\'' +
+                '}';
+    }
 }

@@ -352,7 +352,7 @@ export default function PaymentScreen({ navigation, route }) {
             <Text style={styles.payText}>Pay ₹{orderSummary.total.toFixed(2)}</Text>
             <Text style={styles.paySubtext}>
               {deliveryType === 'PICKUP' 
-                ? 'Pickup from Bareilly store' 
+                ? 'Pickup from Saharanpur store' 
                 : `Including ₹${finalDeliveryCost} delivery via NimbusPost`
               }
             </Text>

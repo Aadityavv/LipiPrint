@@ -178,67 +178,78 @@ export default function DeliveryOptionsScreen({ navigation, route }) {
     return finalTotal + deliveryPrice;
   };
 
-  const proceedToPayment = () => {
-    if (deliveryMethod === 'delivery') {
-      if (showNewAddress) {
-        if (!addressLine1.trim() || !addressLine2.trim() || !addressLine3.trim()) {
-          Alert.alert('Address Required', 'Please enter your complete delivery address (all 3 lines).');
-          return;
-        }
-        if (!phone.trim()) {
-          Alert.alert('Phone Required', 'Please enter your phone number for delivery.');
-          return;
-        }
-        
-        // Validate pincode for NimbusPost delivery
-        const pincode = extractPincode(addressLine3);
-        if (!pincode) {
-          Alert.alert('Invalid Address', 'Please include a valid 6-digit pincode in address line 3.');
-          return;
-        }
-      } else {
-        if (!selectedAddressId) {
-          Alert.alert('Select Address', 'Please select a saved address or add a new one.');
-          return;
-        }
+const proceedToPayment = () => {
+  if (deliveryMethod === 'delivery') {
+    if (showNewAddress) {
+      if (!addressLine1.trim() || !addressLine2.trim() || !addressLine3.trim()) {
+        Alert.alert('Address Required', 'Please enter your complete delivery address (all 3 lines).');
+        return;
       }
-    }
-
-    let deliveryAddress = '';
-    let deliveryPhone = '';
-    
-    if (deliveryMethod === 'pickup') {
-      const location = pickupLocations.find(loc => loc.id === selectedLocation);
-      deliveryAddress = location ? `${location.name}, ${location.address}` : 'Store Pickup';
-      deliveryPhone = location ? location.phone : '';
+      if (!phone.trim()) {
+        Alert.alert('Phone Required', 'Please enter your phone number for delivery.');
+        return;
+      }
+      
+      // Validate pincode for NimbusPost delivery
+      const pincode = extractPincode(addressLine3);
+      if (!pincode) {
+        Alert.alert('Invalid Address', 'Please include a valid 6-digit pincode in address line 3.');
+        return;
+      }
     } else {
-      if (showNewAddress) {
-        deliveryAddress = [addressLine1, addressLine2, addressLine3].filter(Boolean).join(', ').trim();
-        deliveryPhone = phone;
-      } else {
-        const selectedAddr = savedAddresses.find(a => a.id === selectedAddressId);
-        deliveryAddress = [selectedAddr?.line1, selectedAddr?.line2, selectedAddr?.line3].filter(Boolean).join(', ').trim();
-        deliveryPhone = selectedAddr?.phone || '';
+      if (!selectedAddressId) {
+        Alert.alert('Select Address', 'Please select a saved address or add a new one.');
+        return;
       }
     }
+  }
 
-    navigation.navigate('Payment', {
-      files,
-      selectedOptions,
-      selectedPaper,
-      selectedPrint,
-      deliveryType: deliveryMethod ? deliveryMethod.toUpperCase() : undefined,
-      deliveryAddress,
-      phone: deliveryPhone,
-      total: calculateFinalTotal(),
-      totalPrice: finalTotal,
-      priceBreakdown,
-      subtotal,
-      gst,
-      discount,
-      deliveryEstimate, // Pass estimate for order creation
-    });
-  };
+  let deliveryAddress = '';
+  let deliveryPhone = '';
+  
+  if (deliveryMethod === 'pickup') {
+    const location = pickupLocations.find(loc => loc.id === selectedLocation);
+    deliveryAddress = location ? `${location.name}, ${location.address}` : 'Store Pickup - LipiPrint Bareilly';
+    deliveryPhone = location ? location.phone : '';
+  } else {
+    if (showNewAddress) {
+      deliveryAddress = [addressLine1, addressLine2, addressLine3].filter(Boolean).join(', ').trim();
+      deliveryPhone = phone;
+    } else {
+      const selectedAddr = savedAddresses.find(a => a.id === selectedAddressId);
+      deliveryAddress = [selectedAddr?.line1, selectedAddr?.line2, selectedAddr?.line3].filter(Boolean).join(', ').trim();
+      deliveryPhone = selectedAddr?.phone || '';
+    }
+  }
+
+  // ✅ FIXED: Calculate actual delivery cost
+  const selectedDelivery = deliveryOptions.find(method => method.id === deliveryMethod);
+  let actualDeliveryCost = selectedDelivery ? selectedDelivery.price : 0;
+  
+  // Use real-time delivery price if available from NimbusPost
+  if (deliveryEstimate && deliveryEstimate.price) {
+    actualDeliveryCost = deliveryEstimate.price;
+  }
+
+  navigation.navigate('Payment', {
+    files,
+    selectedOptions,
+    selectedPaper,
+    selectedPrint,
+    deliveryType: deliveryMethod ? deliveryMethod.toUpperCase() : undefined,
+    deliveryAddress,
+    phone: deliveryPhone,
+    total: calculateFinalTotal(),
+    totalPrice: finalTotal,
+    priceBreakdown,
+    subtotal,
+    gst,
+    discount,
+    deliveryEstimate, // Pass estimate for order creation
+    deliveryCost: actualDeliveryCost, // ✅ FIXED: Pass actual delivery cost
+  });
+};
+
 
   const removeSavedAddress = async (id) => {
     try {

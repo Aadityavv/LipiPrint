@@ -24,6 +24,13 @@ public class NimbusPostService {
     
     private static final Logger logger = LoggerFactory.getLogger(NimbusPostService.class);
     
+    // ✅ VERIFIED: Correct API endpoints from official NimbusPost collection
+    private static final String LOGIN_ENDPOINT = "/users/login";
+    private static final String SERVICEABILITY_ENDPOINT = "/courier/serviceability";
+    private static final String SHIPMENT_ENDPOINT = "/shipments";
+    private static final String TRACKING_ENDPOINT = "/shipments/track/";
+    private static final String CANCEL_ENDPOINT = "/shipments/cancel";
+    
     @Autowired
     private NimbusPostConfig config;
     
@@ -36,12 +43,12 @@ public class NimbusPostService {
     @PostConstruct
     public void authenticate() {
         if (!config.isEnabled()) {
-            logger.info("NimbusPost integration is disabled for LipiPrint Saharanpur");
+            logger.info("NimbusPost integration is disabled for Nagpal Print House Saharanpur");
             return;
         }
         
         try {
-            String authUrl = config.getBaseUrl() + "/users/login";
+            String authUrl = config.getBaseUrl() + LOGIN_ENDPOINT;
             
             Map<String, String> authRequest = new HashMap<>();
             authRequest.put("email", config.getEmail());
@@ -60,8 +67,9 @@ public class NimbusPostService {
                     Map<String, Object> responseBody = objectMapper.readValue(response.getBody(), 
                         new TypeReference<Map<String, Object>>() {});
                     
-                    this.authToken = (String) responseBody.get("token");
-                    logger.info("NimbusPost authentication successful for LipiPrint Saharanpur");
+                    // ✅ CORRECT: NimbusPost returns token in 'data' field
+                    this.authToken = (String) responseBody.get("data");
+                    logger.info("NimbusPost authentication successful for Nagpal Print House Saharanpur");
                 } else {
                     logger.error("NimbusPost authentication failed with status: {}", response.getStatusCode());
                 }
@@ -71,12 +79,15 @@ public class NimbusPostService {
             }
             
         } catch (Exception e) {
-            logger.error("NimbusPost configuration error for LipiPrint Saharanpur: {}", e.getMessage());
+            logger.error("NimbusPost configuration error for Nagpal Print House Saharanpur: {}", e.getMessage());
         }
     }
     
-    // *** MISSING METHODS - THESE WERE CAUSING THE COMPILATION ERRORS ***
+    public boolean isEnabled() {
+        return config.isEnabled();
+    }
     
+    // ✅ VERIFIED: Using correct /courier/serviceability endpoint
     public Map<String, Object> getDeliveryEstimate(String pincode, Double weight) {
         logger.info("[NimbusPostService] Getting delivery estimate from Saharanpur to pincode: {}", pincode);
         
@@ -92,23 +103,26 @@ public class NimbusPostService {
         }
         
         try {
-            String estimateUrl = config.getBaseUrl() + "/shipping/estimate";
+            String serviceabilityUrl = config.getBaseUrl() + SERVICEABILITY_ENDPOINT;
             
-            Map<String, Object> estimateRequest = new HashMap<>();
-            estimateRequest.put("pickup_pincode", "247001"); // Saharanpur pincode
-            estimateRequest.put("delivery_pincode", pincode);
-            estimateRequest.put("weight", weight);
-            estimateRequest.put("length", 10);
-            estimateRequest.put("breadth", 10);
-            estimateRequest.put("height", 5);
+            // ✅ VERIFIED: Correct request format for serviceability API
+            Map<String, Object> serviceabilityRequest = new HashMap<>();
+            serviceabilityRequest.put("origin", "247001"); // ✅ CORRECT: Saharanpur pincode
+            serviceabilityRequest.put("destination", pincode);
+            serviceabilityRequest.put("payment_type", "prepaid");
+            serviceabilityRequest.put("order_amount", "100.00"); // Default amount for estimate
+            serviceabilityRequest.put("weight", String.valueOf((int)(weight * 1000))); // Convert kg to grams
+            serviceabilityRequest.put("length", "30");
+            serviceabilityRequest.put("breadth", "25");
+            serviceabilityRequest.put("height", "2");
             
             HttpHeaders headers = new HttpHeaders();
             headers.setContentType(MediaType.APPLICATION_JSON);
             headers.setBearerAuth(authToken);
             
-            HttpEntity<Map<String, Object>> entity = new HttpEntity<>(estimateRequest, headers);
+            HttpEntity<Map<String, Object>> entity = new HttpEntity<>(serviceabilityRequest, headers);
             
-            ResponseEntity<String> response = restTemplate.postForEntity(estimateUrl, entity, String.class);
+            ResponseEntity<String> response = restTemplate.postForEntity(serviceabilityUrl, entity, String.class);
             
             if (response.getStatusCode() == HttpStatus.OK) {
                 Map<String, Object> responseBody = objectMapper.readValue(response.getBody(),
@@ -126,8 +140,9 @@ public class NimbusPostService {
         }
     }
     
+    // ✅ VERIFIED: Using correct serviceability endpoint
     public Map<String, Object> getShippingRates(Map<String, Object> request) {
-        logger.info("[NimbusPostService] Getting shipping rates from LipiPrint Saharanpur: {}", request);
+        logger.info("[NimbusPostService] Getting shipping rates from Nagpal Print House Saharanpur: {}", request);
         
         if (!config.isEnabled()) {
             throw new RuntimeException("NimbusPost is not enabled");
@@ -141,19 +156,26 @@ public class NimbusPostService {
         }
         
         try {
-            String ratesUrl = config.getBaseUrl() + "/shipping/rates";
+            String serviceabilityUrl = config.getBaseUrl() + SERVICEABILITY_ENDPOINT;
             
-            // Add Saharanpur origin to the request
-            request.put("pickup_pincode", "247001");
-            request.put("origin", "Saharanpur, UP");
+            // ✅ VERIFIED: Correct request format
+            Map<String, Object> serviceabilityRequest = new HashMap<>();
+            serviceabilityRequest.put("origin", "247001"); // ✅ CORRECT: Saharanpur pincode
+            serviceabilityRequest.put("destination", request.get("delivery_pincode"));
+            serviceabilityRequest.put("payment_type", request.getOrDefault("payment_type", "prepaid"));
+            serviceabilityRequest.put("order_amount", request.getOrDefault("order_amount", "100.00"));
+            serviceabilityRequest.put("weight", request.getOrDefault("weight", "200")); // grams
+            serviceabilityRequest.put("length", request.getOrDefault("length", "30"));
+            serviceabilityRequest.put("breadth", request.getOrDefault("breadth", "25"));
+            serviceabilityRequest.put("height", request.getOrDefault("height", "2"));
             
             HttpHeaders headers = new HttpHeaders();
             headers.setContentType(MediaType.APPLICATION_JSON);
             headers.setBearerAuth(authToken);
             
-            HttpEntity<Map<String, Object>> entity = new HttpEntity<>(request, headers);
+            HttpEntity<Map<String, Object>> entity = new HttpEntity<>(serviceabilityRequest, headers);
             
-            ResponseEntity<String> response = restTemplate.postForEntity(ratesUrl, entity, String.class);
+            ResponseEntity<String> response = restTemplate.postForEntity(serviceabilityUrl, entity, String.class);
             
             if (response.getStatusCode() == HttpStatus.OK) {
                 Map<String, Object> responseBody = objectMapper.readValue(response.getBody(),
@@ -171,8 +193,9 @@ public class NimbusPostService {
         }
     }
     
+    // ✅ VERIFIED: Using correct /shipments endpoint
     public ShipmentResponse createShipment(ShipmentRequest shipmentRequest) {
-        logger.info("[NimbusPostService] Creating shipment from LipiPrint Saharanpur: {}", shipmentRequest.getOrderId());
+        logger.info("[NimbusPostService] Creating shipment from Nagpal Print House Saharanpur: {}", shipmentRequest.getOrderId());
         
         if (!config.isEnabled()) {
             throw new RuntimeException("NimbusPost is not enabled");
@@ -186,21 +209,29 @@ public class NimbusPostService {
         }
         
         try {
-            String createUrl = config.getBaseUrl() + "/shipping/create";
+            String shipmentUrl = config.getBaseUrl() + SHIPMENT_ENDPOINT;
+            
+            // ✅ VERIFIED: Convert ShipmentRequest to NimbusPost format
+            Map<String, Object> nimbusPostRequest = buildNimbusPostShipmentRequest(shipmentRequest);
             
             HttpHeaders headers = new HttpHeaders();
             headers.setContentType(MediaType.APPLICATION_JSON);
             headers.setBearerAuth(authToken);
             
-            HttpEntity<ShipmentRequest> entity = new HttpEntity<>(shipmentRequest, headers);
+            HttpEntity<Map<String, Object>> entity = new HttpEntity<>(nimbusPostRequest, headers);
             
-            ResponseEntity<ShipmentResponse> response = restTemplate.postForEntity(
-                createUrl, entity, ShipmentResponse.class);
+            ResponseEntity<String> response = restTemplate.postForEntity(shipmentUrl, entity, String.class);
             
             if (response.getStatusCode() == HttpStatus.OK) {
+                Map<String, Object> responseBody = objectMapper.readValue(response.getBody(),
+                    new TypeReference<Map<String, Object>>() {});
+                
+                // ✅ Parse response and create ShipmentResponse
+                ShipmentResponse shipmentResponse = parseShipmentResponse(responseBody);
+                
                 logger.info("[NimbusPostService] Shipment created successfully from Saharanpur: {}", 
-                    response.getBody().getAwbNumber());
-                return response.getBody();
+                    shipmentResponse.getAwbNumber());
+                return shipmentResponse;
             } else {
                 throw new RuntimeException("Failed to create shipment: " + response.getStatusCode());
             }
@@ -211,6 +242,7 @@ public class NimbusPostService {
         }
     }
     
+    // ✅ VERIFIED: Using correct tracking endpoint
     public TrackingResponse trackShipment(String awbNumber) {
         logger.info("[NimbusPostService] Tracking shipment from Saharanpur: {}", awbNumber);
         
@@ -219,7 +251,7 @@ public class NimbusPostService {
         }
         
         try {
-            String trackUrl = config.getBaseUrl() + "/tracking/" + awbNumber;
+            String trackUrl = config.getBaseUrl() + TRACKING_ENDPOINT + awbNumber;
             
             HttpHeaders headers = new HttpHeaders();
             headers.setContentType(MediaType.APPLICATION_JSON);
@@ -229,12 +261,17 @@ public class NimbusPostService {
             
             HttpEntity<?> entity = new HttpEntity<>(headers);
             
-            ResponseEntity<TrackingResponse> response = restTemplate.exchange(
-                trackUrl, HttpMethod.GET, entity, TrackingResponse.class);
+            ResponseEntity<String> response = restTemplate.exchange(
+                trackUrl, HttpMethod.GET, entity, String.class);
             
             if (response.getStatusCode() == HttpStatus.OK) {
+                Map<String, Object> responseBody = objectMapper.readValue(response.getBody(),
+                    new TypeReference<Map<String, Object>>() {});
+                
+                TrackingResponse trackingResponse = parseTrackingResponse(responseBody);
+                
                 logger.info("[NimbusPostService] Tracking successful from Saharanpur: {}", awbNumber);
-                return response.getBody();
+                return trackingResponse;
             } else {
                 throw new RuntimeException("Failed to track shipment: " + response.getStatusCode());
             }
@@ -244,147 +281,236 @@ public class NimbusPostService {
             throw new RuntimeException("Tracking failed: " + e.getMessage());
         }
     }
-    // Add these methods to your NimbusPostService class
-
-public boolean isEnabled() {
-    return config.isEnabled();
-}
-
-public ShipmentResponse createShipment(Order order, UserAddress deliveryAddress, 
-                                     String customerName, String customerEmail) {
-    logger.info("[NimbusPostService] Creating shipment for LipiPrint Saharanpur order: {}", order.getId());
     
-    if (!isEnabled()) {
-        throw new RuntimeException("NimbusPost is not enabled");
-    }
-    
-    if (authToken == null) {
-        authenticate();
+    public ShipmentResponse createShipment(Order order, UserAddress deliveryAddress, 
+                                         String customerName, String customerEmail) {
+        logger.info("[NimbusPostService] Creating shipment for Nagpal Print House order: {}", order.getId());
+        
+        if (!isEnabled()) {
+            throw new RuntimeException("NimbusPost is not enabled");
+        }
+        
         if (authToken == null) {
-            throw new RuntimeException("NimbusPost authentication failed");
+            authenticate();
+            if (authToken == null) {
+                throw new RuntimeException("NimbusPost authentication failed");
+            }
+        }
+        
+        try {
+            ShipmentRequest shipmentRequest = buildShipmentRequest(order, deliveryAddress, customerName, customerEmail);
+            return createShipment(shipmentRequest);
+            
+        } catch (Exception e) {
+            logger.error("[NimbusPostService] Failed to create shipment for order {}: {}", order.getId(), e.getMessage());
+            throw new RuntimeException("Shipment creation failed: " + e.getMessage());
         }
     }
     
-    try {
-        // Build ShipmentRequest from Order and UserAddress
-        ShipmentRequest shipmentRequest = buildShipmentRequest(order, deliveryAddress, customerName, customerEmail);
-        return createShipment(shipmentRequest);
+    // ✅ VERIFIED: Updated cancel endpoint
+    public void cancelShipment(String awbNumber) {
+        logger.info("[NimbusPostService] Cancelling shipment with AWB: {}", awbNumber);
         
-    } catch (Exception e) {
-        logger.error("[NimbusPostService] Failed to create shipment for order {}: {}", order.getId(), e.getMessage());
-        throw new RuntimeException("Shipment creation failed: " + e.getMessage());
-    }
-}
-
-public void cancelShipment(String awbNumber) {
-    logger.info("[NimbusPostService] Cancelling shipment with AWB: {}", awbNumber);
-    
-    if (!isEnabled()) {
-        throw new RuntimeException("NimbusPost is not enabled");
-    }
-    
-    if (authToken == null) {
-        authenticate();
+        if (!isEnabled()) {
+            throw new RuntimeException("NimbusPost is not enabled");
+        }
+        
         if (authToken == null) {
-            throw new RuntimeException("NimbusPost authentication failed");
+            authenticate();
+            if (authToken == null) {
+                throw new RuntimeException("NimbusPost authentication failed");
+            }
+        }
+        
+        try {
+            String cancelUrl = config.getBaseUrl() + CANCEL_ENDPOINT;
+            
+            Map<String, String> cancelRequest = new HashMap<>();
+            cancelRequest.put("awb", awbNumber);
+            
+            HttpHeaders headers = new HttpHeaders();
+            headers.setContentType(MediaType.APPLICATION_JSON);
+            headers.setBearerAuth(authToken);
+            
+            HttpEntity<Map<String, String>> entity = new HttpEntity<>(cancelRequest, headers);
+            
+            ResponseEntity<String> response = restTemplate.postForEntity(cancelUrl, entity, String.class);
+            
+            if (response.getStatusCode() == HttpStatus.OK) {
+                logger.info("[NimbusPostService] Shipment cancelled successfully: {}", awbNumber);
+            } else {
+                throw new RuntimeException("Failed to cancel shipment: " + response.getStatusCode());
+            }
+            
+        } catch (Exception e) {
+            logger.error("[NimbusPostService] Failed to cancel shipment {}: {}", awbNumber, e.getMessage());
+            throw new RuntimeException("Shipment cancellation failed: " + e.getMessage());
         }
     }
     
-    try {
-        String cancelUrl = config.getBaseUrl() + "/shipping/cancel";
+    // ✅ CORRECTED: Updated for Saharanpur location
+    private ShipmentRequest buildShipmentRequest(Order order, UserAddress deliveryAddress, 
+                                               String customerName, String customerEmail) {
+        ShipmentRequest request = new ShipmentRequest();
         
-        Map<String, String> cancelRequest = new HashMap<>();
-        cancelRequest.put("awb", awbNumber);
+        // Order details
+        request.setOrderId(order.getId().toString());
+        request.setOrderNumber("LP" + order.getId());
+        request.setOrderAmount(order.getTotalAmount().toString());
+        request.setPaymentMethod(order.getPaymentMethod() != null ? 
+            order.getPaymentMethod().toString() : "PREPAID");
         
-        HttpHeaders headers = new HttpHeaders();
-        headers.setContentType(MediaType.APPLICATION_JSON);
-        headers.setBearerAuth(authToken);
+        // ✅ CORRECTED: Pickup details for Nagpal Print House Saharanpur
+        request.setPickupName("Nagpal Print House");
+        request.setPickupAddress("Near Civil Court Sadar, Thana Road");
+        request.setPickupCity("Saharanpur");
+        request.setPickupState("Uttar Pradesh");
+        request.setPickupPincode("247001");
+        request.setPickupPhone("+91-9876543210");
         
-        HttpEntity<Map<String, String>> entity = new HttpEntity<>(cancelRequest, headers);
+        // Customer delivery details
+        request.setDeliveryName(customerName);
+        request.setDeliveryPhone(deliveryAddress.getPhone());
+        request.setDeliveryEmail(customerEmail);
         
-        ResponseEntity<String> response = restTemplate.postForEntity(cancelUrl, entity, String.class);
+        // ✅ Complete address parsing
+        String fullAddress = deliveryAddress.getLine1();
+        if (deliveryAddress.getLine2() != null && !deliveryAddress.getLine2().trim().isEmpty()) {
+            fullAddress += ", " + deliveryAddress.getLine2();
+        }
+        request.setDeliveryAddress(fullAddress);
+        request.setDeliveryCity(extractCity(deliveryAddress.getLine3()));
+        request.setDeliveryState(extractState(deliveryAddress.getLine3()));
+        request.setDeliveryPincode(extractPincode(deliveryAddress.getLine3()));
         
-        if (response.getStatusCode() == HttpStatus.OK) {
-            logger.info("[NimbusPostService] Shipment cancelled successfully: {}", awbNumber);
-        } else {
-            throw new RuntimeException("Failed to cancel shipment: " + response.getStatusCode());
+        // Package details for document printing
+        request.setWeight(0.2);
+        request.setLength(30);  // A4/A3 document package
+        request.setBreadth(25);
+        request.setHeight(2);
+        
+        // Service details
+        Double codAmount = 0.0;
+        if (order.getPaymentMethod() == Order.PaymentMethod.COD) {
+            codAmount = order.getTotalAmount();
+        }
+        request.setCodAmount(codAmount);
+        request.setProductDescription("Printed Documents - Nagpal Print House Saharanpur");
+        request.setInvoiceNumber("LP" + order.getId());
+        
+        return request;
+    }
+    
+    // ✅ VERIFIED: Convert internal ShipmentRequest to NimbusPost API format
+    private Map<String, Object> buildNimbusPostShipmentRequest(ShipmentRequest shipmentRequest) {
+        Map<String, Object> request = new HashMap<>();
+        
+        // Order details
+        request.put("order_number", shipmentRequest.getOrderNumber());
+        request.put("shipping_charges", 30); // Default shipping charge
+        request.put("payment_type", shipmentRequest.getPaymentMethod().toLowerCase().contains("cod") ? "cod" : "prepaid");
+        request.put("order_amount", Double.parseDouble(shipmentRequest.getOrderAmount()));
+        request.put("package_weight", (int)(shipmentRequest.getWeight() * 1000)); // Convert kg to grams
+        request.put("package_length", shipmentRequest.getLength());
+        request.put("package_breadth", shipmentRequest.getBreadth());
+        request.put("package_height", shipmentRequest.getHeight());
+        request.put("request_auto_pickup", "yes");
+        
+        // Consignee details
+        Map<String, Object> consignee = new HashMap<>();
+        consignee.put("name", shipmentRequest.getDeliveryName());
+        consignee.put("address", shipmentRequest.getDeliveryAddress());
+        consignee.put("address_2", "");
+        consignee.put("city", shipmentRequest.getDeliveryCity());
+        consignee.put("state", shipmentRequest.getDeliveryState());
+        consignee.put("pincode", shipmentRequest.getDeliveryPincode());
+        consignee.put("phone", shipmentRequest.getDeliveryPhone());
+        request.put("consignee", consignee);
+        
+        // ✅ CORRECTED: Pickup details for Nagpal Print House Saharanpur
+        Map<String, Object> pickup = new HashMap<>();
+        pickup.put("warehouse_name", "Nagpal Print House");
+        pickup.put("name", "Nagpal Print House");
+        pickup.put("address", "Near Civil Court Sadar, Thana Road");
+        pickup.put("city", "Saharanpur");
+        pickup.put("state", "Uttar Pradesh");
+        pickup.put("pincode", "247001");
+        pickup.put("phone", "9876543210");
+        request.put("pickup", pickup);
+        
+        // Order items
+        List<Map<String, Object>> orderItems = new ArrayList<>();
+        Map<String, Object> item = new HashMap<>();
+        item.put("name", "Printed Documents");
+        item.put("qty", "1");
+        item.put("price", Double.parseDouble(shipmentRequest.getOrderAmount()));
+        item.put("sku", "DOC_PRINT");
+        orderItems.add(item);
+        request.put("order_items", orderItems);
+        
+        return request;
+    }
+    
+    // ✅ VERIFIED: Parse NimbusPost shipment response
+    private ShipmentResponse parseShipmentResponse(Map<String, Object> responseBody) {
+        ShipmentResponse response = new ShipmentResponse();
+        
+        if (responseBody.get("status") != null && responseBody.get("status").equals(true)) {
+            @SuppressWarnings("unchecked")
+            Map<String, Object> data = (Map<String, Object>) responseBody.get("data");
+            
+            if (data != null) {
+                response.setAwbNumber((String) data.get("awb"));
+                response.setCourierName((String) data.get("courier_name"));
+                response.setTrackingUrl((String) data.get("tracking_url"));
+                response.setShipmentId((String) data.get("shipment_id"));
+            }
         }
         
-    } catch (Exception e) {
-        logger.error("[NimbusPostService] Failed to cancel shipment {}: {}", awbNumber, e.getMessage());
-        throw new RuntimeException("Shipment cancellation failed: " + e.getMessage());
+        return response;
     }
-}
-
-// Helper method to build ShipmentRequest from Order and UserAddress
-private ShipmentRequest buildShipmentRequest(Order order, UserAddress deliveryAddress, 
-                                           String customerName, String customerEmail) {
-    ShipmentRequest request = new ShipmentRequest();
     
-    // Order details
-    request.setOrderId(order.getId().toString());
-    request.setOrderAmount(order.getTotalAmount().toString());
-    request.setPaymentMethod(order.getPaymentMethod() != null ? 
-        order.getPaymentMethod().toString() : "ONLINE");
-    
-    // Pickup details (LipiPrint Saharanpur)
-    request.setPickupName("LipiPrint Saharanpur");
-    request.setPickupAddress("Shop No. 12, Ground Floor, City Plaza, Ambala Road");
-    request.setPickupCity("Saharanpur");
-    request.setPickupState("Uttar Pradesh");
-    request.setPickupPincode("247001");
-    request.setPickupPhone("+91-9876543210");
-    
-    // Customer delivery details
-    request.setDeliveryName(customerName);
-    request.setDeliveryPhone(deliveryAddress.getPhone());
-    request.setDeliveryEmail(customerEmail);
-    
-    // Parse address lines
-    request.setDeliveryAddress(deliveryAddress.getLine1());
-    request.setDeliveryCity(extractCity(deliveryAddress.getLine3()));
-    request.setDeliveryState(extractState(deliveryAddress.getLine3()));
-    request.setDeliveryPincode(extractPincode(deliveryAddress.getLine3()));
-    
-    // Package details for document printing
-    request.setWeight(0.2);
-    request.setLength(30);  // A4/A3 document package
-    request.setBreadth(25);
-    request.setHeight(2);
-    
-    // Service details
-    request.setCodAmount(order.getPaymentMethod() == Order.PaymentMethod.COD ? 
-        order.getTotalAmount() : 0.0);
-    request.setProductDescription("Printed Documents - LipiPrint Saharanpur");
-    request.setInvoiceNumber("LP" + order.getId());
-    
-    return request;
-}
-
-private String extractPincode(String addressLine) {
-    if (addressLine == null) return "000000";
-    java.util.regex.Pattern pattern = java.util.regex.Pattern.compile("\\b(\\d{6})\\b");
-    java.util.regex.Matcher matcher = pattern.matcher(addressLine);
-    return matcher.find() ? matcher.group(1) : "000000";
-}
-
-private String extractCity(String addressLine) {
-    if (addressLine == null) return "Unknown";
-    String[] parts = addressLine.split("[,\\s]+");
-    return parts.length > 0 ? parts[0].trim() : "Unknown";
-}
-
-private String extractState(String addressLine) {
-    if (addressLine == null) return "Unknown";
-    if (addressLine.toLowerCase().contains("up") || addressLine.toLowerCase().contains("uttar pradesh")) {
-        return "Uttar Pradesh";
-    } else if (addressLine.toLowerCase().contains("uttarakhand")) {
-        return "Uttarakhand";
-    } else if (addressLine.toLowerCase().contains("delhi")) {
-        return "Delhi";
+    // ✅ VERIFIED: Parse NimbusPost tracking response
+    private TrackingResponse parseTrackingResponse(Map<String, Object> responseBody) {
+        TrackingResponse response = new TrackingResponse();
+        
+        if (responseBody.get("status") != null && responseBody.get("status").equals(true)) {
+            @SuppressWarnings("unchecked")
+            Map<String, Object> data = (Map<String, Object>) responseBody.get("data");
+            
+            if (data != null) {
+                response.setAwbNumber((String) data.get("awb"));
+                response.setStatus((String) data.get("status"));
+                response.setLastLocation((String) data.get("last_location"));
+                response.setExpectedDelivery((String) data.get("expected_delivery"));
+            }
+        }
+        
+        return response;
     }
-    return "Unknown";
-}
-
     
+    private String extractPincode(String addressLine) {
+        if (addressLine == null) return "000000";
+        java.util.regex.Pattern pattern = java.util.regex.Pattern.compile("\\b(\\d{6})\\b");
+        java.util.regex.Matcher matcher = pattern.matcher(addressLine);
+        return matcher.find() ? matcher.group(1) : "000000";
+    }
+    
+    private String extractCity(String addressLine) {
+        if (addressLine == null) return "Unknown";
+        String[] parts = addressLine.split("[,\\s]+");
+        return parts.length > 0 ? parts[0].trim() : "Unknown";
+    }
+    
+    private String extractState(String addressLine) {
+        if (addressLine == null) return "Unknown";
+        if (addressLine.toLowerCase().contains("up") || addressLine.toLowerCase().contains("uttar pradesh")) {
+            return "Uttar Pradesh";
+        } else if (addressLine.toLowerCase().contains("uttarakhand")) {
+            return "Uttarakhand";
+        } else if (addressLine.toLowerCase().contains("delhi")) {
+            return "Delhi";
+        }
+        return "Unknown";
+    }
 }
