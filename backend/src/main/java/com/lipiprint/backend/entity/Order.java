@@ -8,8 +8,17 @@ import java.util.Map;
 @Entity
 @Table(name = "orders")
 public class Order {
+    
     public enum Status {
         PENDING, PROCESSING, COMPLETED, OUT_FOR_DELIVERY, DELIVERED, CANCELLED
+    }
+
+    public enum DeliveryType {
+        PICKUP, DELIVERY
+    }
+
+    public enum PaymentMethod {
+        RAZORPAY, COD, CASH, UPI, NETBANKING
     }
 
     @Id
@@ -40,12 +49,27 @@ public class Order {
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
 
-    private String deliveryType;
+    @Enumerated(EnumType.STRING)
+    @Column(name = "delivery_type")
+    private DeliveryType deliveryType;
+    
+    @Column(name = "delivery_address")
     private String deliveryAddress;
+    
+    @Column(name = "order_note")
     private String orderNote;
+    
+    @Column(name = "razorpay_order_id")
     private String razorpayOrderId;
 
-    // *** NEW NIMBUSPOST FIELDS ***
+    @Enumerated(EnumType.STRING)
+    @Column(name = "payment_method")
+    private PaymentMethod paymentMethod;
+
+    @Column(name = "phone")
+    private String phone;
+
+    // *** NIMBUSPOST INTEGRATION FIELDS ***
     @Column(name = "awb_number")
     private String awbNumber;
 
@@ -67,6 +91,9 @@ public class Order {
     @Column(name = "shipping_created")
     private Boolean shippingCreated = false;
 
+    @OneToOne(mappedBy = "order", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    private Payment payment;
+
     @PrePersist
     protected void onCreate() {
         createdAt = updatedAt = LocalDateTime.now();
@@ -77,9 +104,10 @@ public class Order {
         updatedAt = LocalDateTime.now();
     }
 
+    // *** CONSTRUCTORS ***
     public Order() {}
 
-    // *** EXISTING GETTERS AND SETTERS ***
+    // *** BASIC GETTERS AND SETTERS ***
     public Long getId() { return id; }
     public void setId(Long id) { this.id = id; }
     
@@ -110,14 +138,27 @@ public class Order {
     public LocalDateTime getUpdatedAt() { return updatedAt; }
     public void setUpdatedAt(LocalDateTime updatedAt) { this.updatedAt = updatedAt; }
     
-    public String getDeliveryType() { return deliveryType; }
-    public void setDeliveryType(String deliveryType) { this.deliveryType = deliveryType; }
+    // *** DELIVERY TYPE GETTERS AND SETTERS ***
+    public DeliveryType getDeliveryType() { return deliveryType; }
+    public void setDeliveryType(DeliveryType deliveryType) { this.deliveryType = deliveryType; }
+    
+    // Backward compatibility for String delivery type
+    public String getDeliveryTypeString() { 
+        return deliveryType != null ? deliveryType.name() : null; 
+    }
+    public void setDeliveryType(String deliveryType) { 
+        if (deliveryType != null && !deliveryType.trim().isEmpty()) {
+            this.deliveryType = DeliveryType.valueOf(deliveryType.toUpperCase()); 
+        }
+    }
     
     public String getDeliveryAddress() { return deliveryAddress; }
     public void setDeliveryAddress(String deliveryAddress) { this.deliveryAddress = deliveryAddress; }
 
     public java.util.List<PrintJob> getPrintJobs() { return printJobs; }
-    public void setPrintJobs(java.util.List<PrintJob> printJobs) { this.printJobs = printJobs; }
+    public void setPrintJobs(java.util.List<PrintJob> printJobs) { 
+        this.printJobs = printJobs != null ? printJobs : new java.util.ArrayList<>(); 
+    }
 
     public String getOrderNote() { return orderNote; }
     public void setOrderNote(String orderNote) { this.orderNote = orderNote; }
@@ -125,6 +166,14 @@ public class Order {
     public String getRazorpayOrderId() { return razorpayOrderId; }
     public void setRazorpayOrderId(String razorpayOrderId) { this.razorpayOrderId = razorpayOrderId; }
 
+    // *** PAYMENT METHOD GETTERS AND SETTERS ***
+    public PaymentMethod getPaymentMethod() { return paymentMethod; }
+    public void setPaymentMethod(PaymentMethod paymentMethod) { this.paymentMethod = paymentMethod; }
+
+    public String getPhone() { return phone; }
+    public void setPhone(String phone) { this.phone = phone; }
+
+    // *** FINANCIAL GETTERS AND SETTERS ***
     public Double getSubtotal() { return subtotal; }
     public void setSubtotal(Double subtotal) { this.subtotal = subtotal; }
     
@@ -146,7 +195,7 @@ public class Order {
     public java.util.List<com.lipiprint.backend.service.PricingService.BreakdownItem> getBreakdown() { return breakdown; }
     public void setBreakdown(java.util.List<com.lipiprint.backend.service.PricingService.BreakdownItem> breakdown) { this.breakdown = breakdown; }
 
-    // *** NEW NIMBUSPOST GETTERS AND SETTERS ***
+    // *** NIMBUSPOST SHIPPING GETTERS AND SETTERS ***
     public String getAwbNumber() { return awbNumber; }
     public void setAwbNumber(String awbNumber) { this.awbNumber = awbNumber; }
 
@@ -168,35 +217,111 @@ public class Order {
     public Boolean getShippingCreated() { return shippingCreated; }
     public void setShippingCreated(Boolean shippingCreated) { this.shippingCreated = shippingCreated; }
 
-    @OneToOne(mappedBy = "order", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
-    private Payment payment;
+    // *** PAYMENT RELATIONSHIP ***
+    public Payment getPayment() { return payment; }
+    public void setPayment(Payment payment) { 
+        this.payment = payment;
+        if (payment != null) {
+            payment.setOrder(this);
+        }
+    }
 
-    // *** UTILITY METHODS ***
+    // *** BUSINESS LOGIC UTILITY METHODS ***
     public boolean isDeliveryOrder() {
-        return "DELIVERY".equalsIgnoreCase(deliveryType);
+        return deliveryType == DeliveryType.DELIVERY;
+    }
+
+    public boolean isPickupOrder() {
+        return deliveryType == DeliveryType.PICKUP;
     }
 
     public boolean hasShippingInfo() {
         return awbNumber != null && !awbNumber.trim().isEmpty();
     }
 
+    public boolean isCodOrder() {
+        return paymentMethod == PaymentMethod.COD;
+    }
+
+    public boolean isOnlinePaymentOrder() {
+        return paymentMethod == PaymentMethod.RAZORPAY || 
+               paymentMethod == PaymentMethod.UPI || 
+               paymentMethod == PaymentMethod.NETBANKING;
+    }
+
+    public boolean canBeShipped() {
+        return isDeliveryOrder() && 
+               (status == Status.PENDING || status == Status.PROCESSING) &&
+               !Boolean.TRUE.equals(shippingCreated);
+    }
+
+    public boolean canBeCancelled() {
+        return status == Status.PENDING || status == Status.PROCESSING;
+    }
+
+    public boolean isCompleted() {
+        return status == Status.COMPLETED || status == Status.DELIVERED;
+    }
+
+    // *** ACTIVITY MAPPING FOR ADMIN DASHBOARD ***
     public Map<String, Object> toActivityMap() {
         Map<String, Object> map = new HashMap<>();
         map.put("id", id);
         map.put("type", "order");
-        map.put("action", status != null ? status.name() : "");
-        map.put("user", user != null ? user.getName() : "");
+        map.put("action", status != null ? status.name() : "PENDING");
+        map.put("user", user != null ? user.getName() : "Unknown");
+        map.put("amount", totalAmount);
+        map.put("delivery_type", deliveryType != null ? deliveryType.name() : "UNKNOWN");
+        map.put("payment_method", paymentMethod != null ? paymentMethod.name() : "UNKNOWN");
         map.put("time", createdAt != null ? createdAt.toString() : "");
         map.put("awb_number", awbNumber);
         map.put("courier_name", courierName);
+        map.put("phone", phone);
+        map.put("address", deliveryAddress);
         return map;
     }
-    public Payment getPayment() { return payment; }
-public void setPayment(Payment payment) { 
-    this.payment = payment;
-    if (payment != null) {
-        payment.setOrder(this);
-    }
-}
 
+    // *** BUSINESS CALCULATION METHODS ***
+    public Double getCodAmountForShipping() {
+        return isCodOrder() ? totalAmount : 0.0;
+    }
+
+    public String getDisplayStatus() {
+        if (status == null) return "Pending";
+        
+        switch (status) {
+            case PENDING: return "Order Placed";
+            case PROCESSING: return "Being Printed";
+            case COMPLETED: return "Print Complete";
+            case OUT_FOR_DELIVERY: return "Out for Delivery";
+            case DELIVERED: return "Delivered";
+            case CANCELLED: return "Cancelled";
+            default: return status.name();
+        }
+    }
+
+    public String getEstimatedDeliveryText() {
+        if (isPickupOrder()) {
+            return "Ready for pickup in 2-4 hours";
+        } else if (expectedDeliveryDate != null) {
+            return "Expected: " + expectedDeliveryDate.toLocalDate().toString();
+        } else {
+            return "Delivered in 2-3 days";
+        }
+    }
+
+    // *** FOR DEBUGGING AND LOGGING ***
+    @Override
+    public String toString() {
+        return "Order{" +
+                "id=" + id +
+                ", status=" + status +
+                ", deliveryType=" + deliveryType +
+                ", paymentMethod=" + paymentMethod +
+                ", totalAmount=" + totalAmount +
+                ", awbNumber='" + awbNumber + '\'' +
+                ", shippingCreated=" + shippingCreated +
+                ", createdAt=" + createdAt +
+                '}';
+    }
 }

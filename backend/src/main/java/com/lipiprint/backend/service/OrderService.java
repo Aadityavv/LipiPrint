@@ -149,11 +149,11 @@ public class OrderService {
         } else if (parts.length == 2) {
             address.setLine1(parts[0].trim());
             address.setLine2(parts[1].trim());
-            address.setLine3("Bareilly, UP 243001"); // Default
+            address.setLine3("Saharanpur, UP 247001"); // Default
         } else {
             address.setLine1(fullAddress);
-            address.setLine2("Bareilly");
-            address.setLine3("Bareilly, UP 243001");
+            address.setLine2("Saharanpur");
+            address.setLine3("Saharanpur, UP 247001");
         }
         
         // Set default phone if user exists
@@ -216,17 +216,65 @@ public class OrderService {
         return nimbusPostService.trackShipment(awbNumber);
     }
 
-    public void retryShipmentCreation(Long orderId) {
+public boolean retryShipmentCreation(Long orderId) {
+    try {
+        logger.info("[OrderService] Retrying shipment creation for LipiPrint Saharanpur order: {}", orderId);
+        
         Optional<Order> orderOpt = orderRepository.findById(orderId);
-        if (orderOpt.isPresent()) {
-            Order order = orderOpt.get();
-            order.setShippingCreated(false); // Reset flag
-            order.setAwbNumber(null); // Clear previous attempt
-            processShipment(order);
-        } else {
-            throw new RuntimeException("Order not found");
+        if (!orderOpt.isPresent()) {
+            logger.error("[OrderService] Order not found for retry: {}", orderId);
+            return false;
         }
+        
+        Order order = orderOpt.get();
+        
+        // Validate order can be retried
+        if (!order.isDeliveryOrder()) {
+            logger.warn("[OrderService] Cannot retry shipment for pickup order: {}", orderId);
+            return false;
+        }
+        
+        if (order.getStatus() == Order.Status.CANCELLED || 
+            order.getStatus() == Order.Status.DELIVERED) {
+            logger.warn("[OrderService] Cannot retry shipment for order {} with status: {}", orderId, order.getStatus());
+            return false;
+        }
+        
+        // Reset shipping flags for retry
+        order.setShippingCreated(false);
+        order.setAwbNumber(null);
+        order.setCourierName(null);
+        order.setTrackingUrl(null);
+        order.setShipmentId(null);
+        order.setCourierId(null);
+        order.setExpectedDeliveryDate(null);
+        
+        // Save order with reset flags
+        orderRepository.save(order);
+        
+        // Attempt to create shipment again
+        processShipment(order);
+        
+        // Check if shipment was successfully created
+        Order updatedOrder = orderRepository.findById(orderId).orElse(order);
+        boolean success = Boolean.TRUE.equals(updatedOrder.getShippingCreated()) && 
+                         updatedOrder.getAwbNumber() != null && 
+                         !updatedOrder.getAwbNumber().isEmpty();
+        
+        if (success) {
+            logger.info("[OrderService] Shipment retry successful for order {}: AWB = {}", 
+                orderId, updatedOrder.getAwbNumber());
+        } else {
+            logger.error("[OrderService] Shipment retry failed for order {}", orderId);
+        }
+        
+        return success;
+        
+    } catch (Exception e) {
+        logger.error("[OrderService] Failed to retry shipment creation for order {}: {}", orderId, e.getMessage());
+        return false;
     }
+}
 
     // *** EXISTING METHODS REMAIN UNCHANGED ***
     public Optional<Order> findById(Long id) {
@@ -266,6 +314,44 @@ public class OrderService {
             return List.of();
         }
     }
+// Add these optional methods for enhanced functionality
+
+public void cancelShipment(Long orderId) {
+    try {
+        Order order = orderRepository.findById(orderId)
+            .orElseThrow(() -> new RuntimeException("Order not found"));
+            
+        if (order.getAwbNumber() != null && nimbusPostService.isEnabled()) {
+            nimbusPostService.cancelShipment(order.getAwbNumber());
+            order.setAwbNumber(null);
+            order.setShippingCreated(false);
+            orderRepository.save(order);
+            logger.info("[OrderService] Shipment cancelled for order: {}", orderId);
+        }
+    } catch (Exception e) {
+        logger.error("[OrderService] Failed to cancel shipment for order {}: {}", orderId, e.getMessage());
+        throw new RuntimeException("Failed to cancel shipment: " + e.getMessage());
+    }
+}
+
+public List<Order> findPendingShipments() {
+    return orderRepository.findAll().stream()
+        .filter(order -> order.isDeliveryOrder() && 
+                        !Boolean.TRUE.equals(order.getShippingCreated()) &&
+                        order.getStatus() != Order.Status.CANCELLED)
+        .toList();
+}
+
+public void updateOrderStatus(Long orderId, Order.Status newStatus) {
+    Order order = orderRepository.findById(orderId)
+        .orElseThrow(() -> new RuntimeException("Order not found"));
+    
+    Order.Status oldStatus = order.getStatus();
+    order.setStatus(newStatus);
+    orderRepository.save(order);
+    
+    logger.info("[OrderService] Order {} status updated: {} -> {}", orderId, oldStatus, newStatus);
+}
 
     public JSONObject createRazorpayOrder(int amount, String currency, String receipt, Long userId) throws RazorpayException {
         logger.info("[OrderService] createRazorpayOrder called with amount={}, currency={}, receipt={}, userId={}", amount, currency, receipt, userId);

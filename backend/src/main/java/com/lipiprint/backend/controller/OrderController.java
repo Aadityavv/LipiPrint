@@ -1,6 +1,5 @@
 package com.lipiprint.backend.controller;
 import java.io.IOException;
-import java.util.Optional;
 import com.lipiprint.backend.dto.OrderDTO;
 import com.lipiprint.backend.entity.Order;
 import com.lipiprint.backend.entity.User;
@@ -25,10 +24,7 @@ import com.lipiprint.backend.entity.File;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.core.io.ByteArrayResource;
-import org.apache.pdfbox.pdmodel.PDDocument;
-import org.apache.pdfbox.pdmodel.PDPage;
 import org.apache.pdfbox.pdmodel.PDPageContentStream;
-import org.apache.pdfbox.pdmodel.common.PDRectangle;
 import org.apache.pdfbox.pdmodel.font.PDType1Font;
 import org.apache.pdfbox.pdmodel.graphics.image.PDImageXObject;
 import java.io.ByteArrayOutputStream;
@@ -110,7 +106,8 @@ public class OrderController {
             // Calculate and store price summary at order placement
             if (order.getPrintJobs() != null && !order.getPrintJobs().isEmpty()) {
                 PricingService.PriceSummary summary = pricingService.calculatePriceSummaryForPrintJobs(order.getPrintJobs());
-                double delivery = order.getDeliveryType() != null && order.getDeliveryType().equalsIgnoreCase("PICKUP") ? 0.0 : 0.0; // Set delivery charge as needed
+                double delivery = order.getDeliveryType() != null && order.getDeliveryType() == Order.DeliveryType.PICKUP ? 0.0 : 30.0;
+// Set delivery charge as needed
                 order.setSubtotal(summary.subtotal);
                 order.setDiscount(summary.discount);
                 order.setDiscountedSubtotal(summary.discountedSubtotal);
@@ -130,26 +127,27 @@ public class OrderController {
             var fileDTOs = printJobs != null ? printJobs.stream().map(pj -> new FileDTO(pj.getFile().getId(), pj.getFile().getFilename(), pj.getFile().getOriginalFilename(), pj.getFile().getContentType(), pj.getFile().getSize(), pj.getFile().getUrl(), null, pj.getFile().getCreatedAt(), pj.getFile().getUpdatedAt(), pj.getFile().getPages())).toList() : null;
             var printJobDTOs = printJobs != null ? printJobs.stream().map(pj -> new PrintJobDTO(pj.getId(), new FileDTO(pj.getFile().getId(), pj.getFile().getFilename(), pj.getFile().getOriginalFilename(), pj.getFile().getContentType(), pj.getFile().getSize(), pj.getFile().getUrl(), null, pj.getFile().getCreatedAt(), pj.getFile().getUpdatedAt(), pj.getFile().getPages()), null, pj.getStatus() != null ? pj.getStatus().name() : null, pj.getOptions(), pj.getCreatedAt(), pj.getUpdatedAt())).toList() : null;
             UserDTO userDTO = u == null ? null : new UserDTO(u.getId(), u.getName(), u.getPhone(), u.getEmail(), u.getRole() != null ? u.getRole().name() : null, u.isBlocked(), u.getCreatedAt(), u.getUpdatedAt());
-            OrderDTO dto = new OrderDTO(
-                saved.getId(),
-                userDTO,
-                printJobDTOs,
-                saved.getStatus() != null ? saved.getStatus().name() : null,
-                saved.getTotalAmount(),
-                saved.getCreatedAt(),
-                saved.getUpdatedAt(),
-                saved.getDeliveryType(),
-                saved.getDeliveryAddress(),
-                saved.getRazorpayOrderId(),
-                saved.getOrderNote(),
-                saved.getSubtotal(),
-                saved.getDiscount(),
-                saved.getDiscountedSubtotal(),
-                saved.getGst(),
-                saved.getDelivery(),
-                saved.getGrandTotal(),
-                saved.getBreakdown() // Add this field to OrderDTO if not present
-            );
+OrderDTO dto = new OrderDTO(
+    saved.getId(),
+    userDTO,
+    printJobDTOs,
+    saved.getStatus() != null ? saved.getStatus().name() : null,
+    saved.getTotalAmount(),
+    saved.getCreatedAt(),
+    saved.getUpdatedAt(),
+    saved.getDeliveryType() != null ? saved.getDeliveryType().name() : null, // ✅ Convert enum to String
+    saved.getDeliveryAddress(),
+    saved.getRazorpayOrderId(),
+    saved.getOrderNote(),
+    saved.getSubtotal(),
+    saved.getDiscount(),
+    saved.getDiscountedSubtotal(),
+    saved.getGst(),
+    saved.getDelivery(),
+    saved.getGrandTotal(),
+    saved.getBreakdown()
+);
+
             logger.info("[OrderController] Created order DTO: {}", dto);
             return ResponseEntity.ok(dto);
         } catch (Exception e) {
@@ -222,26 +220,27 @@ public class OrderController {
                     UserDTO pjUserDTO = pjUser == null ? null : new UserDTO(pjUser.getId(), pjUser.getName(), pjUser.getPhone(), pjUser.getEmail(), pjUser.getRole() != null ? pjUser.getRole().name() : null, pjUser.isBlocked(), pjUser.getCreatedAt(), pjUser.getUpdatedAt());
                     return new PrintJobDTO(pj.getId(), new FileDTO(pj.getFile().getId(), pj.getFile().getFilename(), pj.getFile().getOriginalFilename(), pj.getFile().getContentType(), pj.getFile().getSize(), pj.getFile().getUrl(), null, pj.getFile().getCreatedAt(), pj.getFile().getUpdatedAt(), pj.getFile().getPages()), pjUserDTO, pj.getStatus() != null ? pj.getStatus().name() : null, pj.getOptions(), pj.getCreatedAt(), pj.getUpdatedAt());
                 }).collect(Collectors.toList()) : null;
-                OrderDTO dto = new OrderDTO(
-                    order.getId(),
-                    userDTO,
-                    printJobDTOs,
-                    order.getStatus() != null ? order.getStatus().name() : null,
-                    order.getTotalAmount(),
-                    order.getCreatedAt(),
-                    order.getUpdatedAt(),
-                    order.getDeliveryType(),
-                    order.getDeliveryAddress(),
-                    order.getRazorpayOrderId(),
-                    order.getOrderNote(),
-                    order.getSubtotal(),
-                    order.getDiscount(),
-                    order.getDiscountedSubtotal(),
-                    order.getGst(),
-                    order.getDelivery(),
-                    order.getGrandTotal(),
-                    order.getBreakdown()
-                );
+OrderDTO dto = new OrderDTO(
+    order.getId(),
+    userDTO,
+    printJobDTOs,
+    order.getStatus() != null ? order.getStatus().name() : null,
+    order.getTotalAmount(),
+    order.getCreatedAt(),
+    order.getUpdatedAt(),
+    order.getDeliveryType() != null ? order.getDeliveryType().name() : null, // ✅ Convert enum to String
+    order.getDeliveryAddress(),
+    order.getRazorpayOrderId(),
+    order.getOrderNote(),
+    order.getSubtotal(),
+    order.getDiscount(),
+    order.getDiscountedSubtotal(),
+    order.getGst(),
+    order.getDelivery(),
+    order.getGrandTotal(),
+    order.getBreakdown()
+);
+
                 return ResponseEntity.ok(dto);
             })
             .orElseGet(() -> ResponseEntity.status(404).body(Map.of("error", "Order not found")));
@@ -274,26 +273,27 @@ public class OrderController {
                 UserDTO pjUserDTO = pjUser == null ? null : new UserDTO(pjUser.getId(), pjUser.getName(), pjUser.getPhone(), pjUser.getEmail(), pjUser.getRole() != null ? pjUser.getRole().name() : null, pjUser.isBlocked(), pjUser.getCreatedAt(), pjUser.getUpdatedAt());
                 return new PrintJobDTO(pj.getId(), new FileDTO(pj.getFile().getId(), pj.getFile().getFilename(), pj.getFile().getOriginalFilename(), pj.getFile().getContentType(), pj.getFile().getSize(), pj.getFile().getUrl(), null, pj.getFile().getCreatedAt(), pj.getFile().getUpdatedAt(), pj.getFile().getPages()), pjUserDTO, pj.getStatus() != null ? pj.getStatus().name() : null, pj.getOptions(), pj.getCreatedAt(), pj.getUpdatedAt());
             }).collect(Collectors.toList()) : null;
-            OrderDTO dto = new OrderDTO(
-                updated.getId(),
-                userDTO,
-                printJobDTOs,
-                updated.getStatus() != null ? updated.getStatus().name() : null,
-                updated.getTotalAmount(),
-                updated.getCreatedAt(),
-                updated.getUpdatedAt(),
-                updated.getDeliveryType(),
-                updated.getDeliveryAddress(),
-                updated.getRazorpayOrderId(),
-                updated.getOrderNote(),
-                updated.getSubtotal(),
-                updated.getDiscount(),
-                updated.getDiscountedSubtotal(),
-                updated.getGst(),
-                updated.getDelivery(),
-                updated.getGrandTotal(),
-                updated.getBreakdown() // Add this field to OrderDTO if not present
-            );
+OrderDTO dto = new OrderDTO(
+    updated.getId(),
+    userDTO,
+    printJobDTOs,
+    updated.getStatus() != null ? updated.getStatus().name() : null,
+    updated.getTotalAmount(),
+    updated.getCreatedAt(),
+    updated.getUpdatedAt(),
+    updated.getDeliveryType() != null ? updated.getDeliveryType().name() : null, // ✅ Convert enum to String
+    updated.getDeliveryAddress(),
+    updated.getRazorpayOrderId(),
+    updated.getOrderNote(),
+    updated.getSubtotal(),
+    updated.getDiscount(),
+    updated.getDiscountedSubtotal(),
+    updated.getGst(),
+    updated.getDelivery(),
+    updated.getGrandTotal(),
+    updated.getBreakdown()
+);
+
             return ResponseEntity.ok(dto);
         } catch (Exception e) {
             logger.error("[OrderController] Error updating order status: ", e);
@@ -393,7 +393,8 @@ public class OrderController {
             html = html.replace("${orderId}", String.valueOf(order.getId()));
             html = html.replace("${orderDate}", order.getCreatedAt() != null ? order.getCreatedAt().toLocalDate().toString() : "-");
             html = html.replace("${orderStatus}", order.getStatus() != null ? order.getStatus().name() : "-");
-            html = html.replace("${deliveryType}", order.getDeliveryType() != null ? order.getDeliveryType() : "-");
+html = html.replace("${deliveryType}", order.getDeliveryType() != null ? order.getDeliveryType().name() : "-");
+
             html = html.replace("${customerGSTIN}", order.getUser() != null && order.getUser().getGstin() != null ? order.getUser().getGstin() : "-");
 
             // Build orderItemsBlock with per-file price
@@ -489,7 +490,8 @@ public class OrderController {
 private void drawText(PDPageContentStream content, float x, float y, String text) throws IOException {
     content.beginText();
     content.setFont(PDType1Font.HELVETICA, 12);
-    content.setNonStrokingColor(0, 0, 0);
+    content.setNonStrokingColor(java.awt.Color.BLACK);
+
     content.newLineAtOffset(x, y);
     content.showText(text);
     content.endText();

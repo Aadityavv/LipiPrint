@@ -1,6 +1,7 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const baseUrl = 'https://lipiprint-freelance.onrender.com/api'; // Ensure no trailing slash
+
 class ApiService {
     constructor() {
         this.baseURL = baseUrl;
@@ -35,40 +36,33 @@ class ApiService {
         if (token) {
             headers['Authorization'] = `Bearer ${token}`;
         }
-        // console.log('API headers:', headers); // This will be logged in request()
         return headers;
     }
 
     async request(endpoint, options = {}) {
-        // Ensure endpoint starts with a single slash and baseURL does not end with a slash
         let cleanEndpoint = endpoint.startsWith('/') ? endpoint : `/${endpoint}`;
         const url = `${this.baseURL}${cleanEndpoint}`;
 
         const headers = await this.getHeaders();
         const isFormData = options.body instanceof FormData;
 
-        // Set Content-Type header correctly
         if (!isFormData) {
             headers['Content-Type'] = 'application/json';
         }
-        // For FormData, we DO NOT set Content-Type, fetch does it automatically with the boundary.
 
         const config = {
             headers,
             ...options,
         };
 
-        // Log request details for debugging
         console.log('[API CALL]', { url, method: options.method || 'GET', headers, token: this.token, body: options.body });
-        // Extra log for troubleshooting
-        console.log('[API DEBUG] Fetching:', url, config);
-        // New debug logs
         console.log('[API DEBUG] About to fetch:', url, config);
+        
         try {
             const response = await fetch(url, config);
             console.log('[API DEBUG] After fetch:', response);
-            // Log response status
             console.log('[API RESPONSE STATUS]', { url, status: response.status });
+            
             if (response.status === 401) {
                 await this.clearToken();
                 throw new Error('Unauthorized');
@@ -76,11 +70,10 @@ class ApiService {
             if (!response.ok) {
                 throw new Error(`HTTP error! status: ${response.status}`);
             }
-            // Only parse JSON if there is content
+            
             const text = await response.text();
-            // Log response body
             console.log('[API RESPONSE BODY]', { url, response: text });
-            // For DELETE operations with 204 No Content, return success indicator
+            
             if (options.method === 'DELETE' && response.status === 204) {
                 return { success: true };
             }
@@ -195,17 +188,13 @@ class ApiService {
         });
     }
 
-    // Fetch only the top N recent orders (default 3)
     async getRecentOrders(limit = 3) {
         try {
-            // If backend supports ?limit=3, use it:
             const orders = await this.request(`/orders?limit=${limit}`);
             if (Array.isArray(orders)) return orders;
-            // Fallback: fetch all and slice
             const allOrders = await this.getOrders();
             return Array.isArray(allOrders) ? allOrders.slice(0, limit) : [];
         } catch (e) {
-            // Fallback: fetch all and slice
             const allOrders = await this.getOrders();
             return Array.isArray(allOrders) ? allOrders.slice(0, limit) : [];
         }
@@ -228,6 +217,68 @@ class ApiService {
             body: JSON.stringify({ status }),
         });
     }
+
+    // *** NEW: SHIPPING & TRACKING METHODS FOR NIMBUSPOST INTEGRATION ***
+    
+    // Track order by order ID
+    async trackOrder(orderId) {
+        try {
+            return await this.request(`/shipping/track/${orderId}`);
+        } catch (error) {
+            console.error('Failed to track order:', error);
+            throw error;
+        }
+    }
+
+    // Track by AWB number
+    async trackByAwb(awbNumber) {
+        try {
+            return await this.request(`/shipping/track/awb/${awbNumber}`);
+        } catch (error) {
+            console.error('Failed to track by AWB:', error);
+            throw error;
+        }
+    }
+
+    // Get delivery estimate for pincode
+    async getDeliveryEstimate(pincode, weight = 0.2) {
+        try {
+            return await this.request('/shipping/estimate-delivery', {
+                method: 'POST',
+                body: JSON.stringify({ pincode, weight })
+            });
+        } catch (error) {
+            console.error('Failed to get delivery estimate:', error);
+            throw error;
+        }
+    }
+
+    // Get shipping rates for order
+    async getShippingRates(orderDetails) {
+        try {
+            return await this.request('/shipping/rates', {
+                method: 'POST', 
+                body: JSON.stringify(orderDetails)
+            });
+        } catch (error) {
+            console.error('Failed to get shipping rates:', error);
+            throw error;
+        }
+    }
+
+    // Retry shipment creation for failed orders
+    async retryShipmentCreation(orderId) {
+        try {
+            return await this.request(`/shipping/retry/${orderId}`, {
+                method: 'POST'
+            });
+        } catch (error) {
+            console.error('Failed to retry shipment creation:', error);
+            throw error;
+        }
+    }
+
+    // *** END SHIPPING METHODS ***
 
     // Notifications
     async getNotifications() {
@@ -281,7 +332,6 @@ class ApiService {
     }
 
     async blockUser(userId, blocked) {
-        // Correct endpoint: /user/block/{id}?blocked=true
         return await this.request(`/user/block/${userId}?blocked=${blocked}`, {
             method: 'POST',
         });
@@ -302,7 +352,6 @@ class ApiService {
         });
     }
 
-    // Get available options for current selection
     async getAvailablePrintOptions(selection) {
         return await this.request('/print-jobs/available-options', {
             method: 'POST',
@@ -310,7 +359,6 @@ class ApiService {
         });
     }
 
-    // Per-file pricing breakdown
     async calculatePrintCostForFiles(files) {
         return await this.request('/print-jobs/calculate-cost', {
             method: 'POST',
@@ -318,9 +366,7 @@ class ApiService {
         });
     }
 
-    // Calculate total price for multiple print jobs/files
     async calculatePrintJobsCost(payload) {
-        // POST to /print-jobs/calculate-cost
         return await this.request('/print-jobs/calculate-cost', {
             method: 'POST',
             body: JSON.stringify(payload),
@@ -331,23 +377,27 @@ class ApiService {
     async getUserAddresses() {
         return await this.request('/user/addresses');
     }
+    
     async addUserAddress(address) {
         return await this.request('/user/addresses', {
             method: 'POST',
             body: JSON.stringify(address),
         });
     }
+    
     async updateUserAddress(id, address) {
         return await this.request(`/user/addresses/${id}`, {
             method: 'PUT',
             body: JSON.stringify(address),
         });
     }
+    
     async deleteUserAddress(id) {
         return await this.request(`/user/addresses/${id}`, {
             method: 'DELETE',
         });
     }
+    
     async setDefaultUserAddress(id) {
         return await this.request(`/user/addresses/${id}/default`, {
             method: 'PUT',
@@ -359,7 +409,6 @@ class ApiService {
         return await this.request('/payments/orders-with-failed-payments');
     }
 
-    // Admin: Payments received but no order created
     async getPaymentsWithoutOrder() {
         return await this.request('/payments/payments-without-order');
     }

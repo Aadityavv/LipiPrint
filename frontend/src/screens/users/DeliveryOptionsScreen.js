@@ -38,23 +38,55 @@ export default function DeliveryOptionsScreen({ navigation, route }) {
   const [deliveryOptions, setDeliveryOptions] = useState([]);
   const [loadingOptions, setLoadingOptions] = useState(true);
   const [optionsError, setOptionsError] = useState(null);
+  const [deliveryEstimate, setDeliveryEstimate] = useState(null);
+  const [loadingEstimate, setLoadingEstimate] = useState(false);
   const { theme } = useTheme();
 
+  // Enhanced delivery options with NimbusPost integration
   useEffect(() => {
     setLoadingOptions(true);
     setOptionsError(null);
+    
     api.getSettings()
       .then(settings => {
-        // Assume settings contains delivery options/prices as a JSON string under key 'delivery_options'
         const deliverySetting = settings.find(s => s.key === 'delivery_options');
         let options = [
-          { id: 'delivery', title: 'Home Delivery', description: 'Delivered to your address', price: 30, icon: '🚚', color: '#FF6B6B' },
-          { id: 'pickup', title: 'Store Pickup', description: 'Collect from our store', price: 0, icon: '🏪', color: '#4ECDC4' },
+          { 
+            id: 'pickup', 
+            title: 'Store Pickup', 
+            description: 'Collect from our store in Saharanpur', 
+            price: 0, 
+            icon: '🏪', 
+            color: '#4ECDC4',
+            estimatedTime: 'Ready in 2-4 hours',
+            features: ['No delivery charges', 'Fastest option', 'Quality check before pickup']
+          },
+          { 
+            id: 'delivery', 
+            title: 'NimbusPost Delivery', 
+            description: 'Delivered to your address via courier', 
+            price: 30, 
+            icon: '🚚', 
+            color: '#FF6B6B',
+            estimatedTime: 'Delivered in 1-3 days',
+            features: ['Door-to-door delivery', 'Real-time tracking', '25+ courier partners']
+          },
         ];
+        
         if (deliverySetting && deliverySetting.value) {
           try {
-            options = JSON.parse(deliverySetting.value);
-          } catch {}
+            const parsedOptions = JSON.parse(deliverySetting.value);
+            options = parsedOptions.map(option => ({
+              ...option,
+              estimatedTime: option.estimatedTime || (option.id === 'pickup' ? 'Ready in 2-4 hours' : 'Delivered in 1-3 days'),
+              features: option.features || (option.id === 'pickup' 
+                ? ['No delivery charges', 'Fastest option', 'Quality check before pickup']
+                : ['Door-to-door delivery', 'Real-time tracking', '25+ courier partners']
+              )
+            }));
+          } catch (e) {
+            console.error('Error parsing delivery options:', e);
+          }
         }
         setDeliveryOptions(options);
       })
@@ -70,7 +102,6 @@ export default function DeliveryOptionsScreen({ navigation, route }) {
       })
       .catch(err => {
         console.error('Failed to fetch pickup locations:', err);
-        // Set empty array to prevent UI errors
         setPickupLocations([]);
       });
   }, []);
@@ -86,17 +117,65 @@ export default function DeliveryOptionsScreen({ navigation, route }) {
       setSelectedLocation(pickupLocations[0].id);
     }
     if (deliveryMethod === 'delivery') {
-      setShowNewAddress(true);
+      setShowNewAddress(savedAddresses.length === 0);
       setSelectedAddressId(null);
     }
-  }, [deliveryMethod, pickupLocations]);
+  }, [deliveryMethod, pickupLocations, savedAddresses]);
 
-  // Use totalPrice (from backend grandTotal) for all price displays
+  // Get delivery estimate when address changes (for NimbusPost integration)
+  useEffect(() => {
+    if (deliveryMethod === 'delivery' && addressLine3) {
+      const pincode = extractPincode(addressLine3);
+      if (pincode) {
+        getDeliveryEstimate(pincode);
+      }
+    }
+  }, [addressLine3, deliveryMethod]);
+
+  const extractPincode = (addressLine) => {
+    const pincodeMatch = addressLine.match(/\b\d{6}\b/);
+    return pincodeMatch ? pincodeMatch[0] : null;
+  };
+
+  const getDeliveryEstimate = async (pincode) => {
+    if (!pincode || pincode.length !== 6) return;
+    
+    setLoadingEstimate(true);
+    try {
+      // This would call your backend which integrates with NimbusPost
+      const estimate = await ApiService.request('/shipping/estimate-delivery', {
+        method: 'POST',
+        body: JSON.stringify({ pincode, weight: 0.2 }) // Approximate weight for documents
+      });
+      
+      setDeliveryEstimate(estimate);
+      
+      // Update delivery options with real estimate
+      setDeliveryOptions(prev => prev.map(option => 
+        option.id === 'delivery' 
+          ? { ...option, estimatedTime: estimate.estimatedDays ? `Delivered in ${estimate.estimatedDays} days` : option.estimatedTime }
+          : option
+      ));
+    } catch (error) {
+      console.error('Failed to get delivery estimate:', error);
+      setDeliveryEstimate(null);
+    } finally {
+      setLoadingEstimate(false);
+    }
+  };
+
   const finalTotal = totalPrice !== undefined && totalPrice !== null ? totalPrice : (total || 0);
 
   const calculateFinalTotal = () => {
     const selectedDelivery = deliveryOptions.find(method => method.id === deliveryMethod);
-    return finalTotal + (selectedDelivery ? selectedDelivery.price : 0);
+    let deliveryPrice = selectedDelivery ? selectedDelivery.price : 0;
+    
+    // Use real-time delivery price if available from NimbusPost
+    if (deliveryEstimate && deliveryEstimate.price) {
+      deliveryPrice = deliveryEstimate.price;
+    }
+    
+    return finalTotal + deliveryPrice;
   };
 
   const proceedToPayment = () => {
@@ -110,6 +189,13 @@ export default function DeliveryOptionsScreen({ navigation, route }) {
           Alert.alert('Phone Required', 'Please enter your phone number for delivery.');
           return;
         }
+        
+        // Validate pincode for NimbusPost delivery
+        const pincode = extractPincode(addressLine3);
+        if (!pincode) {
+          Alert.alert('Invalid Address', 'Please include a valid 6-digit pincode in address line 3.');
+          return;
+        }
       } else {
         if (!selectedAddressId) {
           Alert.alert('Select Address', 'Please select a saved address or add a new one.');
@@ -117,33 +203,40 @@ export default function DeliveryOptionsScreen({ navigation, route }) {
         }
       }
     }
+
     let deliveryAddress = '';
+    let deliveryPhone = '';
+    
     if (deliveryMethod === 'pickup') {
       const location = pickupLocations.find(loc => loc.id === selectedLocation);
       deliveryAddress = location ? `${location.name}, ${location.address}` : 'Store Pickup';
+      deliveryPhone = location ? location.phone : '';
     } else {
-      deliveryAddress = showNewAddress
-        ? [addressLine1, addressLine2, addressLine3].filter(Boolean).join(' ').trim()
-        : [
-            savedAddresses.find(a => a.id === selectedAddressId)?.line1,
-            savedAddresses.find(a => a.id === selectedAddressId)?.line2,
-            savedAddresses.find(a => a.id === selectedAddressId)?.line3
-          ].filter(Boolean).join(' ').trim();
+      if (showNewAddress) {
+        deliveryAddress = [addressLine1, addressLine2, addressLine3].filter(Boolean).join(', ').trim();
+        deliveryPhone = phone;
+      } else {
+        const selectedAddr = savedAddresses.find(a => a.id === selectedAddressId);
+        deliveryAddress = [selectedAddr?.line1, selectedAddr?.line2, selectedAddr?.line3].filter(Boolean).join(', ').trim();
+        deliveryPhone = selectedAddr?.phone || '';
+      }
     }
+
     navigation.navigate('Payment', {
-      files, // Pass files with pages
+      files,
       selectedOptions,
       selectedPaper,
       selectedPrint,
       deliveryType: deliveryMethod ? deliveryMethod.toUpperCase() : undefined,
       deliveryAddress,
-      phone: showNewAddress ? phone : savedAddresses.find(a => a.id === selectedAddressId)?.phone,
+      phone: deliveryPhone,
       total: calculateFinalTotal(),
       totalPrice: finalTotal,
       priceBreakdown,
       subtotal,
       gst,
       discount,
+      deliveryEstimate, // Pass estimate for order creation
     });
   };
 
@@ -194,6 +287,14 @@ export default function DeliveryOptionsScreen({ navigation, route }) {
       Alert.alert('Address Required', 'Please enter your complete delivery address and phone.');
       return;
     }
+    
+    // Validate pincode
+    const pincode = extractPincode(addressLine3);
+    if (!pincode) {
+      Alert.alert('Invalid Address', 'Please include a valid 6-digit pincode in address line 3.');
+      return;
+    }
+    
     try {
       const newAddr = await ApiService.addUserAddress({
         line1: addressLine1,
@@ -215,19 +316,41 @@ export default function DeliveryOptionsScreen({ navigation, route }) {
   };
 
   if (loadingOptions) {
-    return <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
-      <LottieView
-        source={LoadingWorld}
-        autoPlay
-        loop
-        speed={2}
-        style={{ width: 180, height: 180 }}
-      />
-      <Text style={{ color: '#22194f', fontWeight: 'bold', fontSize: 18, marginTop: 18 }}>Loading delivery options...</Text>
-    </View>;
+    return (
+      <View style={[styles.container, { backgroundColor: theme.background }]}>
+        <View style={styles.loadingContainer}>
+          <LottieView
+            source={LoadingWorld}
+            autoPlay
+            loop
+            speed={2}
+            style={{ width: 180, height: 180 }}
+          />
+          <Text style={styles.loadingText}>Loading delivery options...</Text>
+        </View>
+      </View>
+    );
   }
+
   if (optionsError) {
-    return <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}><Text style={{ color: 'red' }}>{optionsError}</Text></View>;
+    return (
+      <View style={[styles.container, { backgroundColor: theme.background }]}>
+        <View style={styles.errorContainer}>
+          <Icon name="error-outline" size={64} color="#FF6B6B" />
+          <Text style={styles.errorText}>{optionsError}</Text>
+          <TouchableOpacity 
+            style={styles.retryButton} 
+            onPress={() => {
+              setLoadingOptions(true);
+              setOptionsError(null);
+              // Retry loading options
+            }}
+          >
+            <Text style={styles.retryButtonText}>Retry</Text>
+          </TouchableOpacity>
+        </View>
+      </View>
+    );
   }
 
   return (
@@ -245,11 +368,6 @@ export default function DeliveryOptionsScreen({ navigation, route }) {
         </LinearGradient>
 
         <View style={styles.content}>
-          {/* {(totalPrice !== undefined && totalPrice !== null) && (
-            <View style={{ marginBottom: 12 }}>
-              <Text style={{ fontWeight: 'bold', fontSize: 16 }}>Total Price: ₹{totalPrice}</Text>
-            </View>
-          )} */}
           {/* Delivery Methods */}
           <Animatable.View animation="fadeInUp" delay={200} duration={500}>
             <Text style={styles.sectionTitle}>Delivery Method</Text>
@@ -259,7 +377,6 @@ export default function DeliveryOptionsScreen({ navigation, route }) {
                   key={method.id}
                   style={[
                     styles.deliveryCard,
-                    { backgroundColor: method.color },
                     deliveryMethod === method.id && styles.selectedDeliveryCard,
                   ]}
                   onPress={() => setDeliveryMethod(method.id)}
@@ -268,11 +385,38 @@ export default function DeliveryOptionsScreen({ navigation, route }) {
                   <Text style={styles.deliveryIcon}>{method.icon}</Text>
                   <Text style={styles.deliveryTitle}>{method.title}</Text>
                   <Text style={styles.deliveryDesc}>{method.description}</Text>
-                  <Text style={styles.deliveryTime}>{method.time}</Text>
-                  {method.price > 0 && <Text style={styles.deliveryPrice}>+₹{method.price}</Text>}
+                  <Text style={styles.deliveryTime}>
+                    {loadingEstimate && method.id === 'delivery' ? 'Calculating...' : method.estimatedTime}
+                  </Text>
+                  
+                  {/* Features */}
+                  {method.features && (
+                    <View style={styles.featuresContainer}>
+                      {method.features.slice(0, 2).map((feature, index) => (
+                        <Text key={index} style={styles.featureText}>• {feature}</Text>
+                      ))}
+                    </View>
+                  )}
+                  
+                  {method.price > 0 && (
+                    <Text style={styles.deliveryPrice}>
+                      +₹{deliveryEstimate && method.id === 'delivery' && deliveryEstimate.price 
+                        ? deliveryEstimate.price 
+                        : method.price}
+                    </Text>
+                  )}
+                  {method.price === 0 && <Text style={styles.freeText}>FREE</Text>}
                 </TouchableOpacity>
               ))}
             </ScrollView>
+            
+            {/* NimbusPost Badge */}
+            {deliveryMethod === 'delivery' && (
+              <View style={styles.nimbusPostBadge}>
+                <Icon name="local-shipping" size={16} color="#667eea" />
+                <Text style={styles.badgeText}>Powered by NimbusPost - 25+ Courier Partners</Text>
+              </View>
+            )}
           </Animatable.View>
 
           {/* Pickup Locations */}
@@ -290,9 +434,13 @@ export default function DeliveryOptionsScreen({ navigation, route }) {
                     onPress={() => setSelectedLocation(location.id)}
                     activeOpacity={0.85}
                   >
-                    <Text style={styles.locationName}>{location.name}</Text>
+                    <View style={styles.locationHeader}>
+                      <Icon name="store" size={20} color="#4ECDC4" />
+                      <Text style={styles.locationName}>{location.name}</Text>
+                    </View>
                     <Text style={styles.locationAddress}>{location.address}</Text>
-                    <Text style={styles.locationDistance}>{location.distance}</Text>
+                    <Text style={styles.locationDistance}>📍 {location.distance}</Text>
+                    <Text style={styles.locationPhone}>📞 {location.phone}</Text>
                   </TouchableOpacity>
                 ))}
               </View>
@@ -303,6 +451,20 @@ export default function DeliveryOptionsScreen({ navigation, route }) {
           {deliveryMethod === 'delivery' && (
             <Animatable.View animation="fadeInUp" delay={400} duration={500}>
               <Text style={styles.sectionTitle}>Delivery Address</Text>
+              
+              {/* Delivery Estimate Info */}
+              {deliveryEstimate && (
+                <View style={styles.estimateCard}>
+                  <Icon name="schedule" size={18} color="#4CAF50" />
+                  <Text style={styles.estimateText}>
+                    Expected delivery in {deliveryEstimate.estimatedDays || '2-3'} days
+                  </Text>
+                  {deliveryEstimate.courierPartner && (
+                    <Text style={styles.courierText}>via {deliveryEstimate.courierPartner}</Text>
+                  )}
+                </View>
+              )}
+
               {/* Show summary if a saved address is selected */}
               {!showNewAddress && selectedAddressId && (
                 <View style={styles.selectedAddressSummary}>
@@ -313,6 +475,7 @@ export default function DeliveryOptionsScreen({ navigation, route }) {
                   <Text style={styles.summaryValue}>📞 {savedAddresses.find(a => a.id === selectedAddressId)?.phone}</Text>
                 </View>
               )}
+
               {/* Saved Addresses */}
               {savedAddresses.length > 0 && (
                 <View style={styles.savedAddressesSection}>
@@ -343,7 +506,7 @@ export default function DeliveryOptionsScreen({ navigation, route }) {
                             style={styles.addressInput}
                             value={editFields.line3}
                             onChangeText={text => setEditFields(fields => ({...fields, line3: text}))}
-                            placeholder="City, State, Pincode"
+                            placeholder="City, State, Pincode (Required)"
                           />
                           <TextInput
                             style={styles.phoneInput}
@@ -402,15 +565,17 @@ export default function DeliveryOptionsScreen({ navigation, route }) {
                     }}
                     activeOpacity={0.85}
                   >
-                    <Text style={styles.addNewText}>+ Add New Address</Text>
+                    <Icon name="add" size={20} color="#667eea" style={{marginRight: 8}} />
+                    <Text style={styles.addNewText}>Add New Address</Text>
                   </TouchableOpacity>
                 </View>
               )}
+
               {/* New Address Fields */}
               {showNewAddress && !editingAddressId && (
                 <>
                   <View style={styles.inputContainer}>
-                    <Text style={styles.inputLabel}>Address Line 1</Text>
+                    <Text style={styles.inputLabel}>Address Line 1 *</Text>
                     <TextInput
                       style={styles.addressInput}
                       placeholder="Flat/House No., Building, Street"
@@ -419,7 +584,7 @@ export default function DeliveryOptionsScreen({ navigation, route }) {
                     />
                   </View>
                   <View style={styles.inputContainer}>
-                    <Text style={styles.inputLabel}>Address Line 2</Text>
+                    <Text style={styles.inputLabel}>Address Line 2 *</Text>
                     <TextInput
                       style={styles.addressInput}
                       placeholder="Area, Locality, Landmark"
@@ -428,28 +593,33 @@ export default function DeliveryOptionsScreen({ navigation, route }) {
                     />
                   </View>
                   <View style={styles.inputContainer}>
-                    <Text style={styles.inputLabel}>Address Line 3</Text>
+                    <Text style={styles.inputLabel}>Address Line 3 (Include Pincode) *</Text>
                     <TextInput
                       style={styles.addressInput}
-                      placeholder="City, State, Pincode"
+                      placeholder="City, State, Pincode (e.g., Saharanpur, UP 247001)"
                       value={addressLine3}
                       onChangeText={setAddressLine3}
                     />
+                    {addressLine3 && !extractPincode(addressLine3) && (
+                      <Text style={styles.errorHint}>Please include a valid 6-digit pincode</Text>
+                    )}
                   </View>
                   <View style={styles.inputContainer}>
-                    <Text style={styles.inputLabel}>Phone Number</Text>
+                    <Text style={styles.inputLabel}>Phone Number *</Text>
                     <TextInput
                       style={styles.phoneInput}
                       placeholder="Enter your phone number"
                       value={phone}
                       onChangeText={setPhone}
                       keyboardType="phone-pad"
+                      maxLength={10}
                     />
                   </View>
                   <TouchableOpacity
                     style={[styles.continueButton, {marginTop: 10, backgroundColor: '#667eea'}]}
                     onPress={addNewAddress}
                   >
+                    <Icon name="save" size={18} color="white" style={{marginRight: 8}} />
                     <Text style={styles.continueText}>Save Address</Text>
                   </TouchableOpacity>
                 </>
@@ -466,11 +636,27 @@ export default function DeliveryOptionsScreen({ navigation, route }) {
                 <Text style={styles.summaryValue}>₹{total}</Text>
               </View>
               <View style={styles.summaryRow}>
-                <Text style={styles.summaryLabel}>Delivery</Text>
+                <Text style={styles.summaryLabel}>
+                  {deliveryMethod === 'pickup' ? 'Pickup' : 'Delivery'}
+                </Text>
                 <Text style={styles.summaryValue}>
-                  ₹{deliveryOptions.find(m => m.id === deliveryMethod)?.price || 0}
+                  ₹{deliveryEstimate && deliveryMethod === 'delivery' && deliveryEstimate.price 
+                    ? deliveryEstimate.price 
+                    : (deliveryOptions.find(m => m.id === deliveryMethod)?.price || 0)}
                 </Text>
               </View>
+              {gst > 0 && (
+                <View style={styles.summaryRow}>
+                  <Text style={styles.summaryLabel}>GST</Text>
+                  <Text style={styles.summaryValue}>₹{gst}</Text>
+                </View>
+              )}
+              {discount > 0 && (
+                <View style={styles.summaryRow}>
+                  <Text style={[styles.summaryLabel, {color: '#4CAF50'}]}>Discount</Text>
+                  <Text style={[styles.summaryValue, {color: '#4CAF50'}]}>-₹{discount}</Text>
+                </View>
+              )}
               <View style={styles.totalRow}>
                 <Text style={styles.totalLabel}>Total Amount</Text>
                 <Text style={styles.totalAmount}>₹{calculateFinalTotal()}</Text>
@@ -479,11 +665,13 @@ export default function DeliveryOptionsScreen({ navigation, route }) {
           </Animatable.View>
         </View>
       </ScrollView>
+
       {/* Continue Button */}
       <Animatable.View animation="fadeInUp" delay={800} duration={500} style={styles.buttonContainer}>
         <TouchableOpacity onPress={proceedToPayment} activeOpacity={0.85}>
           <LinearGradient colors={["#667eea", "#764ba2"]} style={styles.continueButton}>
-            <Text style={styles.continueText}>Continue</Text>
+            <Icon name="arrow-forward" size={18} color="white" style={{marginRight: 8}} />
+            <Text style={styles.continueText}>Continue to Payment</Text>
           </LinearGradient>
         </TouchableOpacity>
       </Animatable.View>
@@ -498,24 +686,44 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#f8f9fa',
   },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  loadingText: {
+    color: '#22194f',
+    fontWeight: 'bold',
+    fontSize: 18,
+    marginTop: 18,
+  },
+  errorContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 40,
+  },
+  errorText: {
+    fontSize: 16,
+    color: '#666',
+    textAlign: 'center',
+    marginVertical: 20,
+  },
+  retryButton: {
+    backgroundColor: '#667eea',
+    paddingHorizontal: 20,
+    paddingVertical: 12,
+    borderRadius: 8,
+  },
+  retryButtonText: {
+    color: 'white',
+    fontSize: 16,
+    fontWeight: '600',
+  },
   headerGradient: {
     paddingTop: 50,
     paddingBottom: 30,
     paddingHorizontal: 20,
-  },
-  header: {
-    alignItems: 'center',
-  },
-  headerTitle: {
-    fontSize: 28,
-    fontWeight: 'bold',
-    color: 'white',
-    marginBottom: 8,
-  },
-  headerSubtitle: {
-    fontSize: 16,
-    color: 'rgba(255, 255, 255, 0.9)',
-    textAlign: 'center',
   },
   content: {
     padding: 20,
@@ -537,7 +745,7 @@ const styles = StyleSheet.create({
     borderRadius: 18,
     alignItems: 'center',
     paddingVertical: 28,
-    paddingHorizontal: 8,
+    paddingHorizontal: 16,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.08,
@@ -545,6 +753,7 @@ const styles = StyleSheet.create({
     elevation: 2,
     borderWidth: 2,
     borderColor: 'transparent',
+    minHeight: 220,
   },
   selectedDeliveryCard: {
     borderColor: '#667eea',
@@ -559,22 +768,58 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     color: '#1a1a1a',
     marginBottom: 4,
+    textAlign: 'center',
   },
   deliveryDesc: {
     fontSize: 14,
     color: '#666',
-    marginBottom: 4,
+    marginBottom: 8,
     textAlign: 'center',
+    lineHeight: 18,
   },
   deliveryTime: {
     fontSize: 13,
     color: '#333',
-    marginBottom: 4,
+    marginBottom: 8,
+    textAlign: 'center',
+    fontWeight: '600',
+  },
+  featuresContainer: {
+    marginBottom: 8,
+  },
+  featureText: {
+    fontSize: 11,
+    color: '#888',
+    textAlign: 'center',
+    lineHeight: 14,
   },
   deliveryPrice: {
-    fontSize: 15,
+    fontSize: 16,
     fontWeight: 'bold',
     color: '#667eea',
+  },
+  freeText: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: '#4CAF50',
+  },
+  nimbusPostBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#f0f8ff',
+    borderRadius: 20,
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+    marginTop: 12,
+    borderWidth: 1,
+    borderColor: '#e3f2fd',
+  },
+  badgeText: {
+    fontSize: 12,
+    color: '#667eea',
+    fontWeight: '600',
+    marginLeft: 6,
   },
   locationGrid: {
     marginBottom: 32,
@@ -596,20 +841,51 @@ const styles = StyleSheet.create({
     borderColor: '#667eea',
     backgroundColor: '#f0f8ff',
   },
+  locationHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
   locationName: {
     fontSize: 16,
     fontWeight: 'bold',
     color: '#1a1a1a',
-    marginBottom: 2,
+    marginLeft: 8,
   },
   locationAddress: {
     fontSize: 13,
     color: '#666',
-    marginBottom: 2,
+    marginBottom: 4,
+    lineHeight: 18,
   },
   locationDistance: {
     fontSize: 13,
     color: '#667eea',
+    marginBottom: 2,
+  },
+  locationPhone: {
+    fontSize: 13,
+    color: '#4ECDC4',
+  },
+  estimateCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#e8f5e8',
+    borderRadius: 12,
+    padding: 12,
+    marginBottom: 16,
+  },
+  estimateText: {
+    fontSize: 14,
+    color: '#4CAF50',
+    fontWeight: '600',
+    marginLeft: 8,
+    flex: 1,
+  },
+  courierText: {
+    fontSize: 12,
+    color: '#666',
+    marginLeft: 8,
   },
   inputContainer: {
     marginBottom: 18,
@@ -626,7 +902,7 @@ const styles = StyleSheet.create({
     padding: 14,
     fontSize: 15,
     color: '#222',
-    minHeight: 66,
+    minHeight: 50,
     borderWidth: 1.5,
     borderColor: '#e0e7ef',
   },
@@ -638,6 +914,12 @@ const styles = StyleSheet.create({
     color: '#222',
     borderWidth: 1.5,
     borderColor: '#e0e7ef',
+  },
+  errorHint: {
+    fontSize: 12,
+    color: '#FF6B6B',
+    marginTop: 4,
+    fontStyle: 'italic',
   },
   summaryCard: {
     backgroundColor: 'white',
@@ -687,6 +969,7 @@ const styles = StyleSheet.create({
     backgroundColor: 'transparent',
   },
   continueButton: {
+    flexDirection: 'row',
     borderRadius: 16,
     paddingVertical: 16,
     alignItems: 'center',
@@ -750,4 +1033,4 @@ const styles = StyleSheet.create({
     shadowRadius: 5,
     elevation: 1,
   },
-}); 
+});

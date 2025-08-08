@@ -10,6 +10,7 @@ import SplashScreen from '../screens/common/SplashScreen';
 import LoginScreen from '../screens/common/LoginScreen';
 import SignUpScreen from '../screens/common/SignUpScreen';
 import TestConfettiScreen from '../screens/common/TestConfettiScreen';
+import OrderTrackingScreen from '../screens/users/OrderTrackingScreen';
 
 // Import user screens
 import HomeScreen from '../screens/users/HomeScreen';
@@ -135,6 +136,15 @@ export default function AppNavigator() {
         <Stack.Screen name="TrackOrderScreen" component={TrackOrderScreen} />
         <Stack.Screen name="Checkout" component={CheckoutScreen} />
         <Stack.Screen name="ReviewOrder" component={ReviewOrderScreen} />
+        <Stack.Screen
+  name="OrderTracking"
+  component={OrderTrackingScreen}
+  options={{
+    headerShown: false,
+    animation: 'slide_from_right',
+  }}
+/>
+
         <Stack.Screen name="Onboarding" component={OnboardingScreen} />
         <Stack.Screen name="Tutorial" component={TutorialScreen} />
         <Stack.Screen name="HelpCenter" component={HelpCenterScreen} />
