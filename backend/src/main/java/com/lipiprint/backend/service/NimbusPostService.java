@@ -403,57 +403,66 @@ public class NimbusPostService {
     }
     
     // ✅ VERIFIED: Convert internal ShipmentRequest to NimbusPost API format
-    private Map<String, Object> buildNimbusPostShipmentRequest(ShipmentRequest shipmentRequest) {
-        Map<String, Object> request = new HashMap<>();
-        
-        // Order details
-        request.put("order_number", shipmentRequest.getOrderNumber());
-        request.put("shipping_charges", 30); // Default shipping charge
-        request.put("payment_type", shipmentRequest.getPaymentMethod().toLowerCase().contains("cod") ? "cod" : "prepaid");
-        request.put("order_amount", Double.parseDouble(shipmentRequest.getOrderAmount()));
-        request.put("package_weight", (int)(shipmentRequest.getWeight() * 1000)); // Convert kg to grams
-        request.put("package_length", shipmentRequest.getLength());
-        request.put("package_breadth", shipmentRequest.getBreadth());
-        request.put("package_height", shipmentRequest.getHeight());
-        request.put("request_auto_pickup", "yes");
-        
-        // Consignee details
-        Map<String, Object> consignee = new HashMap<>();
-        consignee.put("name", shipmentRequest.getDeliveryName());
-        consignee.put("address", shipmentRequest.getDeliveryAddress());
-        consignee.put("address_2", "");
-        consignee.put("city", shipmentRequest.getDeliveryCity());
-        consignee.put("state", shipmentRequest.getDeliveryState());
-        consignee.put("pincode", shipmentRequest.getDeliveryPincode());
-        consignee.put("phone", shipmentRequest.getDeliveryPhone());
-        request.put("consignee", consignee);
-        
-        // ✅ CORRECTED: Pickup details for Nagpal Print House Saharanpur
-        Map<String, Object> pickup = new HashMap<>();
-        pickup.put("warehouse_name", "Nagpal Print House");
-        pickup.put("name", "Nagpal Print House");
-        pickup.put("address", "Near Civil Court Sadar, Thana Road");
-        pickup.put("city", "Saharanpur");
-        pickup.put("state", "Uttar Pradesh");
-        pickup.put("pincode", "247001");
-        pickup.put("phone", "9876543210");
-        request.put("pickup", pickup);
-        
-        // Order items
-        List<Map<String, Object>> orderItems = new ArrayList<>();
-        Map<String, Object> item = new HashMap<>();
-        item.put("name", "Printed Documents");
-        item.put("qty", "1");
-        item.put("price", Double.parseDouble(shipmentRequest.getOrderAmount()));
-        item.put("sku", "DOC_PRINT");
-        orderItems.add(item);
-        request.put("order_items", orderItems);
-        
-        return request;
-    }
+// ✅ FIXED: Add missing support contact fields
+private Map<String, Object> buildNimbusPostShipmentRequest(ShipmentRequest shipmentRequest) {
+    Map<String, Object> request = new HashMap<>();
     
-    // ✅ ENHANCED: Robust parsing with detailed logging and error handling
-    private ShipmentResponse parseShipmentResponse(Map<String, Object> responseBody) {
+    // Order details
+    request.put("order_number", shipmentRequest.getOrderNumber());
+    request.put("shipping_charges", 30);
+    request.put("payment_type", shipmentRequest.getPaymentMethod().toLowerCase().contains("cod") ? "cod" : "prepaid");
+    request.put("order_amount", Double.parseDouble(shipmentRequest.getOrderAmount()));
+    request.put("package_weight", (int)(shipmentRequest.getWeight() * 1000));
+    request.put("package_length", shipmentRequest.getLength());
+    request.put("package_breadth", shipmentRequest.getBreadth());
+    request.put("package_height", shipmentRequest.getHeight());
+    request.put("request_auto_pickup", "yes");
+    
+    // ✅ CRITICAL FIX: Add mandatory support contact fields
+    request.put("support_email", "nagpalprinthouse@gmail.com");
+    request.put("support_phone", "9358319000");
+    
+    // Consignee details
+    Map<String, Object> consignee = new HashMap<>();
+    consignee.put("name", shipmentRequest.getDeliveryName());
+    consignee.put("address", shipmentRequest.getDeliveryAddress());
+    consignee.put("address_2", "");
+    consignee.put("city", shipmentRequest.getDeliveryCity());
+    consignee.put("state", shipmentRequest.getDeliveryState());
+    consignee.put("pincode", shipmentRequest.getDeliveryPincode());
+    consignee.put("phone", shipmentRequest.getDeliveryPhone());
+    request.put("consignee", consignee);
+    
+    // Pickup details for Nagpal Print House Saharanpur
+    Map<String, Object> pickup = new HashMap<>();
+    pickup.put("warehouse_name", "Nagpal Print House");
+    pickup.put("name", "Nagpal Print House");
+    pickup.put("address", "Near Civil Court Sadar, Thana Road");
+    pickup.put("city", "Saharanpur");
+    pickup.put("state", "Uttar Pradesh");
+    pickup.put("pincode", "247001");
+    pickup.put("phone", "9876543210");
+    // ✅ OPTIONAL: Add email to pickup as well
+    pickup.put("email", "support@nagpalprinthouse.com");
+    request.put("pickup", pickup);
+    
+    // Order items
+    List<Map<String, Object>> orderItems = new ArrayList<>();
+    Map<String, Object> item = new HashMap<>();
+    item.put("name", "Printed Documents");
+    item.put("qty", "1");
+    item.put("price", Double.parseDouble(shipmentRequest.getOrderAmount()));
+    item.put("sku", "DOC_PRINT");
+    orderItems.add(item);
+    request.put("order_items", orderItems);
+    
+    // ✅ ADD: Log the complete request for debugging
+    logger.info("[NimbusPostService] Complete shipment request: {}", request);
+    
+    return request;
+}
+    
+private ShipmentResponse parseShipmentResponse(Map<String, Object> responseBody) {
         ShipmentResponse response = new ShipmentResponse();
         
         // ✅ ADD: Log the full response for debugging

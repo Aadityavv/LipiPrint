@@ -22,7 +22,6 @@ public class TrackingResponse {
     @JsonProperty("tracking_data")
     private List<TrackingEvent> trackingData;
     
-    // ✅ ADDED: Missing fields for NimbusPost integration
     @JsonProperty("last_location")
     private String lastLocation;
     
@@ -32,7 +31,7 @@ public class TrackingResponse {
     // Constructors
     public TrackingResponse() {}
 
-    // ✅ COMPLETE: All Getters and Setters
+    // ✅ FIXED: Removed conflicting setStatus(String) method
     public boolean isStatus() { return status; }
     public void setStatus(boolean status) { this.status = status; }
 
@@ -56,26 +55,28 @@ public class TrackingResponse {
     public List<TrackingEvent> getTrackingData() { return trackingData; }
     public void setTrackingData(List<TrackingEvent> trackingData) { this.trackingData = trackingData; }
 
-    // ✅ ADDED: Missing getters/setters for new fields
     public String getLastLocation() { return lastLocation; }
     public void setLastLocation(String lastLocation) { this.lastLocation = lastLocation; }
 
     public String getCourierName() { return courierName; }
     public void setCourierName(String courierName) { this.courierName = courierName; }
 
-    // ✅ ADDED: Convenience methods for parsing compatibility
-    public void setStatus(String statusString) {
+    // ✅ FIXED: Convenience method renamed to avoid conflicts
+    public void setExpectedDelivery(String expectedDelivery) {
+        this.expectedDeliveryDate = expectedDelivery;
+    }
+
+    // ✅ ADDED: Helper method for NimbusPost parsing
+    public void updateStatusFromString(String statusString) {
         if ("true".equalsIgnoreCase(statusString) || "success".equalsIgnoreCase(statusString)) {
             this.status = true;
         } else if ("false".equalsIgnoreCase(statusString) || "failed".equalsIgnoreCase(statusString)) {
             this.status = false;
         } else {
+            // If it's a descriptive status, store in currentStatus
             this.currentStatus = statusString;
+            this.status = true; // Assume success if we have tracking data
         }
-    }
-
-    public void setExpectedDelivery(String expectedDelivery) {
-        this.expectedDeliveryDate = expectedDelivery;
     }
 
     @Override

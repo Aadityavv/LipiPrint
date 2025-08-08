@@ -30,7 +30,6 @@ public class ShipmentResponse {
     @JsonProperty("manifest_url")
     private String manifestUrl;
     
-    // ✅ ADDED: Missing tracking_url field
     @JsonProperty("tracking_url")
     private String trackingUrl;
 
@@ -70,7 +69,6 @@ public class ShipmentResponse {
     public String getManifestUrl() { return manifestUrl; }
     public void setManifestUrl(String manifestUrl) { this.manifestUrl = manifestUrl; }
 
-    // ✅ ADDED: Missing getter/setter for trackingUrl
     public String getTrackingUrl() { return trackingUrl; }
     public void setTrackingUrl(String trackingUrl) { this.trackingUrl = trackingUrl; }
 
