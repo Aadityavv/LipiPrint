@@ -21,11 +21,26 @@ const { width } = Dimensions.get('window');
 
 export default function PaymentScreen({ navigation, route }) {
   console.log('[PaymentScreen] route.params:', route.params);
-  const { files, selectedOptions, deliveryType, deliveryAddress, phone, total, totalPrice, priceBreakdown, subtotal, discountedSubtotal, gst, discount } = route.params || {};
+  const { 
+    files, 
+    selectedOptions, 
+    deliveryType, 
+    deliveryAddress, 
+    phone, 
+    total, 
+    totalPrice, 
+    priceBreakdown, 
+    subtotal, 
+    discountedSubtotal, 
+    gst, 
+    discount,
+    deliveryEstimate, // ✅ NEW: Get delivery estimate from DeliveryOptionsScreen
+    deliveryCost      // ✅ NEW: Get calculated delivery cost
+  } = route.params || {};
   
   const [processing, setProcessing] = useState(false);
   const [user, setUser] = useState(null);
-  const [invoiceType, setInvoiceType] = useState('B2C'); // Will be set by user type
+  const [invoiceType, setInvoiceType] = useState('B2C');
   const [alertVisible, setAlertVisible] = useState(false);
   const [alertTitle, setAlertTitle] = useState('');
   const [alertMessage, setAlertMessage] = useState('');
@@ -42,16 +57,25 @@ export default function PaymentScreen({ navigation, route }) {
     });
   }, []);
 
-  // Use backend totalPrice (grandTotal) and other fields for all price displays
+  // ✅ FIXED: Calculate delivery cost and include in total
   const baseTotal = (totalPrice !== undefined && totalPrice !== null) ? totalPrice : (total || 0);
+  
+  // Get delivery cost from various sources
+  const finalDeliveryCost = deliveryCost || 
+                           (deliveryEstimate?.price) || 
+                           (deliveryType === 'PICKUP' ? 0 : 30); // Default fallback
+  
+  const grandTotalWithDelivery = baseTotal + finalDeliveryCost;
+
   const orderSummary = {
     items: files?.length || 0,
     pages: files?.reduce((sum, fileObj) => sum + (fileObj.file?.pages || 0), 0),
-    subtotal: subtotal !== undefined && subtotal !== null ? subtotal : 0, // before discount
-    discountedSubtotal: discountedSubtotal !== undefined && discountedSubtotal !== null ? discountedSubtotal : 0, // after discount, before GST
+    subtotal: subtotal !== undefined && subtotal !== null ? subtotal : 0,
+    discountedSubtotal: discountedSubtotal !== undefined && discountedSubtotal !== null ? discountedSubtotal : 0,
     gst: gst !== undefined && gst !== null ? gst : 0,
     discount: discount !== undefined && discount !== null ? discount : 0,
-    total: totalPrice !== undefined && totalPrice !== null ? totalPrice : (total || 0),
+    deliveryCost: finalDeliveryCost,    // ✅ NEW: Delivery cost
+    total: grandTotalWithDelivery,      // ✅ FIXED: Include delivery
   };
 
   const showAlert = (title, message, type = 'info', onConfirm = null, showCancel = false) => {
@@ -65,13 +89,18 @@ export default function PaymentScreen({ navigation, route }) {
 
   const handlePayment = async () => {
     setProcessing(true);
+    
+    console.log('[PaymentScreen] Starting payment with total:', grandTotalWithDelivery);
+    console.log('[PaymentScreen] Delivery cost:', finalDeliveryCost);
+    console.log('[PaymentScreen] Base total:', baseTotal);
+    
     // Defensive: check for valid file IDs
-    console.log('[PaymentScreen] files array before payment:', files);
     if (!files || files.length === 0 || files.some(fileObj => !fileObj.file || typeof fileObj.file.id !== 'number' || fileObj.file.id <= 0)) {
       setProcessing(false);
       showAlert('File Error', 'One or more files are missing or not uploaded correctly. Please re-upload your files.', 'error');
       return;
     }
+
     try {
       // 1. Build the order data (before payment)
       const printJobsPayload = files.map(fileObj => ({
@@ -80,57 +109,88 @@ export default function PaymentScreen({ navigation, route }) {
         status: 'QUEUED',
         options: JSON.stringify(fileObj.printOptions || selectedOptions),
       }));
+
       const orderData = {
         user: { id: user?.id },
         printJobs: printJobsPayload,
         status: 'PENDING',
-        totalAmount: baseTotal,
+        totalAmount: grandTotalWithDelivery, // ✅ FIXED: Include delivery cost
         deliveryType,
         deliveryAddress,
         phone,
+        deliveryEstimate: deliveryEstimate, // ✅ NEW: Pass NimbusPost data
       };
-      // 2. Create Razorpay order with grandTotal
+
+      // 2. Create Razorpay order with grand total including delivery
       const orderRes = await createRazorpayOrder({
-        amount: baseTotal,
+        amount: grandTotalWithDelivery, // ✅ FIXED: Include delivery charges
         currency: 'INR',
         receipt: `receipt_${Date.now()}`,
       });
+
       if (!orderRes || !orderRes.id) {
         setProcessing(false);
         showAlert('Payment Error', 'Could not create payment order.', 'error');
         return;
       }
+
       const options = {
         amount: orderRes.amount,
         name: user?.name || '',
         email: user?.email || '',
         contact: phone,
-        description: 'LipiPrint Order',
+        description: 'LipiPrint Order - Document Printing Services',
         orderId: orderRes.id,
         currency: 'INR',
-        key: 'rzp_test_XXXXXXXX', // Replace with your test key if not from config
+        key: 'rzp_test_XXXXXXXX', // Replace with your actual key
         order_id: orderRes.id,
-        prefill: { email: user?.email || '', contact: phone, name: user?.name || '' },
-        theme: { color: '#667eea' }
+        prefill: { 
+          email: user?.email || '', 
+          contact: phone, 
+          name: user?.name || '' 
+        },
+        theme: { color: '#667eea' },
+        notes: {
+          delivery_type: deliveryType,
+          delivery_cost: finalDeliveryCost,
+          from_location: 'Bareilly, UP', // Updated for your location
+          courier_partner: deliveryEstimate?.courierPartner || 'NimbusPost'
+        }
       };
+
       const result = await launchRazorpay(options);
+
       // Payment succeeded, now create order in backend
       if (!files[0]?.file?.id) {
         setProcessing(false);
         showAlert('Order Error', 'No file selected for print job.', 'error');
         return;
       }
+
       // 3. Create order after payment, passing razorpayOrderId
       const finalOrderData = {
         ...orderData,
         razorpayOrderId: orderRes.id,
+        paymentMethod: 'RAZORPAY',
       };
+
+      console.log('[PaymentScreen] Creating order with data:', finalOrderData);
+      
       const createdOrder = await ApiService.createOrder(finalOrderData);
       setProcessing(false);
+      
+      console.log('[PaymentScreen] Order created successfully:', createdOrder.id);
+      
       navigation.navigate('OrderConfirmation', { order: createdOrder });
+
     } catch (error) {
       setProcessing(false);
-      showAlert('Payment Failed', error.description || error.message || 'Payment was not completed.', 'error');
+      console.error('[PaymentScreen] Payment error:', error);
+      showAlert(
+        'Payment Failed', 
+        error.description || error.message || 'Payment was not completed. Please try again.', 
+        'error'
+      );
     }
   };
 
@@ -143,6 +203,7 @@ export default function PaymentScreen({ navigation, route }) {
         >
           <Heading
             title="Payment"
+            subtitle="Review your order and complete payment"
             variant="primary"
           />
         </LinearGradient>
@@ -163,29 +224,35 @@ export default function PaymentScreen({ navigation, route }) {
                 </View>
                 <View style={styles.summaryRow}>
                   <Text style={styles.summaryLabel}>Printing Cost</Text>
-                  <Text style={styles.summaryValue}>₹{orderSummary.subtotal}</Text>
+                  <Text style={styles.summaryValue}>₹{orderSummary.subtotal.toFixed(2)}</Text>
                 </View>
-                {/* <View style={styles.summaryRow}>
-                  <Text style={styles.summaryLabel}>Subtotal (Before Discount)</Text>
-                  <Text style={styles.summaryValue}>₹{orderSummary.subtotal}</Text>
-                </View> */}
-                {/* <View style={styles.summaryRow}>
-                  <Text style={styles.summaryLabel}>Subtotal (After Discount, Before GST)</Text>
-                  <Text style={styles.summaryValue}>₹{orderSummary.discountedSubtotal}</Text>
-                </View> */}
-                <View style={styles.summaryRow}>
-                  <Text style={styles.summaryLabel}>Discount</Text>
-                  <Text style={styles.summaryValue}>₹{orderSummary.discount}</Text>
-                </View>
+                {orderSummary.discount > 0 && (
+                  <View style={styles.summaryRow}>
+                    <Text style={[styles.summaryLabel, {color: '#4CAF50'}]}>Discount</Text>
+                    <Text style={[styles.summaryValue, {color: '#4CAF50'}]}>-₹{orderSummary.discount.toFixed(2)}</Text>
+                  </View>
+                )}
                 <View style={styles.summaryRow}>
                   <Text style={styles.summaryLabel}>GST (18%)</Text>
-                  <Text style={styles.summaryValue}>₹{orderSummary.gst}</Text>
+                  <Text style={styles.summaryValue}>₹{orderSummary.gst.toFixed(2)}</Text>
+                </View>
+                
+                {/* ✅ NEW: Delivery cost row with dynamic pricing */}
+                <View style={styles.summaryRow}>
+                  <Text style={styles.summaryLabel}>
+                    {deliveryType === 'PICKUP' ? '🏪 Store Pickup' : '🚚 Delivery'}
+                    {deliveryEstimate?.estimatedDays && ` (${deliveryEstimate.estimatedDays} days)`}
+                  </Text>
+                  <Text style={styles.summaryValue}>
+                    {finalDeliveryCost > 0 ? `₹${finalDeliveryCost.toFixed(2)}` : 'FREE'}
+                  </Text>
                 </View>
                 
                 <View style={styles.totalRow}>
                   <Text style={styles.totalLabel}>Total Amount</Text>
-                  <Text style={styles.totalAmount}>₹{orderSummary.total}</Text>
+                  <Text style={styles.totalAmount}>₹{orderSummary.total.toFixed(2)}</Text>
                 </View>
+                
                 <View style={styles.summaryRow}>
                   <Text style={styles.summaryLabel}>Invoice Type</Text>
                   <Text style={styles.summaryValue}>{invoiceType === 'B2B' ? 'B2B (Business)' : 'B2C (Personal)'}</Text>
@@ -194,16 +261,7 @@ export default function PaymentScreen({ navigation, route }) {
             </View>
           </Animatable.View>
 
-          {/* {(totalPrice !== undefined && totalPrice !== null) && (
-            <View style={{ marginBottom: 12 }}>
-              <Text style={{ fontWeight: 'bold', fontSize: 16 }}>Total Price: ₹{totalPrice}</Text>
-              {Array.isArray(priceBreakdown) && priceBreakdown.length > 0 && priceBreakdown.map((b, i) => (
-                <Text key={i} style={{ fontSize: 13, color: '#888' }}>{b.fileName}: ₹{b.totalCost}</Text>
-              ))}
-            </View>
-          )} */}
-
-          {/* Payment Method - Only Razorpay */}
+          {/* Payment Method */}
           <Animatable.View animation="fadeInUp" delay={300} duration={500}>
             <Text style={styles.sectionTitle}>Payment Method</Text>
             <View style={styles.paymentList}>
@@ -224,15 +282,52 @@ export default function PaymentScreen({ navigation, route }) {
             </View>
           </Animatable.View>
 
-          {/* Delivery Info */}
+          {/* ✅ ENHANCED: Delivery Info with NimbusPost details */}
           <Animatable.View animation="fadeInUp" delay={400} duration={500}>
             <Text style={styles.sectionTitle}>Delivery Information</Text>
             <View style={styles.deliveryCard}>
               <View style={styles.deliveryInfo}>
                 <Text style={styles.deliveryMethod}>
-                  {deliveryType === 'PICKUP' ? 'Store Pickup' : deliveryType === 'EXPRESS' ? 'Express Delivery' : 'Home Delivery'}
+                  {deliveryType === 'PICKUP' ? '🏪 Store Pickup - Bareilly' : '🚚 NimbusPost Delivery'}
                 </Text>
                 <Text style={styles.deliveryAddress}>{deliveryAddress}</Text>
+                
+                {/* ✅ NEW: NimbusPost delivery details */}
+                {deliveryType === 'DELIVERY' && deliveryEstimate && (
+                  <View style={styles.nimbusPostInfo}>
+                    <Text style={styles.deliveryDetail}>
+                      📦 Expected delivery: {deliveryEstimate.estimatedDays || '2-3'} days
+                    </Text>
+                    {deliveryEstimate.courierPartner && (
+                      <Text style={styles.deliveryDetail}>
+                        🚛 Courier: {deliveryEstimate.courierPartner}
+                      </Text>
+                    )}
+                    <Text style={styles.deliveryDetail}>
+                      📍 From: LipiPrint Bareilly, UP
+                    </Text>
+                    {deliveryEstimate.serviceType && (
+                      <Text style={styles.deliveryDetail}>
+                        🎯 Service: {deliveryEstimate.serviceType}
+                      </Text>
+                    )}
+                  </View>
+                )}
+                
+                {/* ✅ NEW: Pickup information */}
+                {deliveryType === 'PICKUP' && (
+                  <View style={styles.pickupInfo}>
+                    <Text style={styles.deliveryDetail}>
+                      ⏰ Ready for pickup in 2-4 hours
+                    </Text>
+                    <Text style={styles.deliveryDetail}>
+                      📍 LipiPrint Store, Bareilly, Uttar Pradesh
+                    </Text>
+                    <Text style={styles.deliveryDetail}>
+                      💰 No delivery charges - Save ₹{deliveryCost || 30}!
+                    </Text>
+                  </View>
+                )}
               </View>
             </View>
           </Animatable.View>
@@ -249,15 +344,22 @@ export default function PaymentScreen({ navigation, route }) {
           </Animatable.View>
         </View>
       </ScrollView>
-      {/* Pay Button */}
+
+      {/* ✅ FIXED: Pay Button with correct total */}
       <Animatable.View animation="fadeInUp" delay={700} duration={500} style={styles.buttonContainer}>
         <TouchableOpacity onPress={handlePayment} activeOpacity={0.85}>
           <LinearGradient colors={["#667eea", "#764ba2"]} style={styles.payButton}>
-            <Text style={styles.payText}>Pay ₹{orderSummary.total}</Text>
-            <Text style={styles.paySubtext}>Secure payment via Razorpay</Text>
+            <Text style={styles.payText}>Pay ₹{orderSummary.total.toFixed(2)}</Text>
+            <Text style={styles.paySubtext}>
+              {deliveryType === 'PICKUP' 
+                ? 'Pickup from Bareilly store' 
+                : `Including ₹${finalDeliveryCost} delivery via NimbusPost`
+              }
+            </Text>
           </LinearGradient>
         </TouchableOpacity>
       </Animatable.View>
+
       {/* Processing Payment Modal */}
       <Modal
         visible={processing}
@@ -269,10 +371,12 @@ export default function PaymentScreen({ navigation, route }) {
           <Animatable.View animation="zoomIn" duration={400} style={styles.modalContent}>
             <ActivityIndicator size="large" color="#667eea" style={{ marginBottom: 18 }} />
             <Text style={styles.modalTitle}>Processing Payment</Text>
-            <Text style={styles.modalMessage}>Please wait while we process your payment...</Text>
+            <Text style={styles.modalMessage}>Please wait while we process your payment securely...</Text>
+            <Text style={styles.modalSubtext}>Amount: ₹{orderSummary.total.toFixed(2)}</Text>
           </Animatable.View>
         </View>
       </Modal>
+
       <CustomAlert
         visible={alertVisible}
         title={alertTitle}
@@ -295,20 +399,6 @@ const styles = StyleSheet.create({
     paddingTop: 50,
     paddingBottom: 30,
     paddingHorizontal: 20,
-  },
-  header: {
-    alignItems: 'center',
-  },
-  headerTitle: {
-    fontSize: 28,
-    fontWeight: 'bold',
-    color: 'white',
-    marginBottom: 8,
-  },
-  headerSubtitle: {
-    fontSize: 16,
-    color: 'rgba(255, 255, 255, 0.9)',
-    textAlign: 'center',
   },
   content: {
     padding: 20,
@@ -359,6 +449,7 @@ const styles = StyleSheet.create({
   summaryLabel: {
     fontSize: 16,
     color: '#666',
+    flex: 1,
   },
   summaryValue: {
     fontSize: 16,
@@ -414,9 +505,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     marginRight: 14,
-  },
-  paymentListIcon: {
-    fontSize: 22,
   },
   paymentListTextWrap: {
     flex: 1,
@@ -488,10 +576,31 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#666',
   },
-  pickupInfo: {
-    fontSize: 14,
-    color: '#666',
+  
+  // ✅ NEW: Styles for NimbusPost and pickup info
+  nimbusPostInfo: {
+    marginTop: 8,
+    padding: 12,
+    backgroundColor: '#f0f8ff',
+    borderRadius: 8,
+    borderLeftWidth: 3,
+    borderLeftColor: '#667eea',
   },
+  pickupInfo: {
+    marginTop: 8,
+    padding: 12,
+    backgroundColor: '#f0fff0',
+    borderRadius: 8,
+    borderLeftWidth: 3,
+    borderLeftColor: '#4CAF50',
+  },
+  deliveryDetail: {
+    fontSize: 13,
+    color: '#666',
+    marginBottom: 4,
+    lineHeight: 18,
+  },
+  
   securityCard: {
     backgroundColor: 'white',
     borderRadius: 12,
@@ -551,4 +660,11 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     marginTop: 2,
   },
-}); 
+  modalSubtext: {
+    fontSize: 14,
+    color: '#666',
+    textAlign: 'center',
+    marginTop: 8,
+    fontWeight: '600',
+  },
+});
