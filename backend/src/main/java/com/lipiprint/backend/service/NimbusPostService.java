@@ -226,7 +226,7 @@ public class NimbusPostService {
                 Map<String, Object> responseBody = objectMapper.readValue(response.getBody(),
                     new TypeReference<Map<String, Object>>() {});
                 
-                // ✅ Parse response and create ShipmentResponse
+                // ✅ ENHANCED: Parse response with better error handling
                 ShipmentResponse shipmentResponse = parseShipmentResponse(responseBody);
                 
                 logger.info("[NimbusPostService] Shipment created successfully from Saharanpur: {}", 
@@ -282,6 +282,7 @@ public class NimbusPostService {
         }
     }
     
+    // ✅ ENHANCED: Complete overload method for Order-based shipment creation
     public ShipmentResponse createShipment(Order order, UserAddress deliveryAddress, 
                                          String customerName, String customerEmail) {
         logger.info("[NimbusPostService] Creating shipment for Nagpal Print House order: {}", order.getId());
@@ -348,7 +349,7 @@ public class NimbusPostService {
         }
     }
     
-    // ✅ CORRECTED: Updated for Saharanpur location
+    // ✅ CORRECTED: Updated for Saharanpur location with complete field mapping
     private ShipmentRequest buildShipmentRequest(Order order, UserAddress deliveryAddress, 
                                                String customerName, String customerEmail) {
         ShipmentRequest request = new ShipmentRequest();
@@ -451,44 +452,128 @@ public class NimbusPostService {
         return request;
     }
     
-    // ✅ VERIFIED: Parse NimbusPost shipment response
+    // ✅ ENHANCED: Robust parsing with detailed logging and error handling
     private ShipmentResponse parseShipmentResponse(Map<String, Object> responseBody) {
         ShipmentResponse response = new ShipmentResponse();
         
-        if (responseBody.get("status") != null && responseBody.get("status").equals(true)) {
+        // ✅ ADD: Log the full response for debugging
+        logger.info("[NimbusPostService] Full shipment response: {}", responseBody);
+        
+        if (responseBody != null && Boolean.TRUE.equals(responseBody.get("status"))) {
+            response.setStatus(true);
+            
             @SuppressWarnings("unchecked")
             Map<String, Object> data = (Map<String, Object>) responseBody.get("data");
             
             if (data != null) {
-                response.setAwbNumber((String) data.get("awb"));
-                response.setCourierName((String) data.get("courier_name"));
-                response.setTrackingUrl((String) data.get("tracking_url"));
-                response.setShipmentId((String) data.get("shipment_id"));
+                // ✅ ENHANCED: Safe extraction with logging
+                String awb = (String) data.get("awb");
+                String courierName = (String) data.get("courier_name");
+                String shipmentId = (String) data.get("shipment_id");
+                String orderId = (String) data.get("order_id");
+                String courierId = (String) data.get("courier_id");
+                String trackingUrl = (String) data.get("tracking_url");
+                String expectedDeliveryDate = (String) data.get("expected_delivery_date");
+                String labelUrl = (String) data.get("label_url");
+                String manifestUrl = (String) data.get("manifest_url");
+                
+                logger.info("[NimbusPostService] Extracted - AWB: {}, Courier: {}, ShipmentId: {}", 
+                    awb, courierName, shipmentId);
+                
+                response.setAwbNumber(awb);
+                response.setCourierName(courierName);
+                response.setShipmentId(shipmentId);
+                response.setOrderId(orderId);
+                response.setCourierId(courierId);
+                response.setTrackingUrl(trackingUrl);
+                response.setExpectedDeliveryDate(expectedDeliveryDate);
+                response.setLabelUrl(labelUrl);
+                response.setManifestUrl(manifestUrl);
+                
+                // ✅ ADD: Validation check
+                if (awb == null || awb.trim().isEmpty()) {
+                    logger.warn("[NimbusPostService] AWB number is null or empty in response");
+                    response.setMessage("AWB number not provided by courier service");
+                }
+            } else {
+                logger.warn("[NimbusPostService] No 'data' field in successful response");
+                response.setStatus(false);
+                response.setMessage("Missing data field in response");
             }
+        } else {
+            response.setStatus(false);
+            String message = (String) responseBody.getOrDefault("message", "Unknown error");
+            response.setMessage(message);
+            logger.error("[NimbusPostService] Shipment creation failed: {}", message);
         }
         
         return response;
     }
     
-    // ✅ VERIFIED: Parse NimbusPost tracking response
+    // ✅ ENHANCED: Complete tracking response parsing with error handling
     private TrackingResponse parseTrackingResponse(Map<String, Object> responseBody) {
         TrackingResponse response = new TrackingResponse();
         
-        if (responseBody.get("status") != null && responseBody.get("status").equals(true)) {
+        logger.info("[NimbusPostService] Full tracking response: {}", responseBody);
+        
+        if (responseBody != null && Boolean.TRUE.equals(responseBody.get("status"))) {
+            response.setStatus(true);
+            
             @SuppressWarnings("unchecked")
             Map<String, Object> data = (Map<String, Object>) responseBody.get("data");
             
             if (data != null) {
-                response.setAwbNumber((String) data.get("awb"));
-                response.setStatus((String) data.get("status"));
-                response.setLastLocation((String) data.get("last_location"));
-                response.setExpectedDelivery((String) data.get("expected_delivery"));
+                String awb = (String) data.get("awb");
+                String currentStatus = (String) data.get("status");
+                String lastLocation = (String) data.get("last_location");
+                String expectedDelivery = (String) data.get("expected_delivery");
+                String courierName = (String) data.get("courier_name");
+                String deliveredDate = (String) data.get("delivered_date");
+                
+                response.setAwbNumber(awb);
+                response.setCurrentStatus(currentStatus);
+                response.setLastLocation(lastLocation);
+                response.setExpectedDeliveryDate(expectedDelivery);
+                response.setCourierName(courierName);
+                response.setDeliveredDate(deliveredDate);
+                
+                // Parse tracking events if available
+                @SuppressWarnings("unchecked")
+                List<Map<String, Object>> trackingDataRaw = (List<Map<String, Object>>) data.get("tracking_data");
+                
+                if (trackingDataRaw != null && !trackingDataRaw.isEmpty()) {
+                    List<TrackingResponse.TrackingEvent> trackingEvents = new ArrayList<>();
+                    for (Map<String, Object> eventData : trackingDataRaw) {
+                        TrackingResponse.TrackingEvent event = new TrackingResponse.TrackingEvent();
+                        event.setDate((String) eventData.get("date"));
+                        event.setActivity((String) eventData.get("activity"));
+                        event.setLocation((String) eventData.get("location"));
+                        event.setStatus((String) eventData.get("status"));
+                        event.setTimestamp((String) eventData.get("timestamp"));
+                        event.setDescription((String) eventData.get("description"));
+                        trackingEvents.add(event);
+                    }
+                    response.setTrackingData(trackingEvents);
+                }
+                
+                logger.info("[NimbusPostService] Tracking parsed - AWB: {}, Status: {}, Location: {}", 
+                    awb, currentStatus, lastLocation);
+            } else {
+                logger.warn("[NimbusPostService] No 'data' field in tracking response");
+                response.setStatus(false);
+                response.setMessage("Missing data field in tracking response");
             }
+        } else {
+            response.setStatus(false);
+            String message = (String) responseBody.getOrDefault("message", "Unknown tracking error");
+            response.setMessage(message);
+            logger.error("[NimbusPostService] Tracking failed: {}", message);
         }
         
         return response;
     }
     
+    // ✅ UTILITY: Helper methods for address parsing
     private String extractPincode(String addressLine) {
         if (addressLine == null) return "000000";
         java.util.regex.Pattern pattern = java.util.regex.Pattern.compile("\\b(\\d{6})\\b");
@@ -504,12 +589,19 @@ public class NimbusPostService {
     
     private String extractState(String addressLine) {
         if (addressLine == null) return "Unknown";
-        if (addressLine.toLowerCase().contains("up") || addressLine.toLowerCase().contains("uttar pradesh")) {
+        String addressLower = addressLine.toLowerCase();
+        if (addressLower.contains("up") || addressLower.contains("uttar pradesh")) {
             return "Uttar Pradesh";
-        } else if (addressLine.toLowerCase().contains("uttarakhand")) {
+        } else if (addressLower.contains("uttarakhand")) {
             return "Uttarakhand";
-        } else if (addressLine.toLowerCase().contains("delhi")) {
+        } else if (addressLower.contains("delhi")) {
             return "Delhi";
+        } else if (addressLower.contains("haryana")) {
+            return "Haryana";
+        } else if (addressLower.contains("punjab")) {
+            return "Punjab";
+        } else if (addressLower.contains("rajasthan")) {
+            return "Rajasthan";
         }
         return "Unknown";
     }

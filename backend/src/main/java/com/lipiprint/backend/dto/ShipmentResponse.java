@@ -30,7 +30,7 @@ public class ShipmentResponse {
     @JsonProperty("manifest_url")
     private String manifestUrl;
     
-    // ✅ ADDED: Missing fields needed for NimbusPost integration
+    // ✅ ADDED: Missing tracking_url field
     @JsonProperty("tracking_url")
     private String trackingUrl;
 

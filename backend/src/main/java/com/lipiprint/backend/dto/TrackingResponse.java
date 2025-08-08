@@ -22,7 +22,7 @@ public class TrackingResponse {
     @JsonProperty("tracking_data")
     private List<TrackingEvent> trackingData;
     
-    // ✅ ADDED: Missing fields needed for NimbusPost integration
+    // ✅ ADDED: Missing fields for NimbusPost integration
     @JsonProperty("last_location")
     private String lastLocation;
     
@@ -63,20 +63,17 @@ public class TrackingResponse {
     public String getCourierName() { return courierName; }
     public void setCourierName(String courierName) { this.courierName = courierName; }
 
-    // ✅ ADDED: Convenience method for NimbusPost parsing compatibility
+    // ✅ ADDED: Convenience methods for parsing compatibility
     public void setStatus(String statusString) {
-        // Handle both boolean and string status from different API responses
         if ("true".equalsIgnoreCase(statusString) || "success".equalsIgnoreCase(statusString)) {
             this.status = true;
         } else if ("false".equalsIgnoreCase(statusString) || "failed".equalsIgnoreCase(statusString)) {
             this.status = false;
         } else {
-            // If it's a status description, set currentStatus instead
             this.currentStatus = statusString;
         }
     }
 
-    // ✅ ADDED: Convenience method for expected delivery
     public void setExpectedDelivery(String expectedDelivery) {
         this.expectedDeliveryDate = expectedDelivery;
     }
@@ -94,7 +91,7 @@ public class TrackingResponse {
                 '}';
     }
 
-    // Inner class for tracking events
+    // ✅ ENHANCED: Complete TrackingEvent inner class
     public static class TrackingEvent {
         private String date;
         private String activity;
@@ -111,7 +108,7 @@ public class TrackingResponse {
 
         public TrackingEvent() {}
 
-        // ✅ COMPLETE: All getters and setters for tracking events
+        // ✅ COMPLETE: All getters and setters
         public String getDate() { return date; }
         public void setDate(String date) { this.date = date; }
 
@@ -137,6 +134,8 @@ public class TrackingResponse {
                     ", activity='" + activity + '\'' +
                     ", location='" + location + '\'' +
                     ", status='" + status + '\'' +
+                    ", timestamp='" + timestamp + '\'' +
+                    ", description='" + description + '\'' +
                     '}';
         }
     }
