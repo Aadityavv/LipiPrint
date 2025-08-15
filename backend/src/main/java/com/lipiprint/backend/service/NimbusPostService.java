@@ -487,7 +487,7 @@ public class NimbusPostService {
         request.put("request_auto_pickup", "yes");
         
         // ✅ CRITICAL: Support contact fields
-        request.put("support_email", "nagpalprinthouse@gmail.com");
+        request.put("support_email", "dev.lipiprint@gmail.com");
         request.put("support_phone", "9358319000");
         
         // Consignee details
