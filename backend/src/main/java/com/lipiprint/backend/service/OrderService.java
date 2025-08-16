@@ -130,41 +130,87 @@ public class OrderService {
         }
     }
 
-    private UserAddress parseDeliveryAddress(Order order) {
-        if (order.getDeliveryAddress() == null || order.getDeliveryAddress().trim().isEmpty()) {
-            return null;
-        }
-
-        // Create a temporary UserAddress object from the delivery address string
-        UserAddress address = new UserAddress();
-        String fullAddress = order.getDeliveryAddress().trim();
-        
-        // Split the address into parts (assuming comma-separated format)
-        String[] parts = fullAddress.split(",");
-        
-        if (parts.length >= 3) {
-            address.setLine1(parts[0].trim());
-            address.setLine2(parts[1].trim());
-            address.setLine3(parts[2].trim());
-        } else if (parts.length == 2) {
-            address.setLine1(parts[0].trim());
-            address.setLine2(parts[1].trim());
-            address.setLine3("Saharanpur, UP 247001"); // Default
-        } else {
-            address.setLine1(fullAddress);
-            address.setLine2("Saharanpur");
-            address.setLine3("Saharanpur, UP 247001");
-        }
-        
-        // Set default phone if user exists
-        if (order.getUser() != null && order.getUser().getPhone() != null) {
-            address.setPhone(order.getUser().getPhone());
-        } else {
-            address.setPhone("9999999999"); // Default phone
-        }
-        
-        return address;
+private UserAddress parseDeliveryAddress(Order order) {
+    if (order.getDeliveryAddress() == null || order.getDeliveryAddress().trim().isEmpty()) {
+        return null;
     }
+
+    // ✅ UPDATED: Create UserAddress with proper field mapping
+    UserAddress address = new UserAddress();
+    String fullAddress = order.getDeliveryAddress().trim();
+    
+    // Split the address into parts (assuming comma-separated format)
+    String[] parts = fullAddress.split(",");
+    
+    if (parts.length >= 3) {
+        address.setLine1(parts[0].trim());
+        address.setLine2(parts[1].trim());
+        address.setLine3(parts[2].trim());
+        
+        // ✅ NEW: Extract city, state, pincode from line3 or use defaults
+        if (parts.length >= 6) {
+            // Format: line1, line2, line3, city, state, pincode
+            address.setCity(parts[3].trim());
+            address.setState(parts[4].trim());
+            address.setPincode(parts[5].trim());
+        } else {
+            // ✅ BETTER: Parse from line3 or extract from order if available
+            extractLocationFromLine3(address, parts[2].trim());
+        }
+    } else {
+        // Handle insufficient parts
+        address.setLine1(fullAddress);
+        address.setLine2("Saharanpur");
+        address.setLine3("Saharanpur, UP 247001");
+        address.setCity("Saharanpur");
+        address.setState("Uttar Pradesh");
+        address.setPincode("247001");
+    }
+    
+    // Set phone from order
+    if (order.getPhone() != null && !order.getPhone().trim().isEmpty()) {
+        address.setPhone(order.getPhone());
+    } else if (order.getUser() != null && order.getUser().getPhone() != null) {
+        address.setPhone(order.getUser().getPhone());
+    } else {
+        address.setPhone("9999999999"); // Default phone
+    }
+    
+    return address;
+}
+
+// ✅ NEW HELPER METHOD
+private void extractLocationFromLine3(UserAddress address, String line3) {
+    // Extract pincode using regex
+    java.util.regex.Pattern pincodePattern = java.util.regex.Pattern.compile("\\b(\\d{6})\\b");
+    java.util.regex.Matcher matcher = pincodePattern.matcher(line3);
+    
+    if (matcher.find()) {
+        address.setPincode(matcher.group(1));
+    } else {
+        address.setPincode("247001"); // Default to Saharanpur
+    }
+    
+    // Extract state and city from line3
+    String line3Lower = line3.toLowerCase();
+    if (line3Lower.contains("up") || line3Lower.contains("uttar pradesh")) {
+        address.setState("Uttar Pradesh");
+    } else if (line3Lower.contains("uttarakhand")) {
+        address.setState("Uttarakhand");
+    } else if (line3Lower.contains("delhi")) {
+        address.setState("Delhi");
+    } else {
+        address.setState("Uttar Pradesh"); // Default
+    }
+    
+    // Extract city (first word before comma or state)
+    String[] cityParts = line3.split("[,\\s]+");
+    if (cityParts.length > 0) {
+        address.setCity(cityParts[0].trim());
+    } else {
+        address.setCity("Saharanpur"); // Default
+    }
+}
 
     private LocalDateTime parseDeliveryDate(String dateString) {
         try {

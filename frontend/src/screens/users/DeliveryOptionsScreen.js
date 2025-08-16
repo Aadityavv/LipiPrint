@@ -40,6 +40,10 @@ export default function DeliveryOptionsScreen({ navigation, route }) {
   const [optionsError, setOptionsError] = useState(null);
   const [deliveryEstimate, setDeliveryEstimate] = useState(null);
   const [loadingEstimate, setLoadingEstimate] = useState(false);
+  const [pincode, setPincode] = useState('');
+const [city, setCity] = useState('');
+const [state, setState] = useState('');
+
   const { theme } = useTheme();
 
   // Enhanced delivery options with NimbusPost integration
@@ -106,6 +110,64 @@ export default function DeliveryOptionsScreen({ navigation, route }) {
       });
   }, []);
 
+const fetchCityState = async (pin) => {
+  console.log('fetchCityState called with pin:', pin);
+
+  if (pin.length !== 6) {
+      setCity('Enter a Valid Pincode');
+      setState('Enter a Valid Pincode');
+    return;
+  }
+
+  try {
+    console.log('Fetching from postalpincode.in for:', pin);
+    const res = await fetch(`https://api.postalpincode.in/pincode/${pin}`);
+    
+    if (!res.ok) {
+      throw new Error(`HTTP error! status: ${res.status}`);
+    }
+
+    const data = await res.json();
+    console.log('Postalpincode.in response:', data);
+
+    console.log('data[0]:', data[0].PostOffice[0]);
+
+    if (
+      data[0].PostOffice.length > 0
+    ) {
+      const postOffice = data[0].PostOffice[0];
+      console.log('✅ Post office found:', postOffice);
+      console.log('✅ Setting city/state:', postOffice.District, postOffice.State);
+      
+      setCity(postOffice.District || 'Invalid Pincode');
+      setState(postOffice.State || 'Invalid Pincode');
+    } else {
+      console.log('❌ No valid postal data found for pincode:', pin);
+      setCity('Enter a Valid Pincode');
+      setState('Enter a Valid Pincode');
+    }
+  } catch (e) {
+    console.error('❌ Fetch failed:', e);
+    setCity('Enter a Valid Pincode');
+    setState('Enter a Valid Pincode');
+  }
+};
+
+
+
+// Remove the standalone console.log and put it inside useEffect:
+useEffect(() => {
+  console.log('Pincode state changed to:', pincode); // Move logging here
+  if (pincode.length === 6) {
+    fetchCityState(pincode);
+  } else {
+    setCity('Enter a Valid Pincode');
+      setState('Enter a Valid Pincode');
+  }
+}, [pincode]);
+
+
+
   useEffect(() => {
     ApiService.getUserAddresses()
       .then(setSavedAddresses)
@@ -147,7 +209,6 @@ export default function DeliveryOptionsScreen({ navigation, route }) {
         method: 'POST',
         body: JSON.stringify({ pincode, weight: 0.2 }) // Approximate weight for documents
       });
-      
       setDeliveryEstimate(estimate);
       
       // Update delivery options with real estimate
@@ -300,20 +361,27 @@ const proceedToPayment = () => {
     }
     
     // Validate pincode
-    const pincode = extractPincode(addressLine3);
-    if (!pincode) {
-      Alert.alert('Invalid Address', 'Please include a valid 6-digit pincode in address line 3.');
-      return;
-    }
+if (!pincode || pincode.length !== 6) {
+  Alert.alert('Invalid Address', 'Please enter a valid 6-digit pincode.');
+  return;
+}
+if (!city || !state) {
+  Alert.alert('Invalid Address', 'Could not fetch city/state from pincode. Please check the pincode.');
+  return;
+}
+
     
     try {
-      const newAddr = await ApiService.addUserAddress({
-        line1: addressLine1,
-        line2: addressLine2,
-        line3: addressLine3,
-        phone: phone,
-        addressType: 'home',
-      });
+const newAddr = await ApiService.addUserAddress({
+  line1: addressLine1,
+  line2: addressLine2,
+  line3: addressLine3,
+  phone: phone,
+  pincode: pincode,
+  city: city,
+  state: state,
+  addressType: 'home',
+});
       setSavedAddresses(prev => [...prev, newAddr]);
       setShowNewAddress(false);
       setSelectedAddressId(newAddr.id);
@@ -321,6 +389,9 @@ const proceedToPayment = () => {
       setAddressLine2('');
       setAddressLine3('');
       setPhone('');
+      setPincode('');
+      setCity('');
+      setState('');
     } catch (e) {
       Alert.alert('Add Failed', e.message || 'Could not add address.');
     }
@@ -585,6 +656,40 @@ const proceedToPayment = () => {
               {/* New Address Fields */}
               {showNewAddress && !editingAddressId && (
                 <>
+                <View style={styles.inputContainer}>
+  <Text style={styles.inputLabel}>Pincode *</Text>
+  <TextInput
+    style={styles.addressInput}
+    placeholder="Enter 6-digit pincode"
+    keyboardType="numeric"
+    maxLength={6}
+    value={pincode}
+    onChangeText={setPincode}
+  />
+  {pincode && pincode.length !== 6 && (
+    <Text style={styles.errorHint}>Pincode must be 6 digits</Text>
+  )}
+</View>
+
+<View style={styles.inputContainer}>
+  <Text style={styles.inputLabel}>City</Text>
+  <TextInput
+    style={styles.addressInput}
+    value={city}
+    editable={false}
+    placeholder="Auto-filled city"
+  />
+</View>
+<View style={styles.inputContainer}>
+  <Text style={styles.inputLabel}>State</Text>
+  <TextInput
+    style={styles.addressInput}
+    value={state}
+    editable={false}
+    placeholder="Auto-filled state"
+  />
+</View>
+
                   <View style={styles.inputContainer}>
                     <Text style={styles.inputLabel}>Address Line 1 *</Text>
                     <TextInput

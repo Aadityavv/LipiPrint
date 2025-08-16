@@ -419,59 +419,61 @@ public class NimbusPostService {
     }
     
     // ✅ ENHANCED: Build shipment request for Nagpal Print House
-    private ShipmentRequest buildShipmentRequest(Order order, UserAddress deliveryAddress, 
-                                               String customerName, String customerEmail) {
-        ShipmentRequest request = new ShipmentRequest();
-        
-        // Order details
-        request.setOrderId(order.getId().toString());
-        request.setOrderNumber("LP" + order.getId());
-        request.setOrderAmount(order.getTotalAmount().toString());
-        request.setPaymentMethod(order.getPaymentMethod() != null ? 
-            order.getPaymentMethod().toString() : "PREPAID");
-        
-        // Pickup details for Nagpal Print House Saharanpur
-        request.setPickupName("Nagpal Print House");
-        request.setPickupAddress("Near Civil Court Sadar, Thana Road");
-        request.setPickupCity("Saharanpur");
-        request.setPickupState("Uttar Pradesh");
-        request.setPickupPincode("247001");
-        request.setPickupPhone("+91-9837775757");
-        
-        // Customer delivery details
-        request.setDeliveryName(customerName);
-        request.setDeliveryPhone(deliveryAddress.getPhone());
-        request.setDeliveryEmail(customerEmail);
-        
-        // Complete address parsing
-        String fullAddress = deliveryAddress.getLine1();
-        if (deliveryAddress.getLine2() != null && !deliveryAddress.getLine2().trim().isEmpty()) {
-            fullAddress += ", " + deliveryAddress.getLine2();
-        }
-        request.setDeliveryAddress(fullAddress);
-        request.setDeliveryCity(extractCity(deliveryAddress.getLine3()));
-        request.setDeliveryState(extractState(deliveryAddress.getLine3()));
-        request.setDeliveryPincode(extractPincode(deliveryAddress.getLine3()));
-        
-        // Package details for document printing
-        request.setWeight(0.2);
-        request.setLength(30);
-        request.setBreadth(25);
-        request.setHeight(2);
-        
-        // Service details
-        Double codAmount = 0.0;
-        if (order.getPaymentMethod() == Order.PaymentMethod.COD) {
-            codAmount = order.getTotalAmount();
-        }
-        request.setCodAmount(codAmount);
-        request.setProductDescription("Printed Documents - Nagpal Print House Saharanpur");
-        request.setInvoiceNumber("LP" + order.getId());
-        
-        return request;
-    }
+// ✅ UPDATE: buildShipmentRequest method in NimbusPostService
+private ShipmentRequest buildShipmentRequest(Order order, UserAddress deliveryAddress, 
+                                           String customerName, String customerEmail) {
+    ShipmentRequest request = new ShipmentRequest();
     
-    // ✅ ENHANCED: Build NimbusPost API request
+    // Order details
+    request.setOrderId(order.getId().toString());
+    request.setOrderNumber("LP" + order.getId());
+    request.setOrderAmount(order.getTotalAmount().toString());
+    request.setPaymentMethod(order.getPaymentMethod() != null ? 
+        order.getPaymentMethod().toString() : "PREPAID");
+    
+    // Pickup details for Nagpal Print House Saharanpur
+    request.setPickupName("Nagpal Print House");
+    request.setPickupAddress("Near Civil Court Sadar, Thana Road");
+    request.setPickupCity("Saharanpur");
+    request.setPickupState("Uttar Pradesh");
+    request.setPickupPincode("247001");
+    request.setPickupPhone("+91-9837775757");
+    
+    // Customer delivery details
+    request.setDeliveryName(customerName);
+    request.setDeliveryPhone(deliveryAddress.getPhone());
+    request.setDeliveryEmail(customerEmail);
+    
+    // ✅ UPDATED: Use new address fields directly
+    String fullAddress = deliveryAddress.getLine1();
+    if (deliveryAddress.getLine2() != null && !deliveryAddress.getLine2().trim().isEmpty()) {
+        fullAddress += ", " + deliveryAddress.getLine2();
+    }
+    request.setDeliveryAddress(fullAddress);
+    
+    // ✅ NEW: Use dedicated fields instead of parsing
+    request.setDeliveryCity(deliveryAddress.getCity());
+    request.setDeliveryState(deliveryAddress.getState());
+    request.setDeliveryPincode(deliveryAddress.getPincode());
+    
+    // Package details for document printing
+    request.setWeight(0.2);
+    request.setLength(30);
+    request.setBreadth(25);
+    request.setHeight(2);
+    
+    // Service details
+    Double codAmount = 0.0;
+    if (order.getPaymentMethod() == Order.PaymentMethod.COD) {
+        codAmount = order.getTotalAmount();
+    }
+    request.setCodAmount(codAmount);
+    request.setProductDescription("Printed Documents - Nagpal Print House Saharanpur");
+    request.setInvoiceNumber("LP" + order.getId());
+    
+    return request;
+}
+  // ✅ ENHANCED: Build NimbusPost API request
     private Map<String, Object> buildNimbusPostShipmentRequest(ShipmentRequest shipmentRequest) {
         Map<String, Object> request = new HashMap<>();
         
