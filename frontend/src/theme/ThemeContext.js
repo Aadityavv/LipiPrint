@@ -12,7 +12,7 @@ const lightTheme = {
   border: '#e0e0e0',
   button: '#667eea',
   buttonText: '#fff',
-  input: '#fff',
+  input: '#000000ff',
   inputText: '#222',
   placeholder: '#aaa',
 };

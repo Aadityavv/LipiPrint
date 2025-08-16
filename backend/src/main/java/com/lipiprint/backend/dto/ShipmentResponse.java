@@ -1,6 +1,7 @@
 package com.lipiprint.backend.dto;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
+import java.util.Map;
 
 public class ShipmentResponse {
     private boolean status;
@@ -32,6 +33,10 @@ public class ShipmentResponse {
     
     @JsonProperty("tracking_url")
     private String trackingUrl;
+    
+    // ✅ ADD: Error details field for debugging
+    @JsonProperty("error_details")
+    private Map<String, Object> errorDetails;
 
     // Constructors
     public ShipmentResponse() {}
@@ -71,6 +76,10 @@ public class ShipmentResponse {
 
     public String getTrackingUrl() { return trackingUrl; }
     public void setTrackingUrl(String trackingUrl) { this.trackingUrl = trackingUrl; }
+    
+    // ✅ ADD: Error details getter and setter
+    public Map<String, Object> getErrorDetails() { return errorDetails; }
+    public void setErrorDetails(Map<String, Object> errorDetails) { this.errorDetails = errorDetails; }
 
     @Override
     public String toString() {
@@ -84,6 +93,7 @@ public class ShipmentResponse {
                 ", courierName='" + courierName + '\'' +
                 ", expectedDeliveryDate='" + expectedDeliveryDate + '\'' +
                 ", trackingUrl='" + trackingUrl + '\'' +
+                ", errorDetails=" + errorDetails +
                 '}';
     }
 }

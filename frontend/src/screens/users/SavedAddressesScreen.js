@@ -1,22 +1,37 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, FlatList, ActivityIndicator, TextInput, Modal, Platform } from 'react-native';
-import LinearGradient from 'react-native-linear-gradient';
-import * as Animatable from 'react-native-animatable';
+import {
+  View,
+  Text,
+  StyleSheet,
+  TouchableOpacity,
+  FlatList,
+  ActivityIndicator,
+  TextInput,
+  Modal,
+  StatusBar,
+} from 'react-native';
 import Icon from 'react-native-vector-icons/MaterialIcons';
+import LinearGradient from 'react-native-linear-gradient';
 import api from '../../services/api';
-import { useTheme } from '../../theme/ThemeContext';
-import Heading from '../../components/Heading';
 
-export default function SavedAddressesScreen({ navigation }) {
-  const { theme } = useTheme();
+const PRIMARY = '#1e3a8a';
+const WHITE = '#fff';
+const CARD = '#f5f7fa';
+const TEXT = '#212121';
+const SUBTEXT = '#637381';
+const BORDER = '#e3e8ee';
+const ERROR = '#d90429';
+const SUCCESS = '#03c988';
+
+export default function SavedAddressesScreen() {
   const [addresses, setAddresses] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [modalVisible, setModalVisible] = useState(false);
   const [modalMode, setModalMode] = useState('add'); // 'add' or 'edit'
-  const [formFields, setFormFields] = useState({ line1: '', line2: '', line3: '', phone: '' });
+  const [formFields, setFormFields] = useState({ line1: '', line2: '', line3: '', phone: '', city: '', state: '', pincode: '' });
   const [editingId, setEditingId] = useState(null);
-  const [alert, setAlert] = useState({ visible: false, title: '', message: '', onConfirm: null, showCancel: false });
+  const [alert, setAlert] = useState({ visible: false, message: '' });
 
   useEffect(() => {
     fetchAddresses();
@@ -37,44 +52,99 @@ export default function SavedAddressesScreen({ navigation }) {
 
   const openAddModal = () => {
     setModalMode('add');
-    setFormFields({ line1: '', line2: '', line3: '', phone: '' });
+    setFormFields({ line1: '', line2: '', line3: '', phone: '', city: '', state: '', pincode: '' });
     setModalVisible(true);
   };
 
   const openEditModal = (item) => {
     setModalMode('edit');
     setEditingId(item.id);
-    setFormFields({ line1: item.line1, line2: item.line2, line3: item.line3, phone: item.phone });
+    setFormFields({
+      line1: item.line1 || '',
+      line2: item.line2 || '',
+      line3: item.line3 || '',
+      phone: item.phone || '',
+      city: item.city || '',
+      state: item.state || '',
+      pincode: item.pincode || ''
+    });
     setModalVisible(true);
   };
 
   const closeModal = () => {
     setModalVisible(false);
     setEditingId(null);
-    setFormFields({ line1: '', line2: '', line3: '', phone: '' });
+    setFormFields({ line1: '', line2: '', line3: '', phone: '', city: '', state: '', pincode: '' });
   };
 
-  const showAlert = (title, message, onConfirm = null, showCancel = false) => {
-    setAlert({ visible: true, title, message, onConfirm, showCancel });
-  };
-
-  const hideAlert = () => setAlert({ ...alert, visible: false });
+  const showAlert = (message) => setAlert({ visible: true, message });
+  const hideAlert = () => setAlert({ visible: false, message: '' });
 
   const handleDelete = async (id) => {
-    showAlert('Delete Address', 'Are you sure you want to delete this address?', async () => {
+    showAlert('Deleting address...');
+    try {
+      await api.deleteUserAddress(id);
+      setAddresses(addresses.filter(addr => addr.id !== id));
       hideAlert();
-      try {
-        await api.deleteUserAddress(id);
-        setAddresses(addresses.filter(addr => addr.id !== id));
-      } catch (e) {
-        showAlert('Error', 'Failed to delete address.');
+    } catch (e) {
+      showAlert('Failed to delete address.');
+    }
+  };
+
+  // Autofill city/state when pincode changes
+  useEffect(() => {
+    if (formFields.pincode.length === 6) {
+      fetchCityState(formFields.pincode);
+    } else if (formFields.pincode !== '' && formFields.pincode.length < 6) {
+      setFormFields(prev => ({ ...prev, city: '', state: '' }));
+    }
+  }, [formFields.pincode]);
+
+  const fetchCityState = async (pin) => {
+    if (pin.length !== 6) {
+      setFormFields(prev => ({
+        ...prev, city: '', state: ''
+      }));
+      return;
+    }
+    try {
+      const res = await fetch(`https://api.postalpincode.in/pincode/${pin}`);
+      const data = await res.json();
+      if (data[0].PostOffice && data[0].PostOffice.length > 0) {
+        const postOffice = data[0].PostOffice[0];
+        setFormFields(prev => ({
+          ...prev,
+          city: postOffice.District || '',
+          state: postOffice.State || ''
+        }));
+      } else {
+        setFormFields(prev => ({
+          ...prev,
+          city: '',
+          state: ''
+        }));
       }
-    }, true);
+    } catch (e) {
+      setFormFields(prev => ({
+        ...prev,
+        city: '',
+        state: ''
+      }));
+    }
   };
 
   const handleSave = async () => {
-    if (!formFields.line1.trim() || !formFields.line2.trim() || !formFields.line3.trim() || !formFields.phone.trim()) {
-      showAlert('All fields required', 'Please fill all address fields and phone.');
+    const { line1, line2, line3, phone, city, state, pincode } = formFields;
+    if (!line1.trim() || !line2.trim() || !line3.trim() || !phone.trim() || !city.trim() || !state.trim() || !pincode.trim()) {
+      showAlert('Please fill all fields.');
+      return;
+    }
+    if (!/^\d{6}$/.test(pincode)) {
+      showAlert('Invalid pincode. Pincode should be 6 digits.');
+      return;
+    }
+    if (city === '' || state === '') {
+      showAlert('Please provide a valid 6-digit pincode to autofill city and state.');
       return;
     }
     try {
@@ -87,182 +157,137 @@ export default function SavedAddressesScreen({ navigation }) {
       }
       closeModal();
     } catch (e) {
-      showAlert('Error', 'Failed to save address.');
+      showAlert('Failed to save address.');
     }
   };
 
   const renderAddress = ({ item }) => (
-    <Animatable.View animation="fadeInUp" duration={500} style={[styles.addressCard, { backgroundColor: theme.card }]}>
-      <View style={[styles.cardRow, { borderBottomColor: theme.border }]}>
-        <Icon name="location-on" size={28} color={theme.text} style={{ marginRight: 12 }} />
+    <View style={styles.addressCard}>
+      <View style={styles.addressTop}>
+        <View style={styles.addressIconContainer}>
+          <Icon name="home" size={25} color={PRIMARY} />
+        </View>
         <View style={{ flex: 1 }}>
-          <Text style={[styles.addressLabel, { color: theme.text }]}>Address</Text>
-          <Text style={[styles.addressText, { color: theme.text }]}>{item.line1}</Text>
-          <Text style={[styles.addressText, { color: theme.text }]}>{item.line2}</Text>
-          <Text style={[styles.addressText, { color: theme.text }]}>{item.line3}</Text>
-          <Text style={[styles.addressLabel, { color: theme.text }]}>Phone</Text>
-          <Text style={[styles.addressPhone, { color: theme.text }]}>{item.phone}</Text>
+          <Text style={styles.addressLine}>{item.line1}</Text>
+          <Text style={styles.addressLine}>{item.line2}</Text>
+          <Text style={styles.addressLine}>{item.line3}</Text>
+          <Text style={styles.addressDetails}>{`${item.city}, ${item.state} - ${item.pincode}`}</Text>
+          <Text style={styles.addressPhone}>{item.phone}</Text>
         </View>
-        <View style={[styles.cardActions, { borderTopColor: theme.border }]}>
-          <TouchableOpacity style={[styles.iconBtn, { backgroundColor: theme.background }]} onPress={() => openEditModal(item)} accessibilityLabel="Edit address">
-            <Icon name="edit" size={22} color={theme.text} />
-          </TouchableOpacity>
-          <TouchableOpacity style={[styles.iconBtn, { backgroundColor: theme.background }]} onPress={() => handleDelete(item.id)} accessibilityLabel="Delete address">
-            <Icon name="delete" size={22} color={theme.error} />
-          </TouchableOpacity>
-        </View>
+        <TouchableOpacity onPress={() => openEditModal(item)} style={styles.iconBtn}>
+          <Icon name="edit" size={20} color={PRIMARY} />
+        </TouchableOpacity>
+        <TouchableOpacity onPress={() => handleDelete(item.id)} style={styles.iconBtn}>
+          <Icon name="delete" size={20} color={ERROR} />
+        </TouchableOpacity>
       </View>
-    </Animatable.View>
-  );
-
-  const CustomAlertModal = ({ visible, title, message, onConfirm, onCancel, showCancel }) => (
-    <Modal visible={visible} transparent animationType="fade">
-      <View style={[styles.alertOverlay, { backgroundColor: theme.background }]}>
-        <View style={[styles.alertBox, { backgroundColor: theme.card }]}>
-          <Text style={[styles.alertTitle, { color: theme.text }]}>{title}</Text>
-          <Text style={[styles.alertMessage, { color: theme.text }]}>{message}</Text>
-          <View style={[styles.alertBtnRow, { borderTopColor: theme.border }]}>
-            {showCancel && (
-              <TouchableOpacity style={[styles.alertCancelBtn, { backgroundColor: theme.background }]} onPress={onCancel}><Text style={[styles.alertCancelText, { color: theme.text }]}>Cancel</Text></TouchableOpacity>
-            )}
-            <TouchableOpacity style={[styles.alertConfirmBtn, { backgroundColor: theme.primary }]} onPress={onConfirm}><Text style={[styles.alertConfirmText, { color: theme.text }]}>OK</Text></TouchableOpacity>
-          </View>
-        </View>
-      </View>
-    </Modal>
+    </View>
   );
 
   return (
-    <View style={[styles.container, { backgroundColor: theme.background }]}>
-      <LinearGradient
-        colors={['#22194f', '#22194f']}
-        style={styles.headerGradient}
-      >
-        <Heading
-          title="Saved Addresses"
-          variant="primary"
-        />
+    <View style={styles.mainContainer}>
+      <StatusBar barStyle="light-content" backgroundColor={PRIMARY} />
+      <LinearGradient colors={[PRIMARY, '#4F8EF7']} style={styles.headerGradient}>
+        <Text style={styles.headerTitle}>My Saved Addresses</Text>
       </LinearGradient>
-      <Animatable.View animation="fadeInUp" delay={200} duration={500} style={[styles.content, { backgroundColor: theme.background }]}>
-        <Text style={[styles.sectionTitle, { color: theme.text }]}>Your Addresses</Text>
+      <View style={styles.content}>
         {loading ? (
-          <ActivityIndicator size="large" color={theme.primary} />
+          <ActivityIndicator size="large" color={PRIMARY} style={{ marginTop: 50 }} />
         ) : error ? (
-          <Text style={[styles.errorText, { color: theme.error }]}>{error}</Text>
+          <Text style={styles.errorText}>{error}</Text>
         ) : addresses.length === 0 ? (
-          <View style={[styles.emptyContainer, { backgroundColor: theme.background }]}>
-            <Icon name="location-off" size={64} color={theme.text} style={{ marginBottom: 12 }} />
-            <Text style={[styles.emptyText, { color: theme.text }]}>No saved addresses yet.</Text>
-            <TouchableOpacity style={[styles.emptyAddBtn, { backgroundColor: theme.primary }]} onPress={openAddModal}>
-              <LinearGradient colors={["#667eea", "#764ba2"]} style={[styles.emptyAddBtnGradient, { backgroundColor: theme.primary }]}>
-                <Icon name="add-location-alt" size={22} color={theme.text} />
-                <Text style={[styles.addBtnText, { color: theme.text }]}>Add Address</Text>
-              </LinearGradient>
-            </TouchableOpacity>
+          <View style={styles.emptyContainer}>
+            <Icon name="location-off" size={60} color={PRIMARY} />
+            <Text style={styles.emptyText}>No addresses saved yet.</Text>
           </View>
         ) : (
           <FlatList
             data={addresses}
-            keyExtractor={item => item.id?.toString()}
+            keyExtractor={item => `${item.id}`}
             renderItem={renderAddress}
-            contentContainerStyle={{ paddingBottom: 80 }}
+            contentContainerStyle={{ paddingVertical: 16 }}
           />
         )}
-        {/* Floating Action Button */}
-        <TouchableOpacity style={[styles.fab, { backgroundColor: theme.primary }]} onPress={openAddModal} accessibilityLabel="Add new address">
-          <LinearGradient colors={["#667eea", "#764ba2"]} style={[styles.fabGradient, { backgroundColor: theme.primary }]}>
-            <Icon name="add" size={28} color={theme.text} />
-          </LinearGradient>
+        <TouchableOpacity style={styles.fab} onPress={openAddModal}>
+          <Icon name="add" size={28} color={WHITE} />
         </TouchableOpacity>
-        {/* Modal for Add/Edit */}
-        <Modal
-          visible={modalVisible}
-          animationType="slide"
-          transparent
-          onRequestClose={closeModal}
-        >
-          <View style={[styles.modalOverlay, { backgroundColor: theme.background }]}>
-            <Animatable.View animation="fadeInUp" duration={400} style={[styles.modalContent, { backgroundColor: theme.card }]}>
-              <Text style={[styles.modalTitle, { color: theme.text }]}>{modalMode === 'add' ? 'Add New Address' : 'Edit Address'}</Text>
-              <TextInput style={[styles.input, { backgroundColor: theme.background }]} placeholder="Line 1" value={formFields.line1} onChangeText={t => setFormFields({ ...formFields, line1: t })} />
-              <TextInput style={[styles.input, { backgroundColor: theme.background }]} placeholder="Line 2" value={formFields.line2} onChangeText={t => setFormFields({ ...formFields, line2: t })} />
-              <TextInput style={[styles.input, { backgroundColor: theme.background }]} placeholder="Line 3" value={formFields.line3} onChangeText={t => setFormFields({ ...formFields, line3: t })} />
-              <TextInput style={[styles.input, { backgroundColor: theme.background }]} placeholder="Phone" value={formFields.phone} onChangeText={t => setFormFields({ ...formFields, phone: t })} keyboardType="phone-pad" />
-              <View style={[styles.modalBtnRow, { borderTopColor: theme.border }]}>
-                <TouchableOpacity style={[styles.saveBtn, { backgroundColor: theme.primary }]} onPress={handleSave}><Text style={[styles.saveBtnText, { color: theme.text }]}>{modalMode === 'add' ? 'Add' : 'Save'}</Text></TouchableOpacity>
-                <TouchableOpacity style={[styles.cancelBtn, { backgroundColor: theme.background }]} onPress={closeModal}><Text style={[styles.cancelBtnText, { color: theme.text }]}>Cancel</Text></TouchableOpacity>
-              </View>
-            </Animatable.View>
+      </View>
+      <Modal visible={modalVisible} transparent animationType="slide" onRequestClose={closeModal}>
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalBox}>
+            <Text style={styles.modalTitle}>
+              {modalMode === 'add' ? 'Add New Address' : 'Edit Address'}
+            </Text>
+            <TextInput style={styles.input} placeholder="Pincode *" value={formFields.pincode} onChangeText={t => setFormFields({ ...formFields, pincode: t })} keyboardType="numeric" maxLength={6} placeholderTextColor="#8a97a9"/>
+            <TextInput style={[styles.input, { backgroundColor: '#f4f8fd' }]} placeholder="City (Autofilled)" value={formFields.city} editable={false} placeholderTextColor="#8a97a9"/>
+            <TextInput style={[styles.input, { backgroundColor: '#f4f8fd' }]} placeholder="State (Autofilled)" value={formFields.state} editable={false} placeholderTextColor="#8a97a9"/>
+            <TextInput style={styles.input} placeholder="Address Line 1 *" value={formFields.line1} onChangeText={t => setFormFields({ ...formFields, line1: t })} placeholderTextColor="#8a97a9"/>
+            <TextInput style={styles.input} placeholder="Address Line 2 *" value={formFields.line2} onChangeText={t => setFormFields({ ...formFields, line2: t })} placeholderTextColor="#8a97a9"/>
+            <TextInput style={styles.input} placeholder="Address Line 3 *" value={formFields.line3} onChangeText={t => setFormFields({ ...formFields, line3: t })} placeholderTextColor="#8a97a9"/>
+            <TextInput style={styles.input} placeholder="Phone Number *" value={formFields.phone} onChangeText={t => setFormFields({ ...formFields, phone: t })} keyboardType="phone-pad" maxLength={10} placeholderTextColor="#8a97a9"/>
+            <View style={styles.modalBtnRow}>
+              <TouchableOpacity style={styles.modalSaveBtn} onPress={handleSave}>
+                <Text style={styles.modalSaveTxt}>{modalMode === 'add' ? 'Add' : 'Save'}</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={styles.modalCancelBtn} onPress={closeModal}>
+                <Text style={styles.modalCancelTxt}>Cancel</Text>
+              </TouchableOpacity>
+            </View>
           </View>
-        </Modal>
-        <CustomAlertModal
-          visible={alert.visible}
-          title={alert.title}
-          message={alert.message}
-          onConfirm={() => {
-            hideAlert();
-            if (alert.onConfirm) alert.onConfirm();
-          }}
-          onCancel={hideAlert}
-          showCancel={alert.showCancel}
-        />
-      </Animatable.View>
+        </View>
+      </Modal>
+      <Modal visible={alert.visible} transparent animationType="fade">
+        <View style={styles.alertOverlay}>
+          <View style={styles.alertBox}>
+            <Text style={styles.alertText}>{alert.message}</Text>
+            <TouchableOpacity style={styles.alertBtn} onPress={hideAlert}>
+              <Text style={styles.alertBtnText}>OK</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#F5F5F5' },
-  headerGradient: { paddingTop: 60, paddingBottom: 20 },
-  header: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 20 },
-  backButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: 'white',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginRight: 16,
+  mainContainer: { flex: 1, backgroundColor: WHITE },
+  headerGradient: { paddingTop: 52, paddingBottom: 28, alignItems: 'center', borderBottomLeftRadius: 26, borderBottomRightRadius: 26 },
+  headerTitle: { color: WHITE, fontSize: 22, fontWeight: 'bold', letterSpacing: 1 },
+  content: { flex: 1, padding: 18 },
+  addressCard: {
+    backgroundColor: CARD,
+    borderRadius: 14,
+    padding: 18,
+    marginBottom: 18,
+    elevation: 2,
+    shadowColor: '#aaa',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.14,
+    shadowRadius: 6,
   },
-  headerTitle: {
-    fontSize: 22,
-    fontWeight: 'bold',
-    color: 'white', // Always white
-    marginLeft: 8,
-  },
-  content: { flex: 1, backgroundColor: '#fff', margin: 20, borderRadius: 18, padding: 16, elevation: 4, shadowColor: '#667eea', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.10, shadowRadius: 10 },
-  sectionTitle: { fontSize: 18, fontWeight: 'bold', color: '#667eea', marginBottom: 12, marginTop: 8 },
-  errorText: { color: '#ff6b6b', textAlign: 'center', marginTop: 20 },
+  addressTop: { flexDirection: 'row', alignItems: 'center' },
+  addressIconContainer: { backgroundColor: '#e9efff', borderRadius: 14, padding: 7, marginRight: 14 },
+  addressLine: { fontSize: 15, color: TEXT, marginBottom: 1 },
+  addressDetails: { fontSize: 14, color: SUBTEXT, fontWeight: 'bold', marginTop: 2 },
+  addressPhone: { color: PRIMARY, marginTop: 7, fontWeight: 'bold', fontSize: 14 },
+  iconBtn: { backgroundColor: '#f0f6ff', borderRadius: 10, marginLeft: 8, padding: 6 },
+  fab: { position: 'absolute', right: 22, bottom: 24, backgroundColor: PRIMARY, borderRadius: 34, width: 56, height: 56, justifyContent: 'center', alignItems: 'center', elevation: 5 },
   emptyContainer: { alignItems: 'center', marginTop: 60 },
-  emptyText: { color: '#888', textAlign: 'center', marginTop: 12, fontSize: 17, marginBottom: 16 },
-  emptyAddBtn: { borderRadius: 8, overflow: 'hidden' },
-  emptyAddBtnGradient: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', paddingVertical: 14, borderRadius: 8, paddingHorizontal: 24 },
-  addBtnText: { color: 'white', fontWeight: 'bold', marginLeft: 8, fontSize: 16 },
-  addressCard: { backgroundColor: '#fff', borderRadius: 16, padding: 20, marginBottom: 18, elevation: 3, shadowColor: '#667eea', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.10, shadowRadius: 10 },
-  cardRow: { flexDirection: 'row', alignItems: 'flex-start' },
-  addressLabel: { fontSize: 13, color: '#667eea', fontWeight: 'bold', marginTop: 4 },
-  addressText: { fontSize: 15, color: '#222', marginBottom: 2 },
-  addressPhone: { fontSize: 15, color: '#222', marginBottom: 2, fontWeight: 'bold' },
-  cardActions: { flexDirection: 'row', alignItems: 'center', marginLeft: 8 },
-  iconBtn: { padding: 8, borderRadius: 8, backgroundColor: '#f0f8ff', marginLeft: 4 },
-  fab: { position: 'absolute', right: 30, bottom: 30, zIndex: 10, elevation: 6 },
-  fabGradient: { width: 56, height: 56, borderRadius: 28, alignItems: 'center', justifyContent: 'center', shadowColor: '#667eea', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.18, shadowRadius: 8 },
-  modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.18)', justifyContent: 'flex-end' },
-  modalContent: { backgroundColor: '#fff', borderTopLeftRadius: 18, borderTopRightRadius: 18, padding: 24, elevation: 8, shadowColor: '#667eea', shadowOffset: { width: 0, height: -2 }, shadowOpacity: 0.12, shadowRadius: 12 },
-  modalTitle: { fontSize: 19, fontWeight: 'bold', color: '#667eea', marginBottom: 18, textAlign: 'center' },
-  input: { backgroundColor: '#f8f9fa', borderRadius: 8, padding: 12, marginBottom: 12, borderWidth: 1, borderColor: '#e0e7ef', fontSize: 15 },
-  modalBtnRow: { flexDirection: 'row', justifyContent: 'space-between', marginTop: 10 },
-  saveBtn: { backgroundColor: '#667eea', padding: 12, borderRadius: 8, flex: 1, marginRight: 8, alignItems: 'center' },
-  saveBtnText: { color: 'white', fontWeight: 'bold', fontSize: 16 },
-  cancelBtn: { backgroundColor: '#eee', padding: 12, borderRadius: 8, flex: 1, marginLeft: 8, alignItems: 'center' },
-  cancelBtnText: { color: '#555', fontSize: 16 },
-  alertOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.25)', justifyContent: 'center', alignItems: 'center' },
-  alertBox: { backgroundColor: '#fff', borderRadius: 16, padding: 28, width: 300, alignItems: 'center', elevation: 8 },
-  alertTitle: { fontSize: 18, fontWeight: 'bold', color: '#667eea', marginBottom: 10 },
-  alertMessage: { fontSize: 15, color: '#333', marginBottom: 18, textAlign: 'center' },
-  alertBtnRow: { flexDirection: 'row', justifyContent: 'flex-end', width: '100%' },
-  alertConfirmBtn: { backgroundColor: '#667eea', paddingVertical: 10, paddingHorizontal: 22, borderRadius: 8, marginLeft: 8 },
-  alertConfirmText: { color: 'white', fontWeight: 'bold', fontSize: 15 },
-  alertCancelBtn: { backgroundColor: '#eee', paddingVertical: 10, paddingHorizontal: 18, borderRadius: 8 },
-  alertCancelText: { color: '#555', fontSize: 15 },
-}); 
+  emptyText: { color: SUBTEXT, marginTop: 15, fontSize: 16, fontWeight: '600' },
+  errorText: { color: ERROR, textAlign: 'center', marginTop: 30, fontSize: 16 },
+  modalOverlay: { flex: 1, backgroundColor: 'rgba(54,61,77,0.16)', justifyContent: 'center', alignItems: 'center' },
+  modalBox: { backgroundColor: WHITE, borderRadius: 22, padding: 28, minWidth: '86%', elevation: 8, alignItems: 'stretch' },
+  modalTitle: { fontSize: 19, color: PRIMARY, fontWeight: '700', textAlign: 'center', marginBottom: 13, letterSpacing: 0.5 },
+  input: { backgroundColor: '#f8f9fa', borderRadius: 8, padding: 13, marginBottom: 13, borderWidth: 1, borderColor: BORDER, fontSize: 15, color: TEXT },
+  modalBtnRow: { flexDirection: 'row', justifyContent: 'space-between', marginTop: 8 },
+  modalSaveBtn: { backgroundColor: PRIMARY, paddingVertical: 12, paddingHorizontal: 18, borderRadius: 8, flex: 1, alignItems: 'center', marginRight: 5 },
+  modalSaveTxt: { color: WHITE, fontWeight: 'bold', fontSize: 16 },
+  modalCancelBtn: { backgroundColor: BORDER, paddingVertical: 12, paddingHorizontal: 18, borderRadius: 8, flex: 1, alignItems: 'center', marginLeft: 5 },
+  modalCancelTxt: { color: TEXT, fontSize: 16 },
+  alertOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.22)', justifyContent: 'center', alignItems: 'center' },
+  alertBox: { backgroundColor: WHITE, borderRadius: 16, padding: 30, width: 300, alignItems: 'center' },
+  alertText: { color: ERROR, fontSize: 16, marginBottom: 18, textAlign: 'center', fontWeight: '600' },
+  alertBtn: { backgroundColor: PRIMARY, paddingVertical: 10, paddingHorizontal: 32, borderRadius: 8 },
+  alertBtnText: { color: WHITE, fontWeight: 'bold', fontSize: 15 },
+});
