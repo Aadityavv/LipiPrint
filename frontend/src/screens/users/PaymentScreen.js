@@ -21,6 +21,7 @@ const { width } = Dimensions.get('window');
 
 export default function PaymentScreen({ navigation, route }) {
   console.log('[PaymentScreen] route.params:', route.params);
+  
   const { 
     files, 
     selectedOptions, 
@@ -34,8 +35,11 @@ export default function PaymentScreen({ navigation, route }) {
     discountedSubtotal, 
     gst, 
     discount,
-    deliveryEstimate, // ✅ NEW: Get delivery estimate from DeliveryOptionsScreen
-    deliveryCost      // ✅ NEW: Get calculated delivery cost
+    deliveryEstimate,
+    deliveryCost,
+    // ✅ CRITICAL: Extract structured address data
+    addressData,
+    addressComponents
   } = route.params || {};
   
   const [processing, setProcessing] = useState(false);
@@ -47,6 +51,17 @@ export default function PaymentScreen({ navigation, route }) {
   const [alertType, setAlertType] = useState('info');
   const [alertOnConfirm, setAlertOnConfirm] = useState(null);
   const [alertShowCancel, setAlertShowCancel] = useState(false);
+
+  // ✅ DEBUG: Log what address data we received
+  useEffect(() => {
+    console.log('🔍 PaymentScreen address data:', {
+      deliveryType,
+      deliveryAddress,
+      phone,
+      addressData,
+      addressComponents
+    });
+  }, []);
 
   useEffect(() => {
     ApiService.getCurrentUser().then(userData => {
@@ -74,8 +89,8 @@ export default function PaymentScreen({ navigation, route }) {
     discountedSubtotal: discountedSubtotal !== undefined && discountedSubtotal !== null ? discountedSubtotal : 0,
     gst: gst !== undefined && gst !== null ? gst : 0,
     discount: discount !== undefined && discount !== null ? discount : 0,
-    deliveryCost: finalDeliveryCost,    // ✅ NEW: Delivery cost
-    total: grandTotalWithDelivery,      // ✅ FIXED: Include delivery
+    deliveryCost: finalDeliveryCost,
+    total: grandTotalWithDelivery,
   };
 
   const showAlert = (title, message, type = 'info', onConfirm = null, showCancel = false) => {
@@ -102,6 +117,44 @@ export default function PaymentScreen({ navigation, route }) {
     }
 
     try {
+      // ✅ CRITICAL: Prepare structured address data for backend
+      let structuredDeliveryAddress = null;
+      
+      if (deliveryType === 'DELIVERY') {
+        // Use addressData if available, otherwise addressComponents, otherwise parse from string
+        structuredDeliveryAddress = addressData || addressComponents;
+        
+        if (!structuredDeliveryAddress && deliveryAddress) {
+          // Fallback: parse from the display string (old method)
+          console.warn('⚠️ No structured address data, parsing from string:', deliveryAddress);
+          const parts = deliveryAddress.split(',').map(part => part.trim());
+          structuredDeliveryAddress = {
+            line1: parts[0] || '',
+            line2: parts[1] || '',
+            city: parts[parts.length - 2] || 'Unknown',
+            state: 'Unknown',
+            pincode: '000000',
+            phone: phone || '0000000000'
+          };
+          
+          // Try to extract pincode from the last part
+          const lastPart = parts[parts.length - 1] || '';
+          const pincodeMatch = lastPart.match(/\b(\d{6})\b/);
+          if (pincodeMatch) {
+            structuredDeliveryAddress.pincode = pincodeMatch[1];
+          }
+        }
+        
+        // ✅ VALIDATION: Ensure required fields
+        if (!structuredDeliveryAddress || !structuredDeliveryAddress.pincode || structuredDeliveryAddress.pincode === '000000') {
+          setProcessing(false);
+          showAlert('Address Error', 'Delivery address is incomplete. Please go back and enter a complete address with pincode.', 'error');
+          return;
+        }
+        
+        console.log('✅ Using structured delivery address:', structuredDeliveryAddress);
+      }
+
       // 1. Build the order data (before payment)
       const printJobsPayload = files.map(fileObj => ({
         file: { id: fileObj.file.id },
@@ -110,20 +163,26 @@ export default function PaymentScreen({ navigation, route }) {
         options: JSON.stringify(fileObj.printOptions || selectedOptions),
       }));
 
+      // ✅ FIXED: Use structured order data format
       const orderData = {
         user: { id: user?.id },
         printJobs: printJobsPayload,
         status: 'PENDING',
-        totalAmount: grandTotalWithDelivery, // ✅ FIXED: Include delivery cost
-        deliveryType,
-        deliveryAddress,
-        phone,
-        deliveryEstimate: deliveryEstimate, // ✅ NEW: Pass NimbusPost data
+        totalAmount: grandTotalWithDelivery,
+        deliveryType: deliveryType,
+        // ✅ CRITICAL: Send structured address data
+        deliveryAddress: structuredDeliveryAddress,
+        // ✅ BACKUP: Also send display address for compatibility
+        deliveryAddressDisplay: deliveryAddress,
+        phone: phone,
+        deliveryEstimate: deliveryEstimate,
       };
+
+      console.log('🚀 Order data prepared:', orderData);
 
       // 2. Create Razorpay order with grand total including delivery
       const orderRes = await createRazorpayOrder({
-        amount: grandTotalWithDelivery, // ✅ FIXED: Include delivery charges
+        amount: grandTotalWithDelivery,
         currency: 'INR',
         receipt: `receipt_${Date.now()}`,
       });
@@ -153,7 +212,7 @@ export default function PaymentScreen({ navigation, route }) {
         notes: {
           delivery_type: deliveryType,
           delivery_cost: finalDeliveryCost,
-          from_location: 'Bareilly, UP', // Updated for your location
+          from_location: 'Saharanpur, UP', // Updated for your location
           courier_partner: deliveryEstimate?.courierPartner || 'NimbusPost'
         }
       };
@@ -174,7 +233,7 @@ export default function PaymentScreen({ navigation, route }) {
         paymentMethod: 'RAZORPAY',
       };
 
-      console.log('[PaymentScreen] Creating order with data:', finalOrderData);
+      console.log('[PaymentScreen] Creating order with final data:', finalOrderData);
       
       const createdOrder = await ApiService.createOrder(finalOrderData);
       setProcessing(false);
@@ -288,9 +347,24 @@ export default function PaymentScreen({ navigation, route }) {
             <View style={styles.deliveryCard}>
               <View style={styles.deliveryInfo}>
                 <Text style={styles.deliveryMethod}>
-                  {deliveryType === 'PICKUP' ? '🏪 Store Pickup - Bareilly' : '🚚 NimbusPost Delivery'}
+                  {deliveryType === 'PICKUP' ? '🏪 Store Pickup - Saharanpur' : '🚚 NimbusPost Delivery'}
                 </Text>
                 <Text style={styles.deliveryAddress}>{deliveryAddress}</Text>
+                
+                {/* ✅ DEBUG: Show structured address data for debugging */}
+                {(addressData || addressComponents) && (
+                  <View style={styles.debugAddressInfo}>
+                    <Text style={styles.debugText}>
+                      📍 Pincode: {(addressData || addressComponents)?.pincode}
+                    </Text>
+                    <Text style={styles.debugText}>
+                      🏙️ City: {(addressData || addressComponents)?.city}
+                    </Text>
+                    <Text style={styles.debugText}>
+                      🗺️ State: {(addressData || addressComponents)?.state}
+                    </Text>
+                  </View>
+                )}
                 
                 {/* ✅ NEW: NimbusPost delivery details */}
                 {deliveryType === 'DELIVERY' && deliveryEstimate && (
@@ -304,7 +378,7 @@ export default function PaymentScreen({ navigation, route }) {
                       </Text>
                     )}
                     <Text style={styles.deliveryDetail}>
-                      📍 From: LipiPrint Bareilly, UP
+                      📍 From: Nagpal Print House, Saharanpur, UP
                     </Text>
                     {deliveryEstimate.serviceType && (
                       <Text style={styles.deliveryDetail}>
@@ -321,7 +395,7 @@ export default function PaymentScreen({ navigation, route }) {
                       ⏰ Ready for pickup in 2-4 hours
                     </Text>
                     <Text style={styles.deliveryDetail}>
-                      📍 LipiPrint Store, Bareilly, Uttar Pradesh
+                      📍 Nagpal Print House, Near Civil Court Sadar, Saharanpur
                     </Text>
                     <Text style={styles.deliveryDetail}>
                       💰 No delivery charges - Save ₹{deliveryCost || 30}!
@@ -575,6 +649,22 @@ const styles = StyleSheet.create({
   deliveryAddress: {
     fontSize: 14,
     color: '#666',
+  },
+  
+  // ✅ NEW: Debug styles for address verification
+  debugAddressInfo: {
+    marginTop: 8,
+    padding: 12,
+    backgroundColor: '#f8f9fa',
+    borderRadius: 8,
+    borderLeftWidth: 3,
+    borderLeftColor: '#17a2b8',
+  },
+  debugText: {
+    fontSize: 12,
+    color: '#17a2b8',
+    marginBottom: 2,
+    fontFamily: 'monospace',
   },
   
   // ✅ NEW: Styles for NimbusPost and pickup info
