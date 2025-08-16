@@ -91,4 +91,40 @@ public class UserService {
     public void deleteUser(Long userId) {
         userRepository.deleteById(userId);
     }
+
+    /**
+ * Create a new user from phone number (for Firebase auth)
+ */
+public User createUserFromPhone(String phoneNumber) {
+    User user = new User();
+    user.setPhone(phoneNumber);
+    user.setName("User"); // Default name, can be updated later
+    user.setRole(User.Role.USER);
+    user.setBlocked(false);
+    user.setCreatedAt(java.time.LocalDateTime.now());
+    user.setUpdatedAt(java.time.LocalDateTime.now());
+    
+    return userRepository.save(user);
+}
+
+/**
+ * Find user by phone number with different formats
+ */
+public Optional<User> findByPhoneNumber(String phoneNumber) {
+    // Try exact match first
+    Optional<User> user = findByPhone(phoneNumber);
+    
+    // Try without country code
+    if (user.isEmpty() && phoneNumber.startsWith("+91")) {
+        user = findByPhone(phoneNumber.substring(3));
+    }
+    
+    // Try with country code
+    if (user.isEmpty() && !phoneNumber.startsWith("+91")) {
+        user = findByPhone("+91" + phoneNumber);
+    }
+    
+    return user;
+}
+
 } 

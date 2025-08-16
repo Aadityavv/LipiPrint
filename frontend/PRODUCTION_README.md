@@ -222,7 +222,7 @@ cd ios && pod install
 npx react-native run-ios --configuration Release
 ```
 
-#### `ios/LipiPrintApp/Info.plist`
+#### `ios/LipiPrint/Info.plist`
 ```xml
 <key>NSAppTransportSecurity</key>
 <dict>
@@ -367,7 +367,7 @@ npx react-native run-ios --configuration Release
    cd android && ./gradlew assembleRelease
    
    # iOS
-   cd ios && xcodebuild -workspace LipiPrintApp.xcworkspace -scheme LipiPrintApp -configuration Release
+   cd ios && xcodebuild -workspace LipiPrint.xcworkspace -scheme LipiPrint -configuration Release
    ```
 
 3. **Deploy Backend**

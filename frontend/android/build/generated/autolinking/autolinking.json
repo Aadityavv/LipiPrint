@@ -1026,18 +1026,14 @@
   "project": {
     "ios": {
       "sourceDir": "C:\\Users\\HP\\Desktop\\LipiP\\frontend\\ios",
-      "xcodeProject": {
-        "name": "LipiPrintApp.xcodeproj",
-        "path": ".",
-        "isWorkspace": false
-      },
+      "xcodeProject": null,
       "assets": []
     },
     "android": {
       "sourceDir": "C:\\Users\\HP\\Desktop\\LipiP\\frontend\\android",
       "appName": "app",
-      "packageName": "com.lipiprintapp",
-      "applicationId": "com.lipiprintapp",
+      "packageName": "com.LipiPrint",
+      "applicationId": "com.LipiPrint",
       "mainActivity": ".MainActivity",
       "assets": []
     }
