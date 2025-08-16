@@ -614,17 +614,20 @@ export default function DeliveryOptionsScreen({ navigation, route }) {
                             value={editFields.line1}
                             onChangeText={text => setEditFields(fields => ({...fields, line1: text}))}
                             placeholder="Flat/House No., Building, Street"
+                            placeholderTextColor="#8a97a9"
                           />
                           <TextInput
                             style={styles.addressInput}
                             value={editFields.line2}
                             onChangeText={text => setEditFields(fields => ({...fields, line2: text}))}
+                            placeholderTextColor="#8a97a9"
                             placeholder="Area, Locality, Landmark"
                           />
                           <TextInput
                             style={styles.addressInput}
                             value={editFields.pincode}
                             onChangeText={text => setEditFields(fields => ({...fields, pincode: text}))}
+                            placeholderTextColor="#8a97a9"
                             placeholder="Pincode"
                             keyboardType="numeric"
                             maxLength={6}
@@ -633,6 +636,7 @@ export default function DeliveryOptionsScreen({ navigation, route }) {
                             style={styles.phoneInput}
                             value={editFields.phone}
                             onChangeText={text => setEditFields(fields => ({...fields, phone: text}))}
+                            placeholderTextColor="#8a97a9"
                             placeholder="Phone Number"
                             keyboardType="phone-pad"
                           />
@@ -704,6 +708,7 @@ export default function DeliveryOptionsScreen({ navigation, route }) {
                       style={styles.addressInput}
                       placeholder="Enter 6-digit pincode"
                       keyboardType="numeric"
+                      placeholderTextColor="#8a97a9"  // ← ADD THIS
                       maxLength={6}
                       value={pincode}
                       onChangeText={setPincode}
@@ -719,6 +724,7 @@ export default function DeliveryOptionsScreen({ navigation, route }) {
                     <TextInput
                       style={[styles.addressInput, { backgroundColor: '#f5f5f5' }]}
                       value={city}
+                      placeholderTextColor="#8a97a9"  // ← ADD THIS
                       editable={false}
                       placeholder="Auto-filled from pincode"
                     />
@@ -730,6 +736,7 @@ export default function DeliveryOptionsScreen({ navigation, route }) {
                       style={[styles.addressInput, { backgroundColor: '#f5f5f5' }]}
                       value={state}
                       editable={false}
+                      placeholderTextColor="#8a97a9"  // ← ADD THIS
                       placeholder="Auto-filled from pincode"
                     />
                   </View>
@@ -742,6 +749,8 @@ export default function DeliveryOptionsScreen({ navigation, route }) {
                       placeholder="Flat/House No., Building Name"
                       value={addressLine1}
                       onChangeText={setAddressLine1}
+                        placeholderTextColor="#8a97a9"  // ← ADD THIS
+
                     />
                   </View>
                   
@@ -751,6 +760,8 @@ export default function DeliveryOptionsScreen({ navigation, route }) {
                       style={styles.addressInput}
                       placeholder="Street, Area, Locality, Landmark"
                       value={addressLine2}
+                        placeholderTextColor="#8a97a9"  // ← ADD THIS
+
                       onChangeText={setAddressLine2}
                     />
                   </View>
@@ -765,6 +776,7 @@ export default function DeliveryOptionsScreen({ navigation, route }) {
                       onChangeText={setPhone}
                       keyboardType="phone-pad"
                       maxLength={10}
+                      placeholderTextColor="#8a97a9"  // ← ADD THIS
                     />
                   </View>
                   

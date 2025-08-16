@@ -8,4 +8,7 @@ import java.util.Optional;
 public interface UserAddressRepository extends JpaRepository<UserAddress, Long> {
     List<UserAddress> findByUserId(Long userId);
     Optional<UserAddress> findByIdAndUserId(Long id, Long userId);
-} 
+    
+    // ✅ ADD: This method is used in your controller's setDefault method
+    Optional<UserAddress> findByUserIdAndIsDefaultTrue(Long userId);
+}
