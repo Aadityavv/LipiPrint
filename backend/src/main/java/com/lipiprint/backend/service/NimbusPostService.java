@@ -794,30 +794,32 @@ public class NimbusPostService {
             @SuppressWarnings("unchecked")
             Map<String, Object> data = (Map<String, Object>) responseBody.get("data");
             
-            if (data != null) {
-                String awb = (String) data.get("awb");
-                String courierName = (String) data.get("courier_name");
-                String shipmentId = (String) data.get("shipment_id");
-                
-                logger.info("✅ Extracted data - AWB: {}, Courier: {}, ShipmentId: {}", 
-                    awb, courierName, shipmentId);
-                
-                response.setAwbNumber(awb);
-                response.setCourierName(courierName);
-                response.setShipmentId(shipmentId);
-                response.setOrderId((String) data.get("order_id"));
-                response.setCourierId((String) data.get("courier_id"));
-                response.setTrackingUrl((String) data.get("tracking_url"));
-                response.setExpectedDeliveryDate((String) data.get("expected_delivery_date"));
-                response.setLabelUrl((String) data.get("label_url"));
-                response.setManifestUrl((String) data.get("manifest_url"));
-                
-                if (awb == null || awb.trim().isEmpty()) {
-                    logger.warn("⚠️ AWB number is missing in response");
-                    response.setMessage("AWB number not provided by courier service");
-                } else {
-                    response.setMessage("Shipment created successfully");
-                }
+// ✅ FIXED CODE:
+if (data != null) {
+    // Safe conversion using String.valueOf() to handle both Integer and String types
+    String awb = (String) data.get("awb_number");  // Note: use "awb_number" not "awb"
+    String courierName = (String) data.get("courier_name");
+    String shipmentId = String.valueOf(data.get("shipment_id"));  // Convert Integer to String
+    
+    logger.info("✅ Extracted data - AWB: {}, Courier: {}, ShipmentId: {}", 
+        awb, courierName, shipmentId);
+    
+    response.setAwbNumber(awb);
+    response.setCourierName(courierName);
+    response.setShipmentId(shipmentId);
+    response.setOrderId(String.valueOf(data.get("order_id")));      // Convert Integer to String
+    response.setCourierId(String.valueOf(data.get("courier_id")));   // Safe conversion
+    response.setTrackingUrl((String) data.get("tracking_url"));
+    response.setExpectedDeliveryDate((String) data.get("expected_delivery_date"));
+    response.setLabelUrl((String) data.get("label"));               // Note: use "label" not "label_url"
+    response.setManifestUrl((String) data.get("manifest"));         // Note: use "manifest" not "manifest_url"
+    
+    if (awb == null || awb.trim().isEmpty()) {
+        logger.warn("⚠️ AWB number is missing in response");
+        response.setMessage("AWB number not provided by courier service");
+    } else {
+        response.setMessage("Shipment created successfully");
+    }
             } else {
                 logger.warn("⚠️ No 'data' field in successful response");
                 response.setStatus(false);

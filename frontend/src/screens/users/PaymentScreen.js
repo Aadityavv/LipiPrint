@@ -171,8 +171,8 @@ export default function PaymentScreen({ navigation, route }) {
         totalAmount: grandTotalWithDelivery,
         deliveryType: deliveryType,
         // ✅ CRITICAL: Send structured address data
-        deliveryAddress: structuredDeliveryAddress,
-        // ✅ BACKUP: Also send display address for compatibility
+        deliveryAddress: deliveryAddress,  // Keep string for display
+deliveryAddressData: structuredDeliveryAddress,  // Add structured data
         deliveryAddressDisplay: deliveryAddress,
         phone: phone,
         deliveryEstimate: deliveryEstimate,
