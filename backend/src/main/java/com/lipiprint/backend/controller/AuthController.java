@@ -186,6 +186,7 @@ public ResponseEntity<?> firebaseAuth(@RequestBody FirebaseAuthRequest request) 
         
         // Clean phone number format (remove +91 if present)
         String cleanPhone = phoneNumber.replaceFirst("\\+91", "");
+
         
         // Find or create user
         Optional<User> userOptional = userService.findByPhone(cleanPhone);

@@ -4,10 +4,6 @@
     android:versionCode="1"
     android:versionName="1.0" >
 
-    <uses-sdk
-        android:minSdkVersion="24"
-        android:targetSdkVersion="33" /> <!-- Make sure your targetSdkVersion is >= 29 -->
-
     <!-- Required Permissions for File Picker -->
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" />

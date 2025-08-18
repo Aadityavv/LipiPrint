@@ -1,11 +1,11 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, TextInput, TouchableOpacity, Image, Alert, KeyboardAvoidingView, Platform, ScrollView } from 'react-native';
+import { View, Text, StyleSheet, TextInput, TouchableOpacity, Image, KeyboardAvoidingView, Platform, ScrollView } from 'react-native';
 import * as Animatable from 'react-native-animatable';
-import { validatePhone, validateOTP } from '../../utils/security';
+import { getApp } from '@react-native-firebase/app';
+import { getAuth, signInWithPhoneNumber } from '@react-native-firebase/auth';
 import ApiService from '../../services/api';
 import { useTheme } from '../../theme/ThemeContext';
 import CustomAlert from '../../components/CustomAlert';
-// import SvgUri from 'react-native-svg-uri'; // Uncomment if using react-native-svg-uri
 
 export default function LoginScreen({ navigation }) {
   const { theme, isDark } = useTheme();
@@ -21,30 +21,68 @@ export default function LoginScreen({ navigation }) {
   const [alertTitle, setAlertTitle] = useState('');
   const [alertMessage, setAlertMessage] = useState('');
   const [alertType, setAlertType] = useState('info');
-  const MASTER_OTP = '9999';
+
+  // Firebase confirmation result object
+  const [confirmation, setConfirmation] = useState(null);
+
+  const showAlert = (title, message, type = 'error') => {
+    setAlertTitle(title);
+    setAlertMessage(message);
+    setAlertType(type);
+    setAlertVisible(true);
+  };
 
   const handleSendOTP = async () => {
     setPhoneError('');
-    if (!phone.trim()) {
-      setAlertTitle('Error');
-      setAlertMessage('Please enter your phone number');
-      setAlertType('error');
-      setAlertVisible(true);
+    const clean = phone.trim();
+    
+    if (!clean || clean.length !== 10) {
+      setPhoneError('Please enter a valid 10-digit mobile number');
       return;
     }
+
     setIsLoading(true);
+    console.log(`🔥 Attempting Firebase OTP for: +91${clean}`);
+    
     try {
-      await ApiService.request('/auth/send-otp', {
-        method: 'POST',
-        body: JSON.stringify({ phone }),
-        headers: { 'Content-Type': 'application/json' },
-      });
+      const app = getApp();
+      const firebaseAuth = getAuth(app);
+      
+      console.log('🔥 Firebase app and auth initialized');
+      console.log('🔥 Calling signInWithPhoneNumber...');
+      
+      const conf = await signInWithPhoneNumber(firebaseAuth, `+91${clean}`);
+      
+      console.log('✅ Firebase signInWithPhoneNumber successful');
+      console.log('✅ Confirmation object received:', !!conf);
+      
+      setConfirmation(conf);
       setShowOtp(true);
+      showAlert('OTP Sent', 'Please check your phone for the verification code', 'success');
+      
     } catch (error) {
-      setAlertTitle('OTP Failed');
-      setAlertMessage('Failed to send OTP');
-      setAlertType('error');
-      setAlertVisible(true);
+      console.error('❌ Firebase OTP Error:', error);
+      console.error('❌ Error code:', error?.code);
+      console.error('❌ Error message:', error?.message);
+      
+      let errorMessage = 'Failed to send OTP. ';
+      
+      if (error?.code === 'auth/missing-client-identifier') {
+        errorMessage += 'Please check your Firebase configuration and SHA certificates.';
+      } else if (error?.code === 'auth/invalid-phone-number') {
+        errorMessage += 'Invalid phone number format.';
+      } else if (error?.code === 'auth/quota-exceeded') {
+        errorMessage += 'SMS quota exceeded. Try again later.';
+      } else if (error?.code === 'auth/app-not-authorized') {
+        errorMessage += 'App not authorized for Firebase Auth.';
+      } else {
+        errorMessage += error?.message || 'Unknown error occurred.';
+      }
+      
+      showAlert('OTP Failed', errorMessage);
+      
+      // Fallback: offer manual backend OTP for testing
+      console.log('🔄 Consider using backend fallback OTP for testing');
     } finally {
       setIsLoading(false);
     }
@@ -52,118 +90,120 @@ export default function LoginScreen({ navigation }) {
 
   const handleVerifyOTP = async () => {
     setOtpError('');
-    if (!otp.trim()) {
+    const code = otp.trim();
+    
+    if (!code) {
       setOtpError('Please enter the OTP');
       return;
     }
+    
+    if (!confirmation) {
+      showAlert('Error', 'No verification session found. Please request OTP again.');
+      setShowOtp(false);
+      return;
+    }
+
     setIsLoading(true);
+    console.log(`🔍 Verifying OTP: ${code}`);
+    
     try {
-      const response = await ApiService.request('/auth/verify-otp', {
+      // Confirm OTP with Firebase
+      console.log('🔥 Calling confirmation.confirm...');
+      const userCredential = await confirmation.confirm(code);
+      console.log('✅ Firebase OTP confirmed successfully');
+      
+      // Get Firebase ID token
+      console.log('🔑 Getting Firebase ID token...');
+      const idToken = await userCredential.user.getIdToken();
+      console.log('✅ Firebase ID token obtained');
+
+      // Call backend to verify token and get app JWT
+      console.log('🌐 Calling backend /auth/firebase-auth...');
+      const response = await ApiService.request('/auth/firebase-auth', {
         method: 'POST',
-        body: JSON.stringify({ phone, otp }),
         headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ 
+          idToken, 
+          phoneNumber: `+91${phone}` 
+        }),
       });
-      if (response.accessToken || response.token) {
-        // Support both accessToken and token for compatibility
-        const token = response.accessToken || response.token;
+      
+      console.log('✅ Backend response received:', response);
+
+      // Extract and store app token
+      const token = response?.accessToken || response?.token || response?.jwt;
+      if (token) {
         await ApiService.setToken(token);
-        setShowOtp(false);
-        // Get user role from response
-        let userRole = null;
-        if (response.user && response.user.role) {
-          userRole = response.user.role;
-        } else if (response.userDTO && response.userDTO.role) {
-          userRole = response.userDTO.role;
-        }
-        // Navigate based on role
-        if (userRole === 'ADMIN') {
-          navigation.reset({ index: 0, routes: [{ name: 'AdminTabs' }] });
-        } else if (userRole === 'DELIVERY') {
-          navigation.reset({ index: 0, routes: [{ name: 'DeliveryTabs' }] });
-        } else {
-          navigation.reset({ index: 0, routes: [{ name: 'MainTabs' }] });
-        }
-      } else {
-        setOtpError('Invalid OTP');
+        console.log('✅ App token stored successfully');
       }
+
+      // Determine user role and navigate
+      let userRole = null;
+      if (response?.user?.role) {
+        userRole = response.user.role;
+      } else if (response?.userDTO?.role) {
+        userRole = response.userDTO.role;
+      }
+      
+      console.log('👤 User role determined:', userRole);
+
+      // Reset states
+      setShowOtp(false);
+      setConfirmation(null);
+      setOtp('');
+      setPhone('');
+
+      // Navigate based on role
+      if (userRole === 'ADMIN') {
+        console.log('🔄 Navigating to AdminTabs');
+        navigation.reset({ index: 0, routes: [{ name: 'AdminTabs' }] });
+      } else if (userRole === 'DELIVERY') {
+        console.log('🔄 Navigating to DeliveryTabs');
+        navigation.reset({ index: 0, routes: [{ name: 'DeliveryTabs' }] });
+      } else {
+        console.log('🔄 Navigating to MainTabs');
+        navigation.reset({ index: 0, routes: [{ name: 'MainTabs' }] });
+      }
+      
     } catch (error) {
-      setOtpError('Invalid OTP');
+      console.error('❌ OTP Verification Error:', error);
+      console.error('❌ Error code:', error?.code);
+      
+      if (error?.code === 'auth/invalid-verification-code') {
+        setOtpError('Invalid OTP. Please check and try again.');
+      } else if (error?.code === 'auth/code-expired') {
+        setOtpError('OTP has expired. Please request a new one.');
+        setShowOtp(false);
+        setConfirmation(null);
+      } else {
+        setOtpError('Invalid OTP or network error');
+      }
     } finally {
       setIsLoading(false);
-    }
-  };
-
-  const checkUserProfileComplete = async (phoneNumber) => {
-    // This would typically be an API call to check if user profile is complete
-    // For demo purposes, we'll simulate different scenarios based on phone number
-    if (phoneNumber === '2') {
-      return true; // Admin - profile complete
-    } else if (phoneNumber === '3') {
-      return true; // Delivery - profile complete
-    } else {
-      // Regular user - check if profile is complete
-      // You would typically check this from your backend
-      return false; // For demo, assume profile is incomplete
-    }
-  };
-
-  const navigateBasedOnRole = (phoneNumber) => {
-    if (phoneNumber === '2') {
-      navigation.reset({
-        index: 0,
-        routes: [{ name: 'AdminTabs' }],
-      });
-    } else if (phoneNumber === '3') {
-      navigation.reset({
-        index: 0,
-        routes: [{ name: 'DeliveryTabs' }],
-      });
-    } else {
-      navigation.reset({
-        index: 0,
-        routes: [{ name: 'MainTabs' }],
-      });
     }
   };
 
   const handlePhoneChange = (value) => {
-    setPhone(value);
-    if (phoneError) {
-      setPhoneError('');
-    }
+    // Only allow digits, cap length to 10
+    const sanitized = value.replace(/[^0-9]/g, '').slice(0, 10);
+    setPhone(sanitized);
+    if (phoneError) setPhoneError('');
   };
 
   const handleOtpChange = (value) => {
-    setOtp(value);
-    if (otpError) {
-      setOtpError('');
-    }
+    // Only digits, cap to 6
+    const sanitized = value.replace(/[^0-9]/g, '').slice(0, 6);
+    setOtp(sanitized);
+    if (otpError) setOtpError('');
   };
 
-  const handleLogin = async () => {
-    if (!phone.trim() || !otp.trim()) {
-      setAlertTitle('Error');
-      setAlertMessage('Please enter both phone and OTP');
-      setAlertType('error');
-      setAlertVisible(true);
-      return;
-    }
-    setIsLoading(true);
-    try {
-      await ApiService.request('/auth/verify-otp', {
-        method: 'POST',
-        body: JSON.stringify({ phone, otp }),
-        headers: { 'Content-Type': 'application/json' },
-      });
-      navigation.reset({ index: 0, routes: [{ name: 'MainTabs' }] });
-    } catch (error) {
-      setAlertTitle('Login Failed');
-      setAlertMessage(error.message || 'Invalid credentials');
-      setAlertType('error');
-      setAlertVisible(true);
-    } finally {
-      setIsLoading(false);
-    }
+  const handleResendOTP = async () => {
+    setOtp('');
+    setOtpError('');
+    setConfirmation(null);
+    setShowOtp(false);
+    // Automatically trigger send OTP again
+    setTimeout(() => handleSendOTP(), 100);
   };
 
   return (
@@ -175,14 +215,13 @@ export default function LoginScreen({ navigation }) {
       <ScrollView contentContainerStyle={{ flexGrow: 1 }} keyboardShouldPersistTaps="handled">
         <View style={[styles.container, { backgroundColor: theme.background }]}>
           <Animatable.View animation="fadeInDown" delay={100} duration={500} style={styles.logoContainer}>
-            {/* Use SVG if supported, else PNG fallback */}
-            {/* <SvgUri width="120" height="120" source={require('../../assets/logo/LipiPrintLogoSVG.svg')} /> */}
             <Image
               source={require('../../assets/logo/LipiPrintLogo.png')}
               style={styles.logo}
               resizeMode="contain"
             />
           </Animatable.View>
+
           <Animatable.View animation="fadeInUp" delay={200} duration={350} style={styles.textSection}>
             <Text style={[styles.headline]}>
               {showOtp ? 'Enter the OTP' : 'Enter your mobile number'}
@@ -191,6 +230,7 @@ export default function LoginScreen({ navigation }) {
               {showOtp ? 'We have sent a One Time Password (OTP) to your mobile number.' : 'Sign in to print smarter and faster.'}
             </Animatable.Text>
           </Animatable.View>
+
           <Animatable.View animation="fadeInUp" delay={300} duration={350} style={{ width: '100%' }}>
             <Text style={styles.inputLabel}>Mobile Number</Text>
             <View style={[styles.inputRow, inputFocused && styles.inputRowFocused, phoneError && styles.inputRowError]}>
@@ -209,10 +249,9 @@ export default function LoginScreen({ navigation }) {
                 editable={!showOtp}
               />
             </View>
-            {phoneError && (
-              <Text style={styles.errorText}>{phoneError}</Text>
-            )}
+            {phoneError ? <Text style={styles.errorText}>{phoneError}</Text> : null}
           </Animatable.View>
+
           {!showOtp && (
             <Animatable.View animation="fadeInUp" delay={400} duration={350} style={{ width: '100%' }}>
               <TouchableOpacity
@@ -227,6 +266,7 @@ export default function LoginScreen({ navigation }) {
               </TouchableOpacity>
             </Animatable.View>
           )}
+
           {showOtp && (
             <>
               <Animatable.View animation="fadeInUp" delay={500} duration={350} style={{ width: '100%' }}>
@@ -240,11 +280,11 @@ export default function LoginScreen({ navigation }) {
                   maxLength={6}
                   onFocus={() => setOtpFocused(true)}
                   onBlur={() => setOtpFocused(false)}
+                  autoFocus={true}
                 />
-                {otpError && (
-                  <Text style={styles.errorText}>{otpError}</Text>
-                )}
+                {otpError ? <Text style={styles.errorText}>{otpError}</Text> : null}
               </Animatable.View>
+
               <Animatable.View animation="fadeInUp" delay={600} duration={350} style={{ width: '100%' }}>
                 <TouchableOpacity
                   activeOpacity={0.85}
@@ -257,12 +297,17 @@ export default function LoginScreen({ navigation }) {
                   </Text>
                 </TouchableOpacity>
               </Animatable.View>
+
               <Animatable.View animation="fadeInUp" delay={700} duration={350} style={styles.resendContainer}>
+                <TouchableOpacity onPress={handleResendOTP} style={styles.signupLink}>
+                  <Text style={styles.resendText}>Resend OTP</Text>
+                </TouchableOpacity>
                 <TouchableOpacity
                   onPress={() => {
                     setShowOtp(false);
                     setOtp('');
                     setOtpError('');
+                    setConfirmation(null);
                   }}
                   style={styles.signupLink}
                 >
@@ -271,21 +316,21 @@ export default function LoginScreen({ navigation }) {
               </Animatable.View>
             </>
           )}
+
           <TouchableOpacity style={styles.signupLink} onPress={() => navigation.navigate('SignUp')}>
             <Text style={[styles.signupText]}>
-              Don't have an account? <Text style={{color: '#00C6FB', fontWeight: 'bold'}}>Sign Up</Text>
+              Don't have an account? <Text style={{ color: '#00C6FB', fontWeight: 'bold' }}>Sign Up</Text>
             </Text>
           </TouchableOpacity>
-          {/* Illustration placeholder (uncomment and add your image if needed) */}
-          {/* <Animatable.Image animation="bounceIn" delay={700} duration={500} source={require('../assets/printer_illustration.png')} style={styles.illustration} resizeMode="contain" /> */}
+
+          <CustomAlert
+            visible={alertVisible}
+            title={alertTitle}
+            message={alertMessage}
+            type={alertType}
+            onConfirm={() => setAlertVisible(false)}
+          />
         </View>
-        <CustomAlert
-          visible={alertVisible}
-          title={alertTitle}
-          message={alertMessage}
-          type={alertType}
-          onConfirm={() => setAlertVisible(false)}
-        />
       </ScrollView>
     </KeyboardAvoidingView>
   );
@@ -338,7 +383,6 @@ const styles = StyleSheet.create({
     marginBottom: 20,
     height: 56,
     overflow: 'hidden',
-    transition: 'border-color 0.2s',
   },
   inputRowFocused: {
     borderColor: '#00C6FB',
@@ -406,7 +450,8 @@ const styles = StyleSheet.create({
     marginBottom: 20,
     color: '#222',
     backgroundColor: '#fff',
-    transition: 'border-color 0.2s',
+    textAlign: 'center',
+    letterSpacing: 2,
   },
   otpInputFocused: {
     borderColor: '#00C6FB',
@@ -428,6 +473,9 @@ const styles = StyleSheet.create({
   resendContainer: {
     alignItems: 'center',
     marginBottom: 20,
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+    width: '100%',
   },
   resendText: {
     color: '#00C6FB',
@@ -444,15 +492,4 @@ const styles = StyleSheet.create({
     fontSize: 16,
     textAlign: 'center',
   },
-  illustration: {
-    width: '100%',
-    height: 220,
-    alignSelf: 'center',
-  },
-  inputLabel: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#1a1a1a',
-    marginBottom: 8,
-  },
-}); 
+});

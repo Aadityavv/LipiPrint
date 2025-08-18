@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "159519217125",
+    "project_id": "lipiprint-c2066",
+    "storage_bucket": "lipiprint-c2066.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:159519217125:android:a9c4dc6d54def8708c0b0c",
+        "android_client_info": {
+          "package_name": "com.LipiPrint"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyB9l4M0HF3ulC34ryjvQimKbIGsNix4kts"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
