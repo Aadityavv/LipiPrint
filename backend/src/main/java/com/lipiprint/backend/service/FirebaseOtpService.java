@@ -9,11 +9,101 @@ import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
 import java.util.Map;
+import java.util.HashMap;
 
 @Service
 public class FirebaseOtpService {
     
     private static final Logger logger = LoggerFactory.getLogger(FirebaseOtpService.class);
+    
+    // Default test phone numbers and their OTPs
+    private static final Map<String, String> DEFAULT_PHONE_OTP_MAP = new HashMap<>();
+    static {
+        DEFAULT_PHONE_OTP_MAP.put("1234567890", "999999");
+        DEFAULT_PHONE_OTP_MAP.put("6307692868", "999999");
+    }
+    
+    /**
+     * Verify OTP for default phone numbers (for testing)
+     */
+    public boolean verifyDefaultOtp(String phoneNumber, String otp) {
+        if (phoneNumber == null || otp == null) {
+            return false;
+        }
+        
+        // Clean phone number (remove +91, spaces, etc.)
+        String cleanedPhone = cleanPhoneNumber(phoneNumber);
+        
+        if (DEFAULT_PHONE_OTP_MAP.containsKey(cleanedPhone)) {
+            boolean isValid = DEFAULT_PHONE_OTP_MAP.get(cleanedPhone).equals(otp);
+            if (isValid) {
+                logger.info("✅ Default OTP verification successful for phone: {}", cleanedPhone);
+            } else {
+                logger.warn("❌ Default OTP verification failed for phone: {}", cleanedPhone);
+            }
+            return isValid;
+        }
+        
+        logger.info("📞 Phone number {} not in default list, using Firebase verification", cleanedPhone);
+        return false; // Not a default phone number
+    }
+    
+    /**
+     * Check if phone number is a default test number
+     */
+    public boolean isDefaultPhoneNumber(String phoneNumber) {
+        if (phoneNumber == null) return false;
+        String cleanedPhone = cleanPhoneNumber(phoneNumber);
+        return DEFAULT_PHONE_OTP_MAP.containsKey(cleanedPhone);
+    }
+    
+    /**
+     * Get default OTP for a phone number (for testing purposes only)
+     */
+    public String getDefaultOtp(String phoneNumber) {
+        if (phoneNumber == null) return null;
+        String cleanedPhone = cleanPhoneNumber(phoneNumber);
+        return DEFAULT_PHONE_OTP_MAP.get(cleanedPhone);
+    }
+    
+    /**
+     * Clean phone number by removing country codes, spaces, and special characters
+     */
+    private String cleanPhoneNumber(String phoneNumber) {
+        if (phoneNumber == null) return null;
+        
+        // Remove +91, +, spaces, dashes, etc.
+        String cleaned = phoneNumber.replaceAll("[\\s\\-\\+]", "");
+        
+        // Remove country code if present
+        if (cleaned.startsWith("91") && cleaned.length() == 12) {
+            cleaned = cleaned.substring(2);
+        }
+        
+        return cleaned;
+    }
+    
+    /**
+     * Verify phone and OTP (combines Firebase and default verification)
+     */
+    public VerificationResult verifyPhoneAndOtp(String phoneNumber, String otp) {
+        try {
+            // First check if it's a default phone number
+            if (isDefaultPhoneNumber(phoneNumber)) {
+                boolean isValid = verifyDefaultOtp(phoneNumber, otp);
+                return new VerificationResult(isValid, phoneNumber, "DEFAULT");
+            }
+            
+            // If not default, you would typically verify with Firebase here
+            // For now, returning false for non-default numbers
+            logger.info("📱 Non-default phone number verification not implemented yet");
+            return new VerificationResult(false, phoneNumber, "FIREBASE");
+            
+        } catch (Exception e) {
+            logger.error("❌ Error during phone and OTP verification: {}", e.getMessage());
+            return new VerificationResult(false, phoneNumber, "ERROR");
+        }
+    }
     
     /**
      * Verify Firebase ID token and get phone number from user record (RECOMMENDED)
@@ -159,5 +249,24 @@ public class FirebaseOtpService {
             logger.error("❌ Failed to extract user details: {}", e.getMessage());
             throw e;
         }
+    }
+    
+    /**
+     * Helper class for verification results
+     */
+    public static class VerificationResult {
+        private final boolean success;
+        private final String phoneNumber;
+        private final String method;
+        
+        public VerificationResult(boolean success, String phoneNumber, String method) {
+            this.success = success;
+            this.phoneNumber = phoneNumber;
+            this.method = method;
+        }
+        
+        public boolean isSuccess() { return success; }
+        public String getPhoneNumber() { return phoneNumber; }
+        public String getMethod() { return method; }
     }
 }
