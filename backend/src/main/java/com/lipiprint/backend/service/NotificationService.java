@@ -16,9 +16,6 @@ public class NotificationService {
     
     @Autowired
     private NotificationRepository notificationRepository;
-    
-    @Autowired
-    private Msg91Service msg91Service;
 
     public Notification save(Notification notification) {
         return notificationRepository.save(notification);
@@ -33,7 +30,7 @@ public class NotificationService {
     }
 
     /**
-     * Send order status notification via SMS and database
+     * Send order status notification to database
      */
     public void sendOrderNotification(Long userId, String orderNumber, String status, String phoneNumber) {
         try {
@@ -45,15 +42,7 @@ public class NotificationService {
             notification.setCreatedAt(java.time.LocalDateTime.now());
             save(notification);
             
-            // Send SMS notification
-            if (phoneNumber != null && !phoneNumber.trim().isEmpty()) {
-                boolean smsSent = msg91Service.sendOrderNotification(phoneNumber, orderNumber, status);
-                if (smsSent) {
-                    logger.info("✅ Order notification SMS sent for order: {}", orderNumber);
-                } else {
-                    logger.warn("⚠️ Failed to send order notification SMS for order: {}", orderNumber);
-                }
-            }
+            logger.info("✅ Order notification saved to database for order: {}", orderNumber);
             
         } catch (Exception e) {
             logger.error("❌ Failed to send order notification: {}", e.getMessage());
@@ -61,7 +50,7 @@ public class NotificationService {
     }
 
     /**
-     * Send welcome SMS to new users
+     * Send welcome message to new users (database only)
      */
     public void sendWelcomeMessage(String phoneNumber, String userName) {
         try {
@@ -70,22 +59,32 @@ public class NotificationService {
                 userName != null ? userName : "User"
             );
             
-            boolean sent = msg91Service.sendSms(phoneNumber, message);
-            if (sent) {
-                logger.info("✅ Welcome SMS sent to new user: {}", phoneNumber);
-            }
+            // Save welcome message to database
+            Notification notification = new Notification();
+            notification.setMessage(message);
+            notification.setCreatedAt(java.time.LocalDateTime.now());
+            save(notification);
+            
+            logger.info("✅ Welcome message saved to database for user: {}", phoneNumber);
             
         } catch (Exception e) {
-            logger.error("❌ Failed to send welcome SMS: {}", e.getMessage());
+            logger.error("❌ Failed to send welcome message: {}", e.getMessage());
         }
     }
 
     /**
-     * Send promotional message
+     * Send promotional message (database only)
      */
     public boolean sendPromotionalMessage(String phoneNumber, String message) {
         try {
-            return msg91Service.sendPromotionalMessage(phoneNumber, message);
+            // Save promotional message to database
+            Notification notification = new Notification();
+            notification.setMessage(message);
+            notification.setCreatedAt(java.time.LocalDateTime.now());
+            save(notification);
+            
+            logger.info("✅ Promotional message saved to database for: {}", phoneNumber);
+            return true;
         } catch (Exception e) {
             logger.error("❌ Failed to send promotional message: {}", e.getMessage());
             return false;
@@ -93,16 +92,16 @@ public class NotificationService {
     }
 
     /**
-     * Send bulk promotional messages
+     * Send bulk promotional messages (database only)
      */
     public void sendBulkPromotionalMessage(List<String> phoneNumbers, String message) {
         for (String phoneNumber : phoneNumbers) {
             try {
                 sendPromotionalMessage(phoneNumber, message);
-                // Add small delay to avoid rate limiting
+                // Add small delay to avoid overwhelming the database
                 Thread.sleep(100);
             } catch (Exception e) {
-                logger.error("❌ Failed to send bulk promotional SMS to: {}", phoneNumber);
+                logger.error("❌ Failed to send bulk promotional message to: {}", phoneNumber);
             }
         }
     }

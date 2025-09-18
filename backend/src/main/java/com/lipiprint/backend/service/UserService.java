@@ -112,7 +112,7 @@ public class UserService {
     }
 
     /**
-     * Create a new user from phone number (for MSG91 auth)
+     * Create a new user from phone number
      */
     public User createUserFromPhone(String phoneNumber) {
         User user = new User();
