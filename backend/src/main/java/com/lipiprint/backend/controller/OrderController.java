@@ -374,7 +374,7 @@ public class OrderController {
         UserDTO userDTO = u == null ? null : new UserDTO(
             u.getId(), u.getName(), u.getPhone(), u.getEmail(), 
             u.getRole() != null ? u.getRole().name() : null, 
-            u.isBlocked(), u.getCreatedAt(), u.getUpdatedAt());
+            u.isBlocked(), u.getCreatedAt(), u.getUpdatedAt(), false);
 
         List<PrintJobDTO> printJobDTOs = null;
         if (printJobs != null) {

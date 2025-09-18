@@ -24,7 +24,7 @@ public class UserController {
     @GetMapping("/profile")
     public ResponseEntity<UserDTO> getProfile(Authentication authentication) {
         User user = userService.findByPhone(authentication.getName()).orElseThrow();
-        UserDTO userDTO = new UserDTO(user.getId(), user.getName(), user.getPhone(), user.getEmail(), user.getRole().name(), user.isBlocked(), user.getCreatedAt(), user.getUpdatedAt());
+        UserDTO userDTO = new UserDTO(user.getId(), user.getName(), user.getPhone(), user.getEmail(), user.getRole().name(), user.isBlocked(), user.getCreatedAt(), user.getUpdatedAt(), false);
         return ResponseEntity.ok(userDTO);
     }
 
@@ -42,7 +42,7 @@ public class UserController {
         user.setEmail(updateRequest.getEmail());
         // Phone and password update logic can be added as needed
         userService.updateProfile(user);
-        UserDTO userDTO = new UserDTO(user.getId(), user.getName(), user.getPhone(), user.getEmail(), user.getRole().name(), user.isBlocked(), user.getCreatedAt(), user.getUpdatedAt());
+        UserDTO userDTO = new UserDTO(user.getId(), user.getName(), user.getPhone(), user.getEmail(), user.getRole().name(), user.isBlocked(), user.getCreatedAt(), user.getUpdatedAt(), false);
         return ResponseEntity.ok(userDTO);
     }
 
@@ -57,7 +57,7 @@ public class UserController {
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<List<UserDTO>> listUsers() {
         List<UserDTO> users = userService.getAllUsers().stream()
-                .map(user -> new UserDTO(user.getId(), user.getName(), user.getPhone(), user.getEmail(), user.getRole().name(), user.isBlocked(), user.getCreatedAt(), user.getUpdatedAt()))
+                .map(user -> new UserDTO(user.getId(), user.getName(), user.getPhone(), user.getEmail(), user.getRole().name(), user.isBlocked(), user.getCreatedAt(), user.getUpdatedAt(), false))
                 .collect(Collectors.toList());
         return ResponseEntity.ok(users);
     }
