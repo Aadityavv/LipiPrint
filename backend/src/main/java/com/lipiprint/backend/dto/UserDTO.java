@@ -17,4 +17,5 @@ public class UserDTO {
     private boolean blocked;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
+    private boolean isNewUser;
 } 

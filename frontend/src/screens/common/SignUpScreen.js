@@ -25,8 +25,6 @@ export default function SignUpScreen({ navigation }) {
   const [alertTitle, setAlertTitle] = useState('');
   const [alertMessage, setAlertMessage] = useState('');
   const [alertType, setAlertType] = useState('info');
-  const [step, setStep] = useState('details'); // 'details' or 'otp'
-  const [otp, setOtp] = useState('');
   const [isLoading, setIsLoading] = useState(false);
 
   const updateFormData = (field, value) => {
@@ -63,83 +61,67 @@ export default function SignUpScreen({ navigation }) {
       setAlertVisible(true);
       return false;
     }
+    if (!formData.password.trim()) {
+      setAlertTitle('Error');
+      setAlertMessage('Please enter your password');
+      setAlertType('error');
+      setAlertVisible(true);
+      return false;
+    }
+    if (formData.password.length < 6) {
+      setAlertTitle('Error');
+      setAlertMessage('Password must be at least 6 characters long');
+      setAlertType('error');
+      setAlertVisible(true);
+      return false;
+    }
+    if (formData.password !== formData.confirmPassword) {
+      setAlertTitle('Error');
+      setAlertMessage('Passwords do not match');
+      setAlertType('error');
+      setAlertVisible(true);
+      return false;
+    }
     return true;
   };
 
-  const handleSendOtp = async () => {
+  const handleSignUp = async () => {
     if (validateForm()) {
       setIsLoading(true);
       try {
-        await ApiService.request('/auth/send-otp', {
-          method: 'POST',
-          body: JSON.stringify({ phone: formData.phone }),
-          headers: { 'Content-Type': 'application/json' },
-        });
-        setAlertTitle('OTP Sent');
-        setAlertMessage('An OTP has been sent to your phone.');
+        const payload = {
+          name: formData.fullName,
+          phone: formData.phone,
+          email: formData.email,
+          password: formData.password,
+          userType: formData.userType,
+        };
+        if (formData.userType === 'professional' && formData.gstin.trim()) {
+          payload.gstin = formData.gstin.trim();
+        }
+        
+        const response = await ApiService.register(payload);
+        
+        if (response.accessToken || response.token) {
+          await ApiService.setToken(response.accessToken || response.token);
+        }
+        
+        setAlertTitle('Success!');
+        setAlertMessage('Account created and logged in successfully.');
         setAlertType('success');
         setAlertVisible(true);
-        setStep('otp');
+        
+        setTimeout(() => {
+          navigation.reset({ index: 0, routes: [{ name: 'MainTabs' }] });
+        }, 500);
       } catch (error) {
-        setAlertTitle('OTP Failed');
-        setAlertMessage(error.message || 'Failed to send OTP.');
+        setAlertTitle('Registration Failed');
+        setAlertMessage(error.message || 'Registration failed. Please try again.');
         setAlertType('error');
         setAlertVisible(true);
       } finally {
         setIsLoading(false);
       }
-    }
-  };
-
-  const handleVerifyOtpAndSignUp = async () => {
-    if (!otp.trim()) {
-      setAlertTitle('Error');
-      setAlertMessage('Please enter the OTP.');
-      setAlertType('error');
-      setAlertVisible(true);
-      return;
-    }
-    setIsLoading(true);
-    try {
-      await ApiService.request('/auth/verify-otp', {
-        method: 'POST',
-        body: JSON.stringify({ phone: formData.phone, otp }),
-        headers: { 'Content-Type': 'application/json' },
-      });
-      // OTP verified, now register
-      const payload = {
-        name: formData.fullName,
-        phone: formData.phone,
-        email: formData.email,
-        userType: formData.userType,
-      };
-      if (formData.userType === 'professional' && formData.gstin.trim()) {
-        payload.gstin = formData.gstin.trim();
-      }
-      await ApiService.register(payload);
-      // After successful signup, call /auth/verify-otp again to get JWT token
-      const loginResponse = await ApiService.request('/auth/verify-otp', {
-        method: 'POST',
-        body: JSON.stringify({ phone: formData.phone, otp }),
-        headers: { 'Content-Type': 'application/json' },
-      });
-      if (loginResponse.token || loginResponse.accessToken) {
-        await ApiService.setToken(loginResponse.token || loginResponse.accessToken);
-      }
-      setAlertTitle('Success!');
-      setAlertMessage('Account created and logged in.');
-      setAlertType('success');
-      setAlertVisible(true);
-      setTimeout(() => {
-        navigation.reset({ index: 0, routes: [{ name: 'MainTabs' }] });
-      }, 500);
-    } catch (error) {
-      setAlertTitle('Failed');
-      setAlertMessage(error.message || 'OTP verification or registration failed.');
-      setAlertType('error');
-      setAlertVisible(true);
-    } finally {
-      setIsLoading(false);
     }
   };
 
@@ -216,8 +198,36 @@ export default function SignUpScreen({ navigation }) {
               </View>
             </Animatable.View>
 
-            {/* User Type Selection */}
+            {/* Password Input */}
             <Animatable.View animation="fadeInUp" delay={325} duration={500}>
+              <Text style={[styles.inputLabel, { color: theme.text }]}>Password</Text>
+              <TextInput
+                style={[styles.input, inputFocused.password && styles.inputFocused]}
+                placeholder="Enter your password"
+                value={formData.password}
+                onChangeText={(value) => updateFormData('password', value)}
+                onFocus={() => handleFocus('password')}
+                onBlur={() => handleBlur('password')}
+                secureTextEntry={true}
+              />
+            </Animatable.View>
+
+            {/* Confirm Password Input */}
+            <Animatable.View animation="fadeInUp" delay={350} duration={500}>
+              <Text style={[styles.inputLabel, { color: theme.text }]}>Confirm Password</Text>
+              <TextInput
+                style={[styles.input, inputFocused.confirmPassword && styles.inputFocused]}
+                placeholder="Confirm your password"
+                value={formData.confirmPassword}
+                onChangeText={(value) => updateFormData('confirmPassword', value)}
+                onFocus={() => handleFocus('confirmPassword')}
+                onBlur={() => handleBlur('confirmPassword')}
+                secureTextEntry={true}
+              />
+            </Animatable.View>
+
+            {/* User Type Selection */}
+            <Animatable.View animation="fadeInUp" delay={375} duration={500}>
               <Text style={[styles.inputLabel, { color: theme.text }]}>I am a</Text>
               <View style={styles.userTypeContainer}>
                 <TouchableOpacity
@@ -260,7 +270,7 @@ export default function SignUpScreen({ navigation }) {
 
             {/* GSTIN Input (only for professionals) */}
             {formData.userType === 'professional' && (
-              <Animatable.View animation="fadeInUp" delay={350} duration={500}>
+              <Animatable.View animation="fadeInUp" delay={400} duration={500}>
                 <Text style={[styles.inputLabel, { color: theme.text }]}>GSTIN Number (Optional)</Text>
                 <TextInput
                   style={[styles.input, inputFocused.gstin && styles.inputFocused]}
@@ -279,7 +289,7 @@ export default function SignUpScreen({ navigation }) {
             )}
 
             {/* Terms and Conditions */}
-            <Animatable.View animation="fadeInUp" delay={formData.userType === 'professional' ? 425 : 400} duration={500}>
+            <Animatable.View animation="fadeInUp" delay={formData.userType === 'professional' ? 450 : 425} duration={500}>
               <View style={styles.termsContainer}>
                 <Text style={[styles.termsText, { color: theme.text }]}>
                   By signing up, you agree to our{' '}
@@ -290,16 +300,16 @@ export default function SignUpScreen({ navigation }) {
             </Animatable.View>
 
             {/* Sign Up Button */}
-            <Animatable.View animation="fadeInUp" delay={formData.userType === 'professional' ? 450 : 425} duration={500}>
-              <TouchableOpacity style={styles.signUpButton} onPress={handleSendOtp} activeOpacity={0.9} disabled={isLoading}>
+            <Animatable.View animation="fadeInUp" delay={formData.userType === 'professional' ? 475 : 450} duration={500}>
+              <TouchableOpacity style={styles.signUpButton} onPress={handleSignUp} activeOpacity={0.9} disabled={isLoading}>
                 <LinearGradient colors={['#FF6B6B', '#FF8E53']} style={styles.signUpGradient}>
-                  <Text style={[styles.signUpText]}>Next</Text>
+                  <Text style={[styles.signUpText]}>Create Account</Text>
                 </LinearGradient>
               </TouchableOpacity>
             </Animatable.View>
 
             {/* Login Link */}
-            <Animatable.View animation="fadeInUp" delay={formData.userType === 'professional' ? 475 : 450} duration={500}>
+            <Animatable.View animation="fadeInUp" delay={formData.userType === 'professional' ? 500 : 475} duration={500}>
               <View style={styles.loginContainer}>
                 <Text style={[styles.loginText, { color: theme.text }]}>
                   Already have an account?{' '}
@@ -311,7 +321,7 @@ export default function SignUpScreen({ navigation }) {
             </Animatable.View>
 
             {/* Social Sign Up Options */}
-            <Animatable.View animation="fadeInUp" delay={formData.userType === 'professional' ? 500 : 475} duration={500}>
+            <Animatable.View animation="fadeInUp" delay={formData.userType === 'professional' ? 525 : 500} duration={500}>
               <View style={styles.socialContainer}>
                 <Text style={[styles.socialText, { color: theme.text }]}>Or sign up with</Text>
                 <View style={styles.socialButtons}>
@@ -324,35 +334,6 @@ export default function SignUpScreen({ navigation }) {
             </Animatable.View>
           </>
         )}
-        {step === 'otp' && (
-          <>
-            <Animatable.View animation="fadeInUp" delay={200} duration={500}>
-              <Text style={[styles.inputLabel, { color: theme.text }]}>Enter OTP</Text>
-              <TextInput
-                style={[styles.input, inputFocused.otp && styles.inputFocused]}
-                placeholder="Enter the OTP sent to your phone"
-                value={otp}
-                onChangeText={setOtp}
-                onFocus={() => handleFocus('otp')}
-                onBlur={() => handleBlur('otp')}
-                keyboardType="numeric"
-                maxLength={6}
-              />
-            </Animatable.View>
-            <Animatable.View animation="fadeInUp" delay={250} duration={500}>
-              <TouchableOpacity style={styles.signUpButton} onPress={handleVerifyOtpAndSignUp} activeOpacity={0.9} disabled={isLoading}>
-                <LinearGradient colors={['#FF6B6B', '#FF8E53']} style={styles.signUpGradient}>
-                  <Text style={[styles.signUpText]}>Verify & Create Account</Text>
-                </LinearGradient>
-              </TouchableOpacity>
-            </Animatable.View>
-            <Animatable.View animation="fadeInUp" delay={300} duration={500}>
-              <TouchableOpacity onPress={handleSendOtp} style={{ marginTop: 16 }} disabled={isLoading}>
-                <Text style={{ color: '#667eea', textAlign: 'center' }}>Resend OTP</Text>
-              </TouchableOpacity>
-            </Animatable.View>
-          </>
-        )}
         <CustomAlert
           visible={alertVisible}
           title={alertTitle}
@@ -360,12 +341,8 @@ export default function SignUpScreen({ navigation }) {
           type={alertType}
           onConfirm={() => {
             setAlertVisible(false);
-            if (alertType === 'success') {
-              if (alertTitle === 'OTP Sent') {
-                setStep('otp');
-              } else if (alertTitle === 'Success!') {
-                navigation.navigate('Login');
-              }
+            if (alertType === 'success' && alertTitle === 'Success!') {
+              // Navigation is handled in the setTimeout above
             }
           }}
         />

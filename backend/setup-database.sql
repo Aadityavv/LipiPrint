@@ -7,6 +7,8 @@ CREATE TABLE users (
     password VARCHAR(255) NOT NULL,
     role VARCHAR(20) NOT NULL,
     blocked BOOLEAN DEFAULT FALSE,
+    gstin VARCHAR(50),
+    user_type VARCHAR(20),
     created_at TIMESTAMP,
     updated_at TIMESTAMP
 );

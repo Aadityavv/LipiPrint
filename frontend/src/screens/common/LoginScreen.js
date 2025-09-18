@@ -1,8 +1,6 @@
 import React, { useState } from 'react';
 import { View, Text, StyleSheet, TextInput, TouchableOpacity, Image, KeyboardAvoidingView, Platform, ScrollView } from 'react-native';
 import * as Animatable from 'react-native-animatable';
-import { getApp } from '@react-native-firebase/app';
-import { getAuth, signInWithPhoneNumber } from '@react-native-firebase/auth';
 import ApiService from '../../services/api';
 import { useTheme } from '../../theme/ThemeContext';
 import CustomAlert from '../../components/CustomAlert';
@@ -10,20 +8,15 @@ import CustomAlert from '../../components/CustomAlert';
 export default function LoginScreen({ navigation }) {
   const { theme, isDark } = useTheme();
   const [phone, setPhone] = useState('');
-  const [showOtp, setShowOtp] = useState(false);
-  const [otp, setOtp] = useState('');
-  const [inputFocused, setInputFocused] = useState(false);
-  const [otpFocused, setOtpFocused] = useState(false);
+  const [password, setPassword] = useState('');
+  const [inputFocused, setInputFocused] = useState({});
   const [isLoading, setIsLoading] = useState(false);
   const [phoneError, setPhoneError] = useState('');
-  const [otpError, setOtpError] = useState('');
+  const [passwordError, setPasswordError] = useState('');
   const [alertVisible, setAlertVisible] = useState(false);
   const [alertTitle, setAlertTitle] = useState('');
   const [alertMessage, setAlertMessage] = useState('');
   const [alertType, setAlertType] = useState('info');
-
-  // Firebase confirmation result object
-  const [confirmation, setConfirmation] = useState(null);
 
   const showAlert = (title, message, type = 'error') => {
     setAlertTitle(title);
@@ -32,110 +25,30 @@ export default function LoginScreen({ navigation }) {
     setAlertVisible(true);
   };
 
-  const handleSendOTP = async () => {
+  const handleLogin = async () => {
     setPhoneError('');
-    const clean = phone.trim();
+    setPasswordError('');
     
-    if (!clean || clean.length !== 10) {
+    const cleanPhone = phone.trim();
+    const cleanPassword = password.trim();
+    
+    if (!cleanPhone || cleanPhone.length !== 10) {
       setPhoneError('Please enter a valid 10-digit mobile number');
       return;
     }
-
-    setIsLoading(true);
-    console.log(`🔥 Attempting Firebase OTP for: +91${clean}`);
     
-    try {
-      const app = getApp();
-      const firebaseAuth = getAuth(app);
-      
-      console.log('🔥 Firebase app and auth initialized');
-      console.log('🔥 Calling signInWithPhoneNumber...');
-      
-      const conf = await signInWithPhoneNumber(firebaseAuth, `+91${clean}`);
-      
-      console.log('✅ Firebase signInWithPhoneNumber successful');
-      console.log('✅ Confirmation object received:', !!conf);
-      
-      setConfirmation(conf);
-      setShowOtp(true);
-      showAlert('OTP Sent', 'Please check your phone for the verification code', 'success');
-      
-    } catch (error) {
-      console.error('❌ Firebase OTP Error:', error);
-      console.error('❌ Error code:', error?.code);
-      console.error('❌ Error message:', error?.message);
-      
-      let errorMessage = 'Failed to send OTP. ';
-      
-      if (error?.code === 'auth/missing-client-identifier') {
-        errorMessage += 'Please check your Firebase configuration and SHA certificates.';
-      } else if (error?.code === 'auth/invalid-phone-number') {
-        errorMessage += 'Invalid phone number format.';
-      } else if (error?.code === 'auth/quota-exceeded') {
-        errorMessage += 'SMS quota exceeded. Try again later.';
-      } else if (error?.code === 'auth/app-not-authorized') {
-        errorMessage += 'App not authorized for Firebase Auth.';
-      } else {
-        errorMessage += error?.message || 'Unknown error occurred.';
-      }
-      
-      showAlert('OTP Failed', errorMessage);
-      
-      // Fallback: offer manual backend OTP for testing
-      console.log('🔄 Consider using backend fallback OTP for testing');
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const handleVerifyOTP = async () => {
-    setOtpError('');
-    const code = otp.trim();
-    
-    if (!code) {
-      setOtpError('Please enter the OTP');
-      return;
-    }
-    
-    if (!confirmation) {
-      showAlert('Error', 'No verification session found. Please request OTP again.');
-      setShowOtp(false);
+    if (!cleanPassword) {
+      setPasswordError('Please enter your password');
       return;
     }
 
     setIsLoading(true);
-    console.log(`🔍 Verifying OTP: ${code}`);
+    console.log(`🔐 Attempting login for: ${cleanPhone}`);
     
     try {
-      // Confirm OTP with Firebase
-      console.log('🔥 Calling confirmation.confirm...');
-      const userCredential = await confirmation.confirm(code);
-      console.log('✅ Firebase OTP confirmed successfully');
+      const response = await ApiService.login(cleanPhone, cleanPassword);
       
-      // Get Firebase ID token
-      console.log('🔑 Getting Firebase ID token...');
-      const idToken = await userCredential.user.getIdToken();
-      console.log('✅ Firebase ID token obtained');
-
-      // Call backend to verify token and get app JWT
-      console.log('🌐 Calling backend /auth/firebase-auth...');
-      const response = await ApiService.request('/auth/firebase-auth', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ 
-          idToken, 
-          phoneNumber: `+91${phone}` 
-        }),
-      });
-      
-      console.log('✅ Backend response received:', response);
-
-      // Extract and store app token
-      const token = response?.accessToken || response?.token || response?.jwt;
-      if (token) {
-        await ApiService.setToken(token);
-        console.log('✅ App token stored successfully');
-      }
+      console.log('✅ Login successful:', response);
 
       // Determine user role and navigate
       let userRole = null;
@@ -148,10 +61,8 @@ export default function LoginScreen({ navigation }) {
       console.log('👤 User role determined:', userRole);
 
       // Reset states
-      setShowOtp(false);
-      setConfirmation(null);
-      setOtp('');
       setPhone('');
+      setPassword('');
 
       // Navigate based on role
       if (userRole === 'ADMIN') {
@@ -166,21 +77,24 @@ export default function LoginScreen({ navigation }) {
       }
       
     } catch (error) {
-      console.error('❌ OTP Verification Error:', error);
-      console.error('❌ Error code:', error?.code);
+      console.error('❌ Login Error:', error);
       
-      if (error?.code === 'auth/invalid-verification-code') {
-        setOtpError('Invalid OTP. Please check and try again.');
-      } else if (error?.code === 'auth/code-expired') {
-        setOtpError('OTP has expired. Please request a new one.');
-        setShowOtp(false);
-        setConfirmation(null);
+      if (error.message === 'Unauthorized') {
+        setPasswordError('Invalid phone number or password');
       } else {
-        setOtpError('Invalid OTP or network error');
+        showAlert('Login Failed', error.message || 'Login failed. Please try again.');
       }
     } finally {
       setIsLoading(false);
     }
+  };
+
+  const handleFocus = (field) => {
+    setInputFocused(prev => ({ ...prev, [field]: true }));
+  };
+
+  const handleBlur = (field) => {
+    setInputFocused(prev => ({ ...prev, [field]: false }));
   };
 
   const handlePhoneChange = (value) => {
@@ -190,20 +104,9 @@ export default function LoginScreen({ navigation }) {
     if (phoneError) setPhoneError('');
   };
 
-  const handleOtpChange = (value) => {
-    // Only digits, cap to 6
-    const sanitized = value.replace(/[^0-9]/g, '').slice(0, 6);
-    setOtp(sanitized);
-    if (otpError) setOtpError('');
-  };
-
-  const handleResendOTP = async () => {
-    setOtp('');
-    setOtpError('');
-    setConfirmation(null);
-    setShowOtp(false);
-    // Automatically trigger send OTP again
-    setTimeout(() => handleSendOTP(), 100);
+  const handlePasswordChange = (value) => {
+    setPassword(value);
+    if (passwordError) setPasswordError('');
   };
 
   return (
@@ -224,16 +127,16 @@ export default function LoginScreen({ navigation }) {
 
           <Animatable.View animation="fadeInUp" delay={200} duration={350} style={styles.textSection}>
             <Text style={[styles.headline]}>
-              {showOtp ? 'Enter the OTP' : 'Enter your mobile number'}
+              Sign In
             </Text>
             <Animatable.Text animation="fadeInUp" delay={300} duration={350} style={[styles.subheading, { color: theme.text }]}>
-              {showOtp ? 'We have sent a One Time Password (OTP) to your mobile number.' : 'Sign in to print smarter and faster.'}
+              Sign in to print smarter and faster.
             </Animatable.Text>
           </Animatable.View>
 
           <Animatable.View animation="fadeInUp" delay={300} duration={350} style={{ width: '100%' }}>
             <Text style={styles.inputLabel}>Mobile Number</Text>
-            <View style={[styles.inputRow, inputFocused && styles.inputRowFocused, phoneError && styles.inputRowError]}>
+            <View style={[styles.inputRow, inputFocused.phone && styles.inputRowFocused, phoneError && styles.inputRowError]}>
               <View style={styles.countryCodeBox}>
                 <Text style={styles.countryCode}>+91</Text>
               </View>
@@ -244,78 +147,39 @@ export default function LoginScreen({ navigation }) {
                 value={phone}
                 onChangeText={handlePhoneChange}
                 maxLength={10}
-                onFocus={() => setInputFocused(true)}
-                onBlur={() => setInputFocused(false)}
-                editable={!showOtp}
+                onFocus={() => handleFocus('phone')}
+                onBlur={() => handleBlur('phone')}
               />
             </View>
             {phoneError ? <Text style={styles.errorText}>{phoneError}</Text> : null}
           </Animatable.View>
 
-          {!showOtp && (
-            <Animatable.View animation="fadeInUp" delay={400} duration={350} style={{ width: '100%' }}>
-              <TouchableOpacity
-                activeOpacity={0.85}
-                style={[styles.ctaButton, isLoading && styles.ctaButtonDisabled]}
-                onPress={handleSendOTP}
-                disabled={isLoading}
-              >
-                <Text style={styles.ctaText}>
-                  {isLoading ? 'Sending OTP...' : 'Send OTP'}
-                </Text>
-              </TouchableOpacity>
-            </Animatable.View>
-          )}
+          <Animatable.View animation="fadeInUp" delay={400} duration={350} style={{ width: '100%' }}>
+            <Text style={styles.inputLabel}>Password</Text>
+            <TextInput
+              style={[styles.passwordInput, inputFocused.password && styles.passwordInputFocused, passwordError && styles.passwordInputError]}
+              placeholder="Enter your password"
+              value={password}
+              onChangeText={handlePasswordChange}
+              onFocus={() => handleFocus('password')}
+              onBlur={() => handleBlur('password')}
+              secureTextEntry={true}
+            />
+            {passwordError ? <Text style={styles.errorText}>{passwordError}</Text> : null}
+          </Animatable.View>
 
-          {showOtp && (
-            <>
-              <Animatable.View animation="fadeInUp" delay={500} duration={350} style={{ width: '100%' }}>
-                <Text style={styles.inputLabel}>OTP</Text>
-                <TextInput
-                  style={[styles.otpInput, otpFocused && styles.otpInputFocused, otpError && styles.otpInputError]}
-                  placeholder="Enter OTP"
-                  keyboardType="number-pad"
-                  value={otp}
-                  onChangeText={handleOtpChange}
-                  maxLength={6}
-                  onFocus={() => setOtpFocused(true)}
-                  onBlur={() => setOtpFocused(false)}
-                  autoFocus={true}
-                />
-                {otpError ? <Text style={styles.errorText}>{otpError}</Text> : null}
-              </Animatable.View>
-
-              <Animatable.View animation="fadeInUp" delay={600} duration={350} style={{ width: '100%' }}>
-                <TouchableOpacity
-                  activeOpacity={0.85}
-                  style={[styles.ctaButton, isLoading && styles.ctaButtonDisabled]}
-                  onPress={handleVerifyOTP}
-                  disabled={isLoading}
-                >
-                  <Text style={styles.ctaText}>
-                    {isLoading ? 'Verifying...' : 'Verify OTP'}
-                  </Text>
-                </TouchableOpacity>
-              </Animatable.View>
-
-              <Animatable.View animation="fadeInUp" delay={700} duration={350} style={styles.resendContainer}>
-                <TouchableOpacity onPress={handleResendOTP} style={styles.signupLink}>
-                  <Text style={styles.resendText}>Resend OTP</Text>
-                </TouchableOpacity>
-                <TouchableOpacity
-                  onPress={() => {
-                    setShowOtp(false);
-                    setOtp('');
-                    setOtpError('');
-                    setConfirmation(null);
-                  }}
-                  style={styles.signupLink}
-                >
-                  <Text style={styles.resendText}>Change Phone Number</Text>
-                </TouchableOpacity>
-              </Animatable.View>
-            </>
-          )}
+          <Animatable.View animation="fadeInUp" delay={500} duration={350} style={{ width: '100%' }}>
+            <TouchableOpacity
+              activeOpacity={0.85}
+              style={[styles.ctaButton, isLoading && styles.ctaButtonDisabled]}
+              onPress={handleLogin}
+              disabled={isLoading}
+            >
+              <Text style={styles.ctaText}>
+                {isLoading ? 'Signing In...' : 'Sign In'}
+              </Text>
+            </TouchableOpacity>
+          </Animatable.View>
 
           <TouchableOpacity style={styles.signupLink} onPress={() => navigation.navigate('SignUp')}>
             <Text style={[styles.signupText]}>
@@ -439,7 +303,7 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     letterSpacing: 0.5,
   },
-  otpInput: {
+  passwordInput: {
     width: '100%',
     fontSize: 18,
     borderWidth: 2,
@@ -450,10 +314,8 @@ const styles = StyleSheet.create({
     marginBottom: 20,
     color: '#222',
     backgroundColor: '#fff',
-    textAlign: 'center',
-    letterSpacing: 2,
   },
-  otpInputFocused: {
+  passwordInputFocused: {
     borderColor: '#00C6FB',
     shadowColor: '#00C6FB',
     shadowOffset: { width: 0, height: 2 },
@@ -461,7 +323,7 @@ const styles = StyleSheet.create({
     shadowRadius: 6,
     elevation: 2,
   },
-  otpInputError: {
+  passwordInputError: {
     borderColor: '#EF4444',
   },
   errorText: {

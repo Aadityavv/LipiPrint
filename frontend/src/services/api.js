@@ -90,7 +90,7 @@ class ApiService {
 
     // Authentication
     async login(phone, password) {
-        const response = await this.request('/auth/signin', {
+        const response = await this.request('/auth/login', {
             method: 'POST',
             body: JSON.stringify({ phone, password }),
         });
