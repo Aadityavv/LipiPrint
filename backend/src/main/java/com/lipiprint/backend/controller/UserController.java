@@ -2,6 +2,7 @@ package com.lipiprint.backend.controller;
 
 import com.lipiprint.backend.dto.MessageResponse;
 import com.lipiprint.backend.dto.UserCreateRequest;
+import com.lipiprint.backend.dto.UserUpdateRequest;
 import com.lipiprint.backend.dto.UserDTO;
 import com.lipiprint.backend.entity.User;
 import com.lipiprint.backend.service.UserService;
@@ -36,11 +37,27 @@ public class UserController {
     }
 
     @PutMapping("/profile")
-    public ResponseEntity<UserDTO> updateProfile(Authentication authentication, @Valid @RequestBody UserCreateRequest updateRequest) {
+    public ResponseEntity<UserDTO> updateProfile(Authentication authentication, @Valid @RequestBody UserUpdateRequest updateRequest) {
         User user = userService.findByPhone(authentication.getName()).orElseThrow();
+        
+        // Check if email is already in use by another user
+        if (!user.getEmail().equals(updateRequest.getEmail())) {
+            if (userService.findByEmail(updateRequest.getEmail()).isPresent()) {
+                return ResponseEntity.badRequest().build();
+            }
+        }
+        
         user.setName(updateRequest.getName());
         user.setEmail(updateRequest.getEmail());
-        // Phone and password update logic can be added as needed
+        
+        // Update optional fields if provided
+        if (updateRequest.getGstin() != null) {
+            user.setGstin(updateRequest.getGstin());
+        }
+        if (updateRequest.getUserType() != null) {
+            user.setUserType(updateRequest.getUserType());
+        }
+        
         userService.updateProfile(user);
         UserDTO userDTO = new UserDTO(user.getId(), user.getName(), user.getPhone(), user.getEmail(), user.getRole().name(), user.isBlocked(), user.getCreatedAt(), user.getUpdatedAt(), false);
         return ResponseEntity.ok(userDTO);

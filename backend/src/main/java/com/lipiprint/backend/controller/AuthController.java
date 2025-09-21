@@ -4,6 +4,7 @@ import com.lipiprint.backend.dto.*;
 import com.lipiprint.backend.entity.User;
 import com.lipiprint.backend.security.JwtUtils;
 import com.lipiprint.backend.service.UserService;
+import com.lipiprint.backend.service.EmailOtpService;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
@@ -24,6 +25,9 @@ public class AuthController {
     
     @Autowired
     private JwtUtils jwtUtils;
+    
+    @Autowired
+    private EmailOtpService emailOtpService;
 
     @PostMapping("/signup")
     public ResponseEntity<?> registerUser(@Valid @RequestBody UserCreateRequest signUpRequest) {
@@ -142,5 +146,137 @@ public class AuthController {
         return ResponseEntity.ok(new MessageResponse("User signed out successfully!"));
     }
 
+    @PostMapping("/send-email-otp")
+    public ResponseEntity<?> sendEmailOtp(@Valid @RequestBody EmailOtpRequest request) {
+        try {
+            String email = request.getEmail().trim().toLowerCase();
+            
+            // Check if user exists with this email
+            Optional<User> userOptional = userService.findByEmail(email);
+            if (!userOptional.isPresent()) {
+                return ResponseEntity.badRequest()
+                    .body(new MessageResponse("No account found with this email address."));
+            }
+            
+            // Generate and send OTP
+            emailOtpService.generateOtp(email);
+            
+            logger.info("✅ Email OTP sent to: {}", email);
+            return ResponseEntity.ok(new MessageResponse("OTP sent to your email address."));
+            
+        } catch (Exception e) {
+            logger.error("❌ Failed to send email OTP: {}", e.getMessage());
+            return ResponseEntity.badRequest()
+                .body(new MessageResponse("Failed to send OTP. Please try again."));
+        }
+    }
 
+    @PostMapping("/verify-email-otp")
+    public ResponseEntity<?> verifyEmailOtp(@Valid @RequestBody EmailOtpVerifyRequest request) {
+        try {
+            String email = request.getEmail().trim().toLowerCase();
+            String otp = request.getOtp();
+            
+            // Verify OTP
+            if (!emailOtpService.verifyOtp(email, otp)) {
+                return ResponseEntity.badRequest()
+                    .body(new MessageResponse("Invalid or expired OTP."));
+            }
+            
+            // Find user by email
+            Optional<User> userOptional = userService.findByEmail(email);
+            if (!userOptional.isPresent()) {
+                return ResponseEntity.badRequest()
+                    .body(new MessageResponse("User not found."));
+            }
+            
+            User user = userOptional.get();
+            
+            // Generate JWT token
+            String jwt = jwtUtils.generateToken(user);
+            UserDTO userDTO = new UserDTO(
+                user.getId(), 
+                user.getName(), 
+                user.getPhone(), 
+                user.getEmail(),
+                user.getRole().name(), 
+                user.isBlocked(), 
+                user.getCreatedAt(), 
+                user.getUpdatedAt(),
+                false
+            );
+            
+            logger.info("✅ Email OTP verification successful for: {}", email);
+            return ResponseEntity.ok(new JwtResponse(jwt, "Bearer", userDTO));
+            
+        } catch (Exception e) {
+            logger.error("❌ Email OTP verification failed: {}", e.getMessage());
+            return ResponseEntity.badRequest()
+                .body(new MessageResponse("OTP verification failed. Please try again."));
+        }
+    }
+
+    @PostMapping("/reset-password-email")
+    public ResponseEntity<?> resetPasswordWithEmail(@Valid @RequestBody EmailOtpVerifyRequest request) {
+        try {
+            String email = request.getEmail().trim().toLowerCase();
+            String otp = request.getOtp();
+            
+            // Verify OTP
+            if (!emailOtpService.verifyOtp(email, otp)) {
+                return ResponseEntity.badRequest()
+                    .body(new MessageResponse("Invalid or expired OTP."));
+            }
+            
+            // Find user by email
+            Optional<User> userOptional = userService.findByEmail(email);
+            if (!userOptional.isPresent()) {
+                return ResponseEntity.badRequest()
+                    .body(new MessageResponse("User not found."));
+            }
+            
+            logger.info("✅ Email OTP verified for password reset: {}", email);
+            return ResponseEntity.ok(new MessageResponse("OTP verified. You can now set a new password."));
+            
+        } catch (Exception e) {
+            logger.error("❌ Email OTP verification for password reset failed: {}", e.getMessage());
+            return ResponseEntity.badRequest()
+                .body(new MessageResponse("OTP verification failed. Please try again."));
+        }
+    }
+
+    @PostMapping("/update-password-email")
+    public ResponseEntity<?> updatePasswordWithEmail(@Valid @RequestBody Map<String, String> request) {
+        try {
+            String email = request.get("email").trim().toLowerCase();
+            String newPassword = request.get("newPassword");
+            
+            if (newPassword == null || newPassword.length() < 6) {
+                return ResponseEntity.badRequest()
+                    .body(new MessageResponse("Password must be at least 6 characters long."));
+            }
+            
+            // Find user by email
+            Optional<User> userOptional = userService.findByEmail(email);
+            if (!userOptional.isPresent()) {
+                return ResponseEntity.badRequest()
+                    .body(new MessageResponse("User not found."));
+            }
+            
+            User user = userOptional.get();
+            
+            // Update password
+            user.setPassword(userService.getPasswordEncoder().encode(newPassword));
+            user.setUpdatedAt(java.time.LocalDateTime.now());
+            userService.updateProfile(user);
+            
+            logger.info("✅ Password updated successfully for email: {}", email);
+            return ResponseEntity.ok(new MessageResponse("Password updated successfully! You can now login with your new password."));
+            
+        } catch (Exception e) {
+            logger.error("❌ Password update failed: {}", e.getMessage());
+            return ResponseEntity.badRequest()
+                .body(new MessageResponse("Failed to update password. Please try again."));
+        }
+    }
 }

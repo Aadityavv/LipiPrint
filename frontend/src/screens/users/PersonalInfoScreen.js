@@ -60,7 +60,9 @@ export default function PersonalInfoScreen({ navigation }) {
   const handleSave = async () => {
     try {
       setEditing(false);
-      const updatedUser = await ApiService.updateProfile(formData);
+      // Don't include phone in the update data
+      const { phone, ...updateData } = formData;
+      const updatedUser = await ApiService.updateProfile(updateData);
       setUserInfo(updatedUser);
       Alert.alert('Success', 'Profile updated successfully');
     } catch (error) {
@@ -183,17 +185,13 @@ export default function PersonalInfoScreen({ navigation }) {
 
             <View style={styles.inputGroup}>
               <Text style={styles.inputLabel}>Phone Number</Text>
-              {editing ? (
-                <TextInput
-                  style={styles.textInput}
-                  value={formData.phone}
-                  onChangeText={(text) => setFormData({...formData, phone: text})}
-                  placeholder="Enter your phone number"
-                  keyboardType="phone-pad"
-                />
-              ) : (
+              <View style={styles.phoneContainer}>
                 <Text style={styles.infoText}>{userInfo?.phone || 'Not provided'}</Text>
-              )}
+                <View style={styles.lockedIcon}>
+                  <Icon name="lock" size={16} color="#999" />
+                </View>
+              </View>
+              <Text style={styles.phoneNote}>Phone number cannot be changed for security reasons</Text>
             </View>
           </View>
 
@@ -388,5 +386,25 @@ const styles = StyleSheet.create({
   cancelButton: {
     marginLeft: 8,
     padding: 8,
+  },
+  phoneContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: '#f5f5f5',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#e0e0e0',
+  },
+  lockedIcon: {
+    marginLeft: 8,
+  },
+  phoneNote: {
+    fontSize: 12,
+    color: '#999',
+    marginTop: 4,
+    fontStyle: 'italic',
   },
 }); 

@@ -17,6 +17,7 @@ import ApiService from '../../services/api';
 import { useTheme } from '../../theme/ThemeContext';
 import LottieView from 'lottie-react-native';
 import DataAnalysisLottie from '../../assets/animations/Isometric data analysis.json';
+import CustomAlert from '../../components/CustomAlert';
 
 const { width } = Dimensions.get('window');
 
@@ -27,6 +28,12 @@ export default function ProfileScreen({ navigation }) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [refreshing, setRefreshing] = useState(false);
+  const [alertVisible, setAlertVisible] = useState(false);
+  const [alertTitle, setAlertTitle] = useState('');
+  const [alertMessage, setAlertMessage] = useState('');
+  const [alertType, setAlertType] = useState('info');
+  const [alertOnConfirm, setAlertOnConfirm] = useState(null);
+  const [alertShowCancel, setAlertShowCancel] = useState(false);
   const [menuItems, setMenuItems] = useState([
     {
       id: 'personal',
@@ -144,13 +151,34 @@ export default function ProfileScreen({ navigation }) {
     });
   };
 
+  const showAlert = (title, message, type = 'info', onConfirm = null, showCancel = false) => {
+    setAlertTitle(title);
+    setAlertMessage(message);
+    setAlertType(type);
+    setAlertOnConfirm(onConfirm);
+    setAlertShowCancel(showCancel);
+    setAlertVisible(true);
+  };
+
   const handleLogout = async () => {
-    try {
-      await ApiService.logout();
-      navigation.navigate('Splash');
-    } catch (error) {
-      console.error('Logout error:', error);
-    }
+    showAlert(
+      'Logout',
+      'Are you sure you want to logout? You will need to sign in again to access your account.',
+      'warning',
+      async () => {
+        try {
+          await ApiService.logout();
+          navigation.reset({
+            index: 0,
+            routes: [{ name: 'Splash' }],
+          });
+        } catch (error) {
+          console.error('Logout error:', error);
+          showAlert('Logout Failed', 'Failed to logout. Please try again.', 'error');
+        }
+      },
+      true
+    );
   };
 
   if (loading) {
@@ -321,6 +349,16 @@ export default function ProfileScreen({ navigation }) {
         <Text style={styles.versionText}>LipiPrint v1.0.0</Text>
         <Text style={styles.copyrightText}>© 2025 LipiPrint. All rights reserved.</Text>
       </View>
+
+      <CustomAlert
+        visible={alertVisible}
+        title={alertTitle}
+        message={alertMessage}
+        type={alertType}
+        onClose={() => setAlertVisible(false)}
+        onConfirm={alertOnConfirm}
+        showCancel={alertShowCancel}
+      />
     </ScrollView>
   );
 }

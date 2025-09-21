@@ -1,12 +1,11 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, ActivityIndicator, TouchableOpacity, Image, Platform } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, ActivityIndicator, TouchableOpacity, Image, Platform, Alert, Linking, Share } from 'react-native';
 import { useRoute, useNavigation } from '@react-navigation/native';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 import LinearGradient from 'react-native-linear-gradient';
 import CustomAlert from '../../components/CustomAlert';
 import api from '../../services/api';
 import RNFS from 'react-native-fs';
-import RNPrint from 'react-native-print';
 import Heading from '../../components/Heading';
 
 export default function AdminOrderDetailScreen() {
@@ -17,68 +16,83 @@ export default function AdminOrderDetailScreen() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [alert, setAlert] = useState({ visible: false, title: '', message: '', type: 'info' });
-  const [printedFiles, setPrintedFiles] = useState([]); // file ids that are printed
-  const [printingFileIdx, setPrintingFileIdx] = useState(null); // index of file being printed
+  const [printedFiles, setPrintedFiles] = useState([]);
+  const [printingFileIdx, setPrintingFileIdx] = useState(null);
+  const [downloadingFile, setDownloadingFile] = useState(false);
   const [showPrintModal, setShowPrintModal] = useState(false);
-  const [downloadProgress, setDownloadProgress] = useState(null);
 
-    const fetchOrder = async () => {
-      setLoading(true);
-      setError(null);
-      try {
-        const res = await api.request(`/orders/${orderId}`);
-        setOrder(res);
+  const fetchOrder = async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const res = await api.request(`/orders/${orderId}`);
+      setOrder(res);
       setPrintedFiles(res.printJobs ? res.printJobs.filter(pj => pj.status === 'COMPLETED').map(pj => pj.file?.id) : []);
-      } catch (e) {
-        setError('Failed to load order details');
-      } finally {
-        setLoading(false);
-      }
-    };
+    } catch (e) {
+      setError('Failed to load order details');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
     fetchOrder();
   }, [orderId]);
 
-  if (loading) return <View style={styles.center}><ActivityIndicator size="large" color="#667eea" /><Text>Loading order...</Text></View>;
-  if (error) return <View style={styles.center}><Text>{error}</Text></View>;
-  if (!order) return <View style={styles.center}><Text>No order data</Text></View>;
+  // Helper to truncate long filenames
+  const truncateFilename = (filename, maxLength = 25) => {
+    if (!filename) return '';
+    if (filename.length <= maxLength) return filename;
+    
+    const extension = filename.split('.').pop();
+    const nameWithoutExt = filename.substring(0, filename.lastIndexOf('.'));
+    
+    if (nameWithoutExt.length <= maxLength - extension.length - 5) {
+      return filename;
+    }
+    
+    const truncatedName = nameWithoutExt.substring(0, maxLength - extension.length - 5);
+    return `${truncatedName}...${extension}`;
+  };
+
+  if (loading) return (
+    <View style={styles.loadingContainer}>
+      <ActivityIndicator size="large" color="#4F46E5" />
+      <Text style={styles.loadingText}>Loading order details...</Text>
+    </View>
+  );
+  
+  if (error) return (
+    <View style={styles.errorContainer}>
+      <Icon name="error-outline" size={48} color="#EF4444" />
+      <Text style={styles.errorText}>{error}</Text>
+      <TouchableOpacity style={styles.retryButton} onPress={fetchOrder}>
+        <Text style={styles.retryButtonText}>Retry</Text>
+      </TouchableOpacity>
+    </View>
+  );
+  
+  if (!order) return (
+    <View style={styles.errorContainer}>
+      <Icon name="inbox" size={48} color="#9CA3AF" />
+      <Text style={styles.errorText}>No order data available</Text>
+    </View>
+  );
 
   const { user, status, totalAmount, createdAt } = order;
   const printJobs = order.printJobs || [];
   const files = printJobs.map(pj => pj.file);
 
-  // Helper to get parsed specs for a printJob
-  const getSpecs = (options) => {
-    if (!options) return null;
-    if (typeof options === 'string') {
-    try {
-        return JSON.parse(options);
-    } catch (e) {
-        return null;
-      }
-    } else if (typeof options === 'object') {
-      return options;
-    }
-    return null;
-  };
-
   // Status badge color and icon
-  const statusColors = {
-    PENDING: '#FF9800',
-    PROCESSING: '#42A5F5',
-    COMPLETED: '#4CAF50',
-    CANCELLED: '#F44336',
-    DELIVERED: '#66BB6A',
+  const statusConfig = {
+    PENDING: { color: '#F59E0B', icon: 'hourglass-empty', label: 'Pending' },
+    PROCESSING: { color: '#3B82F6', icon: 'autorenew', label: 'Processing' },
+    COMPLETED: { color: '#10B981', icon: 'check-circle', label: 'Completed' },
+    CANCELLED: { color: '#EF4444', icon: 'cancel', label: 'Cancelled' },
+    DELIVERED: { color: '#66BB6A', icon: 'local-shipping', label: 'Delivered' },
   };
-  const statusIcons = {
-    PENDING: 'hourglass-empty',
-    PROCESSING: 'autorenew',
-    COMPLETED: 'check-circle',
-    CANCELLED: 'cancel',
-    DELIVERED: 'local-shipping',
-  };
-  const statusLabel = (status || '').toUpperCase();
+  
+  const currentStatus = statusConfig[status] || { color: '#9CA3AF', icon: 'help', label: status };
 
   // File type icon helper
   const getFileIcon = (filename) => {
@@ -88,6 +102,14 @@ export default function AdminOrderDetailScreen() {
     if (['doc', 'docx'].includes(ext)) return 'description';
     if (['jpg', 'jpeg', 'png'].includes(ext)) return 'image';
     return 'insert-drive-file';
+  };
+
+  // Helper to get absolute URL
+  const getAbsoluteUrl = (url) => {
+    if (!url) return '';
+    if (url.startsWith('http')) return url;
+    // Replace with your actual API base URL
+    return `https://lipiprint-freelance.onrender.com${url.startsWith('/') ? url : '/' + url}`;
   };
 
   // Toggle tick (printed) state
@@ -102,37 +124,84 @@ export default function AdminOrderDetailScreen() {
         await api.request(`/orders/${orderId}/status?status=PENDING`, { method: 'PUT' });
       } else {
         await api.request(`/orders/${orderId}/status?status=PRINTING`, { method: 'PUT' });
+      }
     }
-    }
-    // No else: tick is only added via print modal
     fetchOrder();
   };
 
-  // Print workflow
+  // Print workflow - using native capabilities without RNPrint
   const handlePrintFile = async (file, idx, printJobId) => {
-    if (!file?.url) return;
+    if (!file?.url) {
+      Alert.alert('No File', 'No file available to print.');
+      return;
+    }
+    
     try {
       // 1. Update print job status to PRINTING
       await api.request(`/print-jobs/${printJobId}/status?status=PRINTING`, { method: 'PUT' });
-      // 2. Download file if remote
-      let localPath = file.url;
-      if (file.url.startsWith('http')) {
-        const ext = file.originalFilename ? file.originalFilename.split('.').pop() : 'pdf';
-        const baseName = file.originalFilename ? file.originalFilename.replace(/\s/g, '_') : `downloaded_file.${ext}`;
-        if (Platform.OS === 'android' && RNFS.DownloadDirectoryPath) {
-          localPath = `${RNFS.DownloadDirectoryPath}/${baseName}`;
-        } else {
-          localPath = `${RNFS.DocumentDirectoryPath}/${baseName}`;
-        }
-        await RNFS.downloadFile({ fromUrl: file.url, toFile: localPath }).promise;
+      
+      // 2. Get the absolute URL
+      const fileUrl = getAbsoluteUrl(file.url);
+      
+      // 3. Check file type
+      const isPdf = file.originalFilename?.toLowerCase().endsWith('.pdf');
+      
+      if (isPdf) {
+        // For PDF files, open in Google Docs Viewer which has a print option
+        const googleDocsUrl = `https://docs.google.com/viewer?url=${encodeURIComponent(fileUrl)}`;
+        await Linking.openURL(googleDocsUrl);
+      } else {
+        // For other files, download and share to let user choose a printing app
+        setDownloadingFile(true);
+        const fileName = file.originalFilename || `file_${idx}`;
+        const tempPath = `${RNFS.TemporaryDirectoryPath}/${fileName}`;
+        
+        // Download the file
+        await RNFS.downloadFile({
+          fromUrl: fileUrl,
+          toFile: tempPath,
+          progress: (res) => {
+            console.log(`Download progress: ${Math.round((res.bytesWritten / res.contentLength) * 100)}%`);
+          },
+        }).promise;
+        
+        setDownloadingFile(false);
+        
+        // Share the file so user can choose an app to print with
+        await Share.open({
+          url: `file://${tempPath}`,
+          title: 'Print File',
+          subject: 'Print this file',
+          message: 'Choose an app to print this file',
+        });
+        
+        // Clean up temporary file
+        await RNFS.unlink(tempPath);
       }
-      // 3. Open print dialog
-      await RNPrint.print({ filePath: localPath });
-      // 4. After print, show modal
+      
+      // 4. Show modal to confirm printing
       setPrintingFileIdx(idx);
       setShowPrintModal(true);
     } catch (e) {
-      setAlert({ visible: true, title: 'Print Failed', message: e.message, type: 'error' });
+      console.error('Print error:', e);
+      setDownloadingFile(false);
+      
+      // Fallback to opening in browser
+      Alert.alert(
+        'Print Option',
+        'Unable to open print dialog. Would you like to open the file in a browser where you can print it?',
+        [
+          { text: 'Cancel', style: 'cancel' },
+          { 
+            text: 'Open in Browser', 
+            onPress: async () => {
+              await Linking.openURL(getAbsoluteUrl(file.url));
+              setPrintingFileIdx(idx);
+              setShowPrintModal(true);
+            }
+          }
+        ]
+      );
     }
   };
 
@@ -142,6 +211,7 @@ export default function AdminOrderDetailScreen() {
     if (printingFileIdx == null) return;
     const file = files[printingFileIdx];
     const printJob = printJobs[printingFileIdx];
+    
     // 1. Mark file as printed (tick)
     setPrintedFiles(prev => [...prev, file.id]);
     // 2. Update print job status to COMPLETED
@@ -149,52 +219,26 @@ export default function AdminOrderDetailScreen() {
     // 3. If all files printed, update order status to COMPLETED
     if (printedFiles.length + 1 === files.length) {
       await api.request(`/orders/${orderId}/status?status=COMPLETED`, { method: 'PUT' });
-      setAlert({ visible: true, title: 'Order Completed', message: 'All files printed. Order marked as completed.', type: 'success' });
+      Alert.alert('Order Completed', 'All files printed. Order marked as completed.');
       fetchOrder();
     }
     setPrintingFileIdx(null);
   };
 
-  // Download logic: use Downloads folder on Android, show progress
+  // Download logic
   const handleDownloadFile = async (file) => {
-    if (!file?.url) return;
-    setDownloadProgress(0);
-    setAlert({ visible: true, title: 'Downloading...', message: 'Starting download...', type: 'info', loading: true, progress: 0 });
+    if (!file?.url) {
+      Alert.alert('No File', 'No file available to download.');
+      return;
+    }
+    
     try {
-      let ext = 'pdf';
-      if (file.originalFilename && file.originalFilename.includes('.')) {
-        ext = file.originalFilename.split('.').pop();
-      } else if (file.url && file.url.includes('.')) {
-        const urlParts = file.url.split('?')[0].split('/');
-        const last = urlParts[urlParts.length - 1];
-        if (last.includes('.')) ext = last.split('.').pop();
-      }
-      const baseName = file.originalFilename ? file.originalFilename.replace(/\s/g, '_') : `downloaded_file.${ext}`;
-      let dest;
-      if (Platform.OS === 'android' && RNFS.DownloadDirectoryPath) {
-        dest = `${RNFS.DownloadDirectoryPath}/${baseName}`;
-      } else {
-        dest = `${RNFS.DocumentDirectoryPath}/${baseName}`;
-      }
-      const downloadResult = await RNFS.downloadFile({
-        fromUrl: file.url,
-        toFile: dest,
-        progress: res => {
-          const percent = Math.floor((res.bytesWritten / res.contentLength) * 100);
-          setDownloadProgress(percent);
-          setAlert(a => ({ ...a, progress: percent, message: `Downloading... ${percent}%` }));
-        },
-        progressDivider: 2,
-      }).promise;
-      setDownloadProgress(null);
-      if (downloadResult.statusCode === 200) {
-        setAlert({ visible: true, title: 'Download Complete', message: 'File saved to: ' + dest, type: 'success' });
-      } else {
-        throw new Error('Download failed with status ' + downloadResult.statusCode);
-      }
+      const fileUrl = getAbsoluteUrl(file.url);
+      // Open the URL for download
+      await Linking.openURL(fileUrl);
     } catch (e) {
-      setDownloadProgress(null);
-      setAlert({ visible: true, title: 'Download Failed', message: e.message, type: 'error' });
+      console.error('Download error:', e);
+      Alert.alert('Download Failed', 'Failed to download the file. Please try again.');
     }
   };
 
@@ -235,149 +279,214 @@ export default function AdminOrderDetailScreen() {
   const printJobGroups = groupPrintJobsByBindingOrOptions(printJobs, bindingGroups);
 
   return (
-    <ScrollView style={{ flex: 1, backgroundColor: '#f5f6fa' }} contentContainerStyle={{ padding: 0 }}>
+    <View style={styles.container}>
       {/* HEADER */}
-      <LinearGradient colors={['#667eea', '#764ba2']} style={styles.headerGradient}>
-        <Heading
-          title="Order Details"
-          left={
-            <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
-              <Icon name="arrow-back" size={24} color="white" />
+      <LinearGradient colors={['#4F46E5', '#7C3AED']} style={styles.header}>
+        <View style={styles.headerContent}>
+          <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
+            <Icon name="arrow-back" size={24} color="white" />
           </TouchableOpacity>
-          }
-          variant="primary"
-        />
+          <Text style={styles.headerTitle}>Order Details</Text>
+          <TouchableOpacity onPress={fetchOrder} style={styles.refreshButton}>
+            <Icon name="refresh" size={24} color="white" />
+          </TouchableOpacity>
+        </View>
       </LinearGradient>
-      {/* SUMMARY CARD */}
-      <View style={styles.summaryCard}>
-        <View style={styles.summaryRow}>
-          <Text style={styles.summaryOrderId}>Order #{order.id}</Text>
-          <View style={[styles.statusBadge, { backgroundColor: statusColors[statusLabel] || '#aaa' }]}> 
-            <Icon name={statusIcons[statusLabel] || 'info'} size={16} color="#fff" style={{ marginRight: 4 }} />
-            <Text style={styles.statusBadgeText}>{statusLabel}</Text>
+
+      <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
+        {/* SUMMARY CARD */}
+        <View style={styles.card}>
+          <View style={styles.cardHeader}>
+            <Text style={styles.orderId}>Order #{order.id}</Text>
+            <View style={[styles.statusBadge, { backgroundColor: currentStatus.color }]}>
+              <Icon name={currentStatus.icon} size={14} color="white" />
+              <Text style={styles.statusText}>{currentStatus.label}</Text>
+            </View>
+          </View>
+          
+          <View style={styles.cardRow}>
+            <View style={styles.dateContainer}>
+              <Icon name="event" size={16} color="#6B7280" />
+              <Text style={styles.dateText}>{createdAt?.split('T')[0]}</Text>
+            </View>
+            <Text style={styles.amount}>₹{totalAmount}</Text>
           </View>
         </View>
-        <View style={styles.summaryRow}>
-          <Text style={styles.summaryDate}><Icon name="event" size={15} color="#764ba2" /> {createdAt?.split('T')[0]}</Text>
-          <Text style={styles.summaryAmount}>₹{totalAmount}</Text>
-        </View>
-      </View>
-      {/* USER INFO */}
-      <View style={styles.sectionCard}>
-        <View style={styles.sectionHeaderRow}>
-          <Icon name="person" size={20} color="#667eea" style={styles.sectionIcon} />
-            <Text style={styles.sectionTitle}>User Info</Text>
-        </View>
-        <View style={styles.userInfoRow}>
-          <Icon name="account-circle" size={36} color="#bbb" style={{ marginRight: 10 }} />
-          <View>
-            <Text style={styles.userName}>{user?.name || '-'}</Text>
-            <Text style={styles.userContact}>Phone: {user?.phone || '-'}</Text>
-            <Text style={styles.userContact}>Email: {user?.email || '-'}</Text>
+
+        {/* USER INFO */}
+        <View style={styles.card}>
+          <View style={styles.sectionHeader}>
+            <Icon name="person" size={20} color="#4F46E5" />
+            <Text style={styles.sectionTitle}>Customer Information</Text>
+          </View>
+          
+          <View style={styles.userInfo}>
+            <View style={styles.avatarContainer}>
+              <Icon name="account-circle" size={40} color="#D1D5DB" />
+            </View>
+            <View style={styles.userDetails}>
+              <Text style={styles.userName}>{user?.name || '-'}</Text>
+              <Text style={styles.userDetail}>
+                <Icon name="phone" size={14} color="#6B7280" /> {user?.phone || '-'}
+              </Text>
+              <Text style={styles.userDetail}>
+                <Icon name="email" size={14} color="#6B7280" /> {user?.email || '-'}
+              </Text>
+            </View>
           </View>
         </View>
-      </View>
-      {/* FILES */}
-      <View style={styles.sectionCard}>
-        <View style={styles.sectionHeaderRow}>
-          <Icon name="description" size={20} color="#667eea" style={styles.sectionIcon} />
+
+        {/* FILES */}
+        <View style={styles.card}>
+          <View style={styles.sectionHeader}>
+            <Icon name="description" size={20} color="#4F46E5" />
             <Text style={styles.sectionTitle}>Files</Text>
           </View>
-        {files.length === 0 ? <Text style={styles.emptyText}>No files</Text> : files.map((file, idx) => (
-          <View key={file.id || idx} style={styles.fileRow}>
-            <Icon name={getFileIcon(file.originalFilename)} size={22} color="#667eea" style={{ marginRight: 8 }} />
-            <View style={{ flex: 1 }}>
-              <Text style={styles.fileName}>{file.originalFilename || '-'}</Text>
-              <Text style={styles.fileMeta}>Pages: {file.pages || '-'} | Uploaded: {file.createdAt?.split('T')[0] || '-'}</Text>
+          
+          {files.length === 0 ? (
+            <View style={styles.emptyState}>
+              <Icon name="folder-open" size={32} color="#D1D5DB" />
+              <Text style={styles.emptyText}>No files available</Text>
             </View>
-            {printedFiles.includes(file.id) && (
-              <TouchableOpacity onPress={() => handleToggleTick(file, idx, printJobs[idx]?.id)}>
-                <Icon name="check-circle" size={22} color="#4CAF50" style={{ marginRight: 8 }} />
-              </TouchableOpacity>
-            )}
-              {file.url && (
-              <View style={styles.fileActions}>
-                <TouchableOpacity style={styles.fileActionBtn} onPress={() => handleDownloadFile(file)}>
-                  <Icon name="file-download" size={20} color="#42A5F5" />
-                  </TouchableOpacity>
-                <TouchableOpacity
-                  style={styles.fileActionBtn}
-                  onPress={() => handlePrintFile(file, idx, printJobs[idx]?.id)}
-                >
-                  <Icon name="print" size={20} color="#4CAF50" />
-                  </TouchableOpacity>
-                </View>
-              )}
-            </View>
-          ))}
-        </View>
-      {/* GROUPED PRINT JOBS */}
-      <View style={styles.sectionCard}>
-        <View style={styles.sectionHeaderRow}>
-          <Icon name="layers" size={20} color="#667eea" style={styles.sectionIcon} />
-          <Text style={styles.sectionTitle}>Print Job Groups</Text>
-        </View>
-        {printJobGroups.length === 0 ? (
-          <Text style={styles.emptyText}>No print jobs</Text>
-        ) : (
-          printJobGroups.map((group, gidx) => {
-            let specs;
-            try {
-              specs = typeof group.options === 'string' ? JSON.parse(group.options) : group.options;
-            } catch { specs = {}; }
-            return (
-              <View key={gidx} style={{ marginBottom: 18, backgroundColor: '#f8f9fa', borderRadius: 12, padding: 12, borderWidth: 1, borderColor: '#e0e0e0' }}>
-                <Text style={{ fontWeight: 'bold', color: '#764ba2', fontSize: 16, marginBottom: 4 }}>{group.groupLabel}</Text>
-                <Text style={{ fontWeight: 'bold', color: '#667eea', fontSize: 15, marginBottom: 2 }}>Print Options:</Text>
-                <View style={{ marginBottom: 8, marginLeft: 8 }}>
-                  {specs && Object.entries(specs).map(([key, value]) => (
-                    <Text key={key} style={{ color: '#333', fontSize: 14 }}>
-                      {key.replace(/_/g, ' ').replace(/^./, c => c.toUpperCase())}: {String(value)}
+          ) : (
+            files.map((file, idx) => (
+              <View key={file.id || idx} style={styles.fileItem}>
+                <View style={styles.fileInfo}>
+                  <Icon name={getFileIcon(file.originalFilename)} size={24} color="#4F46E5" />
+                  <View style={styles.fileDetails}>
+                    <Text style={styles.fileName}>{truncateFilename(file.originalFilename)}</Text>
+                    <Text style={styles.fileMeta}>
+                      {file.pages || '-'} pages • {file.createdAt?.split('T')[0] || '-'}
                     </Text>
-                  ))}
-                </View>
-                <Text style={{ fontWeight: 'bold', color: '#764ba2', fontSize: 15, marginBottom: 2 }}>Files:</Text>
-                {group.jobs.map((pj, fidx) => (
-                  <View key={fidx} style={{ marginLeft: 12, marginBottom: 2 }}>
-                    <Text style={{ color: '#22194f', fontWeight: 'bold', fontSize: 14 }}>{pj.file?.originalFilename || pj.file?.name}</Text>
-                    <Text style={{ color: '#888', fontSize: 13 }}>Pages: {pj.file?.pages || '-'}</Text>
-                    <Text style={{ color: '#888', fontSize: 13 }}>Uploaded: {pj.file?.createdAt?.split('T')[0] || '-'}</Text>
                   </View>
-                ))}
+                </View>
+                
+                <View style={styles.fileActions}>
+                  {printedFiles.includes(file.id) && (
+                    <TouchableOpacity 
+                      style={styles.printedBadge} 
+                      onPress={() => handleToggleTick(file, idx, printJobs[idx]?.id)}
+                    >
+                      <Icon name="check-circle" size={20} color="#10B981" />
+                    </TouchableOpacity>
+                  )}
+                  
+                  {file.url && (
+                    <>
+                      <TouchableOpacity 
+                        style={[styles.actionButton, styles.downloadButton]}
+                        onPress={() => handleDownloadFile(file)}
+                      >
+                        <Icon name="file-download" size={18} color="#4F46E5" />
+                      </TouchableOpacity>
+                      
+                      <TouchableOpacity 
+                        style={[styles.actionButton, styles.printButton]}
+                        onPress={() => handlePrintFile(file, idx, printJobs[idx]?.id)}
+                        disabled={downloadingFile}
+                      >
+                        {downloadingFile ? (
+                          <ActivityIndicator size="small" color="white" />
+                        ) : (
+                          <Icon name="print" size={18} color="white" />
+                        )}
+                      </TouchableOpacity>
+                    </>
+                  )}
+                </View>
               </View>
-            );
-          })
-        )}
-      </View>
-      {/* ORDER NOTE */}
-      {order.orderNote && (
-        <View style={styles.sectionCard}>
-          <View style={styles.sectionHeaderRow}>
-            <Icon name="sticky-note-2" size={20} color="#667eea" style={styles.sectionIcon} />
-            <Text style={styles.sectionTitle}>Order Note</Text>
+            ))
+          )}
+        </View>
+
+        {/* PRINT JOB GROUPS */}
+        <View style={styles.card}>
+          <View style={styles.sectionHeader}>
+            <Icon name="layers" size={20} color="#4F46E5" />
+            <Text style={styles.sectionTitle}>Print Job Groups</Text>
           </View>
-          <Text style={{ color: '#333', fontSize: 15 }}>{order.orderNote}</Text>
+          
+          {printJobGroups.length === 0 ? (
+            <View style={styles.emptyState}>
+              <Icon name="print-disabled" size={32} color="#D1D5DB" />
+              <Text style={styles.emptyText}>No print jobs available</Text>
+            </View>
+          ) : (
+            printJobGroups.map((group, gidx) => {
+              let specs = {};
+              try {
+                specs = typeof group.options === 'string' ? JSON.parse(group.options) : group.options;
+              } catch { specs = {}; }
+              
+              return (
+                <View key={gidx} style={styles.printGroup}>
+                  <Text style={styles.groupLabel}>{group.groupLabel}</Text>
+                  
+                  <View style={styles.optionsSection}>
+                    <Text style={styles.optionsTitle}>Print Options</Text>
+                    {Object.entries(specs).map(([key, value]) => (
+                      <Text key={key} style={styles.optionItem}>
+                        {key.replace(/_/g, ' ').replace(/^./, c => c.toUpperCase())}: {String(value)}
+                      </Text>
+                    ))}
+                  </View>
+                  
+                  <View style={styles.filesSection}>
+                    <Text style={styles.filesTitle}>Files</Text>
+                    {group.jobs.map((pj, fidx) => (
+                      <View key={fidx} style={styles.groupFileItem}>
+                        <Text style={styles.groupFileName}>{truncateFilename(pj.file?.originalFilename || pj.file?.name)}</Text>
+                        <Text style={styles.groupFileMeta}>
+                          {pj.file?.pages || '-'} pages • {pj.file?.createdAt?.split('T')[0] || '-'}
+                        </Text>
+                      </View>
+                    ))}
+                  </View>
+                </View>
+              );
+            })
+          )}
         </View>
-      )}
-      {/* ORDER STATUS */}
-      <View style={styles.sectionCard}>
-        <View style={styles.sectionHeaderRow}>
-          <Icon name="info" size={20} color="#667eea" style={styles.sectionIcon} />
+
+        {/* ORDER NOTE */}
+        {order.orderNote && (
+          <View style={styles.card}>
+            <View style={styles.sectionHeader}>
+              <Icon name="sticky-note-2" size={20} color="#4F46E5" />
+              <Text style={styles.sectionTitle}>Order Note</Text>
+            </View>
+            <Text style={styles.noteText}>{order.orderNote}</Text>
+          </View>
+        )}
+
+        {/* ORDER STATUS */}
+        <View style={styles.card}>
+          <View style={styles.sectionHeader}>
+            <Icon name="info" size={20} color="#4F46E5" />
             <Text style={styles.sectionTitle}>Order Status</Text>
+          </View>
+          
+          <View style={styles.statusContainer}>
+            <View style={styles.statusRow}>
+              <Text style={styles.statusLabel}>Current Status:</Text>
+              <View style={[styles.statusBadge, { backgroundColor: currentStatus.color }]}>
+                <Icon name={currentStatus.icon} size={14} color="white" />
+                <Text style={styles.statusText}>{currentStatus.label}</Text>
+              </View>
+            </View>
+            
+            <View style={styles.statusRow}>
+              <Text style={styles.statusLabel}>Total Amount:</Text>
+              <Text style={styles.statusValue}>₹{totalAmount}</Text>
+            </View>
+          </View>
         </View>
-        <Text style={styles.statusText}>Status: {status}</Text>
-        <Text style={styles.statusText}>Total Amount: ₹{totalAmount}</Text>
-      </View>
-      <CustomAlert
-        visible={alert.visible}
-        title={alert.title}
-        message={alert.message}
-        type={alert.type}
-        onClose={() => setAlert(a => ({ ...a, visible: false }))}
-      />
+      </ScrollView>
+
+      {/* PRINT CONFIRMATION MODAL */}
       <CustomAlert
         visible={showPrintModal}
-        title="Printing complete?"
+        title="Printing Complete?"
         message="Did the file print successfully?"
         type="info"
         onClose={() => { setShowPrintModal(false); setPrintingFileIdx(null); }}
@@ -386,162 +495,309 @@ export default function AdminOrderDetailScreen() {
         cancelText="No"
         showCancel={true}
       />
-    </ScrollView>
+
+      {/* GENERAL ALERT */}
+      <CustomAlert
+        visible={alert.visible}
+        title={alert.title}
+        message={alert.message}
+        type={alert.type}
+        onClose={() => setAlert(a => ({ ...a, visible: false }))}
+      />
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  center: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#f5f6fa' },
-  headerGradient: {
-    paddingTop: 32,
-    paddingBottom: 18,
-    paddingHorizontal: 20,
-    marginBottom: 8,
+  container: {
+    flex: 1,
+    backgroundColor: '#F9FAFB',
   },
-  headerRow: {
+  header: {
+    paddingTop: 50,
+    paddingBottom: 20,
+    paddingHorizontal: 20,
+    borderBottomLeftRadius: 24,
+    borderBottomRightRadius: 24,
+  },
+  headerContent: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-  },
-  backBtn: {
-    padding: 8,
-    marginRight: 8,
-  },
-  refreshBtn: {
-    padding: 8,
-    marginLeft: 8,
   },
   headerTitle: {
     fontSize: 22,
     fontWeight: 'bold',
-    color: '#fff',
+    color: 'white',
   },
-  summaryCard: {
-    backgroundColor: '#fff',
-    marginHorizontal: 16,
-    marginTop: -24,
-    borderRadius: 14,
-    padding: 18,
-    elevation: 3,
+  backButton: {
+    padding: 8,
+    borderRadius: 20,
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+  },
+  refreshButton: {
+    padding: 8,
+    borderRadius: 20,
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+  },
+  content: {
+    flex: 1,
+    paddingHorizontal: 16,
+    paddingTop: 16,
+  },
+  card: {
+    backgroundColor: 'white',
+    borderRadius: 16,
+    padding: 16,
+    marginBottom: 16,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.08,
-    shadowRadius: 8,
-    marginTop: 16,
+    shadowOpacity: 0.05,
+    shadowRadius: 4,
+    elevation: 2,
   },
-  summaryRow: {
+  cardHeader: {
     flexDirection: 'row',
-    alignItems: 'center',
     justifyContent: 'space-between',
-    marginBottom: 6,
+    alignItems: 'center',
+    marginBottom: 12,
   },
-  summaryOrderId: {
+  orderId: {
+    fontSize: 18,
     fontWeight: 'bold',
-    fontSize: 17,
-    color: '#222',
+    color: '#1F2937',
   },
   statusBadge: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 12,
+    paddingHorizontal: 10,
     paddingVertical: 4,
-    borderRadius: 16,
-    backgroundColor: '#667eea',
-  },
-  statusBadgeText: {
-    color: '#fff',
-    fontWeight: 'bold',
-    fontSize: 13,
-    letterSpacing: 0.5,
-  },
-  summaryDate: {
-    fontSize: 13,
-    color: '#888',
-  },
-  summaryAmount: {
-    fontWeight: 'bold',
-    fontSize: 16,
-    color: '#667eea',
-  },
-  sectionCard: {
-    backgroundColor: '#fff',
-    marginHorizontal: 16,
-    marginTop: 16,
     borderRadius: 12,
-    padding: 16,
-    elevation: 2,
   },
-  sectionHeaderRow: {
+  statusText: {
+    color: 'white',
+    fontWeight: '600',
+    fontSize: 12,
+    marginLeft: 4,
+  },
+  cardRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  dateContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 8,
   },
-  sectionIcon: {
-    marginRight: 8,
+  dateText: {
+    fontSize: 14,
+    color: '#6B7280',
+    marginLeft: 4,
+  },
+  amount: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#4F46E5',
+  },
+  sectionHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 12,
   },
   sectionTitle: {
+    fontSize: 16,
     fontWeight: 'bold',
-    fontSize: 15,
-    color: '#667eea',
+    color: '#1F2937',
+    marginLeft: 8,
   },
-  userInfoRow: {
+  userInfo: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginTop: 2,
+  },
+  avatarContainer: {
+    marginRight: 12,
+  },
+  userDetails: {
+    flex: 1,
   },
   userName: {
+    fontSize: 16,
     fontWeight: 'bold',
-    fontSize: 15,
-    color: '#222',
+    color: '#1F2937',
+    marginBottom: 4,
   },
-  userContact: {
-    fontSize: 13,
-    color: '#555',
+  userDetail: {
+    fontSize: 14,
+    color: '#6B7280',
+    marginBottom: 2,
   },
-  fileRow: {
+  emptyState: {
+    alignItems: 'center',
+    paddingVertical: 24,
+  },
+  emptyText: {
+    fontSize: 14,
+    color: '#6B7280',
+    marginTop: 8,
+  },
+  fileItem: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: '#F3F4F6',
+  },
+  fileInfo: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 10,
-    backgroundColor: '#f7f8fa',
-    borderRadius: 8,
-    padding: 10,
+    flex: 1,
+  },
+  fileDetails: {
+    marginLeft: 12,
+    flex: 1,
   },
   fileName: {
-    fontWeight: 'bold',
-    fontSize: 14,
-    color: '#333',
+    fontSize: 15,
+    fontWeight: '500',
+    color: '#1F2937',
+    marginBottom: 2,
   },
   fileMeta: {
-    fontSize: 12,
-    color: '#888',
+    fontSize: 13,
+    color: '#6B7280',
   },
   fileActions: {
     flexDirection: 'row',
     alignItems: 'center',
+  },
+  printedBadge: {
+    padding: 6,
+    marginRight: 8,
+  },
+  actionButton: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    justifyContent: 'center',
+    alignItems: 'center',
     marginLeft: 8,
   },
-  fileActionBtn: {
-    padding: 6,
-    borderRadius: 16,
-    backgroundColor: '#e3e9fa',
-    marginLeft: 4,
+  downloadButton: {
+    backgroundColor: '#EEF2FF',
   },
-  emptyText: {
-    color: '#aaa',
-    fontStyle: 'italic',
-    marginTop: 4,
+  printButton: {
+    backgroundColor: '#4F46E5',
   },
-  specText: {
-    fontSize: 13,
-    color: '#444',
-    marginBottom: 2,
+  printGroup: {
+    backgroundColor: '#F9FAFB',
+    borderRadius: 12,
+    padding: 12,
+    marginBottom: 12,
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
   },
-  statusText: {
+  groupLabel: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: '#4F46E5',
+    marginBottom: 8,
+  },
+  optionsSection: {
+    marginBottom: 12,
+  },
+  optionsTitle: {
     fontSize: 14,
-    color: '#333',
+    fontWeight: 'bold',
+    color: '#4B5563',
+    marginBottom: 4,
+  },
+  optionItem: {
+    fontSize: 13,
+    color: '#4B5563',
     marginBottom: 2,
+    marginLeft: 8,
   },
-  backButton: {
-    padding: 8,
+  filesSection: {
+    marginBottom: 4,
   },
-}); 
+  filesTitle: {
+    fontSize: 14,
+    fontWeight: 'bold',
+    color: '#4B5563',
+    marginBottom: 4,
+  },
+  groupFileItem: {
+    marginLeft: 8,
+    marginBottom: 8,
+  },
+  groupFileName: {
+    fontSize: 14,
+    fontWeight: '500',
+    color: '#1F2937',
+  },
+  groupFileMeta: {
+    fontSize: 12,
+    color: '#6B7280',
+  },
+  noteText: {
+    fontSize: 14,
+    color: '#4B5563',
+    lineHeight: 20,
+  },
+  statusContainer: {
+    backgroundColor: '#F9FAFB',
+    borderRadius: 12,
+    padding: 12,
+  },
+  statusRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  statusLabel: {
+    fontSize: 14,
+    color: '#4B5563',
+  },
+  statusValue: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: '#1F2937',
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#F9FAFB',
+  },
+  loadingText: {
+    marginTop: 12,
+    fontSize: 16,
+    color: '#4B5563',
+  },
+  errorContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#F9FAFB',
+    padding: 20,
+  },
+  errorText: {
+    fontSize: 16,
+    color: '#4B5563',
+    textAlign: 'center',
+    marginTop: 12,
+    marginBottom: 20,
+  },
+  retryButton: {
+    backgroundColor: '#4F46E5',
+    paddingHorizontal: 20,
+    paddingVertical: 10,
+    borderRadius: 8,
+  },
+  retryButtonText: {
+    color: 'white',
+    fontWeight: '600',
+  },
+});

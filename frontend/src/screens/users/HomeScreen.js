@@ -75,9 +75,13 @@ const quickActions = [
     title: 'Many more options to come',
     color: ['#ff512f', '#dd2476'],
     onPress: () => {
-      setAlertTitle('Heads up');
-      setAlertMessage('Yet to come');
+      setAlertTitle('Coming Soon!');
+      setAlertMessage('We are working on exciting new features. Stay tuned for updates!');
       setAlertVisible(true);
+      // Auto-hide after 3 seconds
+      setTimeout(() => {
+        setAlertVisible(false);
+      }, 3000);
     },
   },
 ];

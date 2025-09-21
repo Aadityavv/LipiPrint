@@ -9,6 +9,7 @@ import Icon from 'react-native-vector-icons/MaterialIcons';
 import SplashScreen from '../screens/common/SplashScreen';
 import LoginScreen from '../screens/common/LoginScreen';
 import SignUpScreen from '../screens/common/SignUpScreen';
+import ForgotPasswordScreen from '../screens/common/ForgotPasswordScreen';
 import TestConfettiScreen from '../screens/common/TestConfettiScreen';
 import OrderTrackingScreen from '../screens/users/OrderTrackingScreen';
 
@@ -37,6 +38,7 @@ import AboutScreen from '../screens/users/AboutScreen';
 import InvoiceDetailScreen from '../screens/users/InvoiceDetailScreen';
 import FilesScreen from '../screens/users/FilesScreen';
 import NotificationsScreen from '../screens/users/NotificationsScreen';
+import PrivacySecurityScreen from '../screens/users/PrivacySecurityScreen';
 
 // Import admin screens
 import AdminDashboardScreen from '../screens/admin/AdminDashboardScreen';
@@ -122,6 +124,7 @@ export default function AppNavigator() {
         <Stack.Screen name="Splash" component={SplashScreen} />
         <Stack.Screen name="Login" component={LoginScreen} />
         <Stack.Screen name="SignUp" component={SignUpScreen} />
+        <Stack.Screen name="ForgotPassword" component={ForgotPasswordScreen} />
         <Stack.Screen name="TestConfetti" component={TestConfettiScreen} />
         
         {/* User Screens */}
@@ -156,6 +159,7 @@ export default function AppNavigator() {
         <Stack.Screen name="About" component={AboutScreen} />
         <Stack.Screen name="InvoiceDetailScreen" component={InvoiceDetailScreen} />
         <Stack.Screen name="FilesScreen" component={FilesScreen} />
+        <Stack.Screen name="PrivacySecurity" component={PrivacySecurityScreen} />
         
         {/* Admin Screens */}
         <Stack.Screen name="AdminTabs" component={AdminTabNavigator} />

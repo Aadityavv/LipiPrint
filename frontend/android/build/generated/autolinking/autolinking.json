@@ -158,6 +158,33 @@
         }
       }
     },
+    "@react-native-google-signin/google-signin": {
+      "root": "C:\\Users\\HP\\Desktop\\LipiP\\frontend\\node_modules\\@react-native-google-signin\\google-signin",
+      "name": "@react-native-google-signin/google-signin",
+      "platforms": {
+        "ios": {
+          "podspecPath": "C:\\Users\\HP\\Desktop\\LipiP\\frontend\\node_modules\\@react-native-google-signin\\google-signin\\RNGoogleSignin.podspec",
+          "version": "16.0.0",
+          "configurations": [],
+          "scriptPhases": []
+        },
+        "android": {
+          "sourceDir": "C:\\Users\\HP\\Desktop\\LipiP\\frontend\\node_modules\\@react-native-google-signin\\google-signin\\android",
+          "packageImportPath": "import com.reactnativegooglesignin.RNGoogleSigninPackage;",
+          "packageInstance": "new RNGoogleSigninPackage()",
+          "buildTypes": [],
+          "libraryName": "RNGoogleSignInCGen",
+          "componentDescriptors": [
+            "RNGoogleSigninButtonComponentDescriptor"
+          ],
+          "cmakeListsPath": "C:/Users/HP/Desktop/LipiP/frontend/node_modules/@react-native-google-signin/google-signin/android/build/generated/source/codegen/jni/CMakeLists.txt",
+          "cxxModuleCMakeListsModuleName": null,
+          "cxxModuleCMakeListsPath": null,
+          "cxxModuleHeaderName": null,
+          "isPureCxxDependency": false
+        }
+      }
+    },
     "lottie-ios": {
       "root": "C:\\Users\\HP\\Desktop\\LipiP\\frontend\\node_modules\\lottie-ios",
       "name": "lottie-ios",

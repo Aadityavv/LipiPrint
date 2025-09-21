@@ -6,6 +6,7 @@ import Icon from 'react-native-vector-icons/MaterialIcons';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import FontAwesome from 'react-native-vector-icons/FontAwesome';
 import ApiService from '../../services/api';
+import GoogleAuthService from '../../services/googleAuth';
 import { useTheme } from '../../theme/ThemeContext';
 import CustomAlert from '../../components/CustomAlert';
 
@@ -21,6 +22,8 @@ export default function SignUpScreen({ navigation }) {
     gstin: '',
   });
   const [inputFocused, setInputFocused] = useState({});
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [alertVisible, setAlertVisible] = useState(false);
   const [alertTitle, setAlertTitle] = useState('');
   const [alertMessage, setAlertMessage] = useState('');
@@ -37,6 +40,14 @@ export default function SignUpScreen({ navigation }) {
 
   const handleBlur = (field) => {
     setInputFocused(prev => ({ ...prev, [field]: false }));
+  };
+
+  const togglePasswordVisibility = () => {
+    setShowPassword(!showPassword);
+  };
+
+  const toggleConfirmPasswordVisibility = () => {
+    setShowConfirmPassword(!showConfirmPassword);
   };
 
   const validateForm = () => {
@@ -125,6 +136,31 @@ export default function SignUpScreen({ navigation }) {
     }
   };
 
+  const handleGoogleSignUp = async () => {
+    setIsLoading(true);
+    try {
+      const response = await GoogleAuthService.signInWithGoogle();
+      console.log('✅ Google Sign-Up successful:', response);
+
+      setAlertTitle('Success!');
+      setAlertMessage('Account created and logged in successfully with Google.');
+      setAlertType('success');
+      setAlertVisible(true);
+      
+      setTimeout(() => {
+        navigation.reset({ index: 0, routes: [{ name: 'MainTabs' }] });
+      }, 500);
+    } catch (error) {
+      console.error('❌ Google Sign-Up Error:', error);
+      setAlertTitle('Google Sign-Up Failed');
+      setAlertMessage(error.message || 'Google sign-up failed. Please try again.');
+      setAlertType('error');
+      setAlertVisible(true);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   return (
     <ScrollView style={[styles.container, { backgroundColor: theme.background }]} showsVerticalScrollIndicator={false}>
       <LinearGradient
@@ -148,9 +184,7 @@ export default function SignUpScreen({ navigation }) {
             <ActivityIndicator size="large" color="#667eea" />
           </View>
         )}
-        {step === 'details' && (
-          <>
-            {/* Full Name Input */}
+        {/* Full Name Input */}
             <Animatable.View animation="fadeInUp" delay={200} duration={500}>
               <Text style={[styles.inputLabel, { color: theme.text }]}>Full Name</Text>
               <TextInput
@@ -201,29 +235,47 @@ export default function SignUpScreen({ navigation }) {
             {/* Password Input */}
             <Animatable.View animation="fadeInUp" delay={325} duration={500}>
               <Text style={[styles.inputLabel, { color: theme.text }]}>Password</Text>
-              <TextInput
-                style={[styles.input, inputFocused.password && styles.inputFocused]}
-                placeholder="Enter your password"
-                value={formData.password}
-                onChangeText={(value) => updateFormData('password', value)}
-                onFocus={() => handleFocus('password')}
-                onBlur={() => handleBlur('password')}
-                secureTextEntry={true}
-              />
+              <View style={styles.passwordContainer}>
+                <TextInput
+                  style={[styles.input, inputFocused.password && styles.inputFocused]}
+                  placeholder="Enter your password"
+                  value={formData.password}
+                  onChangeText={(value) => updateFormData('password', value)}
+                  onFocus={() => handleFocus('password')}
+                  onBlur={() => handleBlur('password')}
+                  secureTextEntry={!showPassword}
+                />
+                <TouchableOpacity
+                  style={styles.eyeButton}
+                  onPress={togglePasswordVisibility}
+                  activeOpacity={0.7}
+                >
+                  <Text style={styles.eyeText}>{showPassword ? '👁️' : '👁️‍🗨️'}</Text>
+                </TouchableOpacity>
+              </View>
             </Animatable.View>
 
             {/* Confirm Password Input */}
             <Animatable.View animation="fadeInUp" delay={350} duration={500}>
               <Text style={[styles.inputLabel, { color: theme.text }]}>Confirm Password</Text>
-              <TextInput
-                style={[styles.input, inputFocused.confirmPassword && styles.inputFocused]}
-                placeholder="Confirm your password"
-                value={formData.confirmPassword}
-                onChangeText={(value) => updateFormData('confirmPassword', value)}
-                onFocus={() => handleFocus('confirmPassword')}
-                onBlur={() => handleBlur('confirmPassword')}
-                secureTextEntry={true}
-              />
+              <View style={styles.passwordContainer}>
+                <TextInput
+                  style={[styles.input, inputFocused.confirmPassword && styles.inputFocused]}
+                  placeholder="Confirm your password"
+                  value={formData.confirmPassword}
+                  onChangeText={(value) => updateFormData('confirmPassword', value)}
+                  onFocus={() => handleFocus('confirmPassword')}
+                  onBlur={() => handleBlur('confirmPassword')}
+                  secureTextEntry={!showConfirmPassword}
+                />
+                <TouchableOpacity
+                  style={styles.eyeButton}
+                  onPress={toggleConfirmPasswordVisibility}
+                  activeOpacity={0.7}
+                >
+                  <Text style={styles.eyeText}>{showConfirmPassword ? '👁️' : '👁️‍🗨️'}</Text>
+                </TouchableOpacity>
+              </View>
             </Animatable.View>
 
             {/* User Type Selection */}
@@ -325,15 +377,18 @@ export default function SignUpScreen({ navigation }) {
               <View style={styles.socialContainer}>
                 <Text style={[styles.socialText, { color: theme.text }]}>Or sign up with</Text>
                 <View style={styles.socialButtons}>
-                  <TouchableOpacity style={styles.socialButton} activeOpacity={0.8} onPress={() => {/* TODO: Implement Google OAuth */}}>
-                    <FontAwesome name="google" size={24} color="#DB4437" style={styles.socialIcon} />
-                    <Text style={[styles.socialLabel, { color: theme.text }]}>Google</Text>
+                  <TouchableOpacity 
+                    style={[styles.socialButton, styles.socialButtonDisabled]} 
+                    activeOpacity={0.8} 
+                    onPress={() => showAlert('Coming Soon', 'Google Sign-Up will be available soon. Please use email/password for now.', 'info')}
+                    disabled={true}
+                  >
+                    <FontAwesome name="google" size={24} color="#999" style={styles.socialIcon} />
+                    <Text style={[styles.socialLabel, styles.socialLabelDisabled, { color: theme.text }]}>Google (Coming Soon)</Text>
                   </TouchableOpacity>
                 </View>
               </View>
             </Animatable.View>
-          </>
-        )}
         <CustomAlert
           visible={alertVisible}
           title={alertTitle}
@@ -393,6 +448,19 @@ const styles = StyleSheet.create({
     borderColor: '#e9ecef',
     marginBottom: 20,
     color: '#1a1a1a',
+  },
+  passwordContainer: {
+    position: 'relative',
+    width: '100%',
+  },
+  eyeButton: {
+    position: 'absolute',
+    right: 16,
+    top: 16,
+    padding: 4,
+  },
+  eyeText: {
+    fontSize: 20,
   },
   inputFocused: {
     borderColor: '#667eea',
@@ -549,5 +617,12 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '600',
     color: '#1a1a1a',
+  },
+  socialButtonDisabled: {
+    backgroundColor: '#f5f5f5',
+    opacity: 0.6,
+  },
+  socialLabelDisabled: {
+    color: '#999',
   },
 }); 

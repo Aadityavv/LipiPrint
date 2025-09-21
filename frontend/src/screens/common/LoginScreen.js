@@ -13,6 +13,7 @@ export default function LoginScreen({ navigation }) {
   const [isLoading, setIsLoading] = useState(false);
   const [phoneError, setPhoneError] = useState('');
   const [passwordError, setPasswordError] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [alertVisible, setAlertVisible] = useState(false);
   const [alertTitle, setAlertTitle] = useState('');
   const [alertMessage, setAlertMessage] = useState('');
@@ -23,6 +24,19 @@ export default function LoginScreen({ navigation }) {
     setAlertMessage(message);
     setAlertType(type);
     setAlertVisible(true);
+  };
+
+  const handlePhoneChange = (text) => {
+    // Remove any non-digit characters
+    const cleaned = text.replace(/[^0-9]/g, '');
+    // Limit to 10 digits
+    if (cleaned.length <= 10) {
+      setPhone(cleaned);
+    }
+  };
+
+  const togglePasswordVisibility = () => {
+    setShowPassword(!showPassword);
   };
 
   const handleLogin = async () => {
@@ -97,12 +111,12 @@ export default function LoginScreen({ navigation }) {
     setInputFocused(prev => ({ ...prev, [field]: false }));
   };
 
-  const handlePhoneChange = (value) => {
-    // Only allow digits, cap length to 10
-    const sanitized = value.replace(/[^0-9]/g, '').slice(0, 10);
-    setPhone(sanitized);
-    if (phoneError) setPhoneError('');
-  };
+  // const handlePhoneChange = (value) => {
+  //   // Only allow digits, cap length to 10
+  //   const sanitized = value.replace(/[^0-9]/g, '').slice(0, 10);
+  //   setPhone(sanitized);
+  //   if (phoneError) setPhoneError('');
+  // };
 
   const handlePasswordChange = (value) => {
     setPassword(value);
@@ -156,15 +170,24 @@ export default function LoginScreen({ navigation }) {
 
           <Animatable.View animation="fadeInUp" delay={400} duration={350} style={{ width: '100%' }}>
             <Text style={styles.inputLabel}>Password</Text>
-            <TextInput
-              style={[styles.passwordInput, inputFocused.password && styles.passwordInputFocused, passwordError && styles.passwordInputError]}
-              placeholder="Enter your password"
-              value={password}
-              onChangeText={handlePasswordChange}
-              onFocus={() => handleFocus('password')}
-              onBlur={() => handleBlur('password')}
-              secureTextEntry={true}
-            />
+            <View style={styles.passwordContainer}>
+              <TextInput
+                style={[styles.passwordInput, inputFocused.password && styles.passwordInputFocused, passwordError && styles.passwordInputError]}
+                placeholder="Enter your password"
+                value={password}
+                onChangeText={handlePasswordChange}
+                onFocus={() => handleFocus('password')}
+                onBlur={() => handleBlur('password')}
+                secureTextEntry={!showPassword}
+              />
+              <TouchableOpacity
+                style={styles.eyeButton}
+                onPress={togglePasswordVisibility}
+                activeOpacity={0.7}
+              >
+                <Text style={styles.eyeText}>{showPassword ? '👁️' : '👁️‍🗨️'}</Text>
+              </TouchableOpacity>
+            </View>
             {passwordError ? <Text style={styles.errorText}>{passwordError}</Text> : null}
           </Animatable.View>
 
@@ -303,6 +326,10 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     letterSpacing: 0.5,
   },
+  passwordContainer: {
+    position: 'relative',
+    width: '100%',
+  },
   passwordInput: {
     width: '100%',
     fontSize: 18,
@@ -311,9 +338,19 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     paddingHorizontal: 16,
     paddingVertical: 12,
+    paddingRight: 50, // Make room for the eye button
     marginBottom: 20,
     color: '#222',
     backgroundColor: '#fff',
+  },
+  eyeButton: {
+    position: 'absolute',
+    right: 16,
+    top: 12,
+    padding: 4,
+  },
+  eyeText: {
+    fontSize: 20,
   },
   passwordInputFocused: {
     borderColor: '#00C6FB',

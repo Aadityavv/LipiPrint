@@ -8,10 +8,38 @@ import { useTheme } from '../../theme/ThemeContext';
 import Heading from '../../components/Heading';
 
 const faqs = [
-  { q: 'How do I upload a file?', a: 'Tap the upload button and select your file from device, camera, or cloud.' },
-  { q: 'What file types are supported?', a: 'PDF, DOC, DOCX, PPT, PPTX, JPG, PNG.' },
-  { q: 'How do I track my order?', a: 'Go to the Track Order page to see real-time updates.' },
-  { q: 'How do I contact support?', a: 'Use the contact form below or call our helpline.' },
+  { 
+    q: 'How do I upload a file?', 
+    a: 'To upload a file, tap the "Upload" button on the home screen, then select your file from your device, camera, or cloud storage. Supported formats include PDF, DOC, DOCX, PPT, PPTX, JPG, and PNG.' 
+  },
+  { 
+    q: 'What file types are supported?', 
+    a: 'We support PDF, DOC, DOCX, PPT, PPTX, JPG, and PNG files. Maximum file size is 20MB per file.' 
+  },
+  { 
+    q: 'How do I track my order?', 
+    a: 'Go to the "Orders" tab in the bottom navigation, then tap on your order to see real-time updates including processing, printing, and delivery status.' 
+  },
+  { 
+    q: 'How do I contact support?', 
+    a: 'You can contact our support team through the contact form below, call our helpline at +91-XXXX-XXXX, or email us at support@lipiprint.com. We typically respond within 24 hours.' 
+  },
+  { 
+    q: 'What are the delivery options?', 
+    a: 'We offer pickup from our store, home delivery, and office delivery. Delivery charges vary based on location and are calculated at checkout.' 
+  },
+  { 
+    q: 'How do I change my password?', 
+    a: 'Go to Settings > Privacy & Security > Change Password, or use the "Forgot Password" option on the login screen. We will send you an OTP to your email to reset your password securely.' 
+  },
+  { 
+    q: 'Can I cancel my order?', 
+    a: 'You can cancel your order within 30 minutes of placing it. After that, please contact our support team for assistance.' 
+  },
+  { 
+    q: 'What payment methods do you accept?', 
+    a: 'We accept all major credit/debit cards, UPI, net banking, and digital wallets like Paytm, PhonePe, and Google Pay.' 
+  },
 ];
 
 export default function HelpCenterScreen({ navigation }) {

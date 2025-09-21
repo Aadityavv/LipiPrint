@@ -111,6 +111,10 @@ public class UserService {
         userRepository.deleteById(userId);
     }
 
+    public PasswordEncoder getPasswordEncoder() {
+        return passwordEncoder;
+    }
+
     /**
      * Create a new user from phone number
      */

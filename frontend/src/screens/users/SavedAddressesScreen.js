@@ -8,10 +8,13 @@ import {
   ActivityIndicator,
   TextInput,
   Modal,
-  StatusBar,
+  ScrollView,
 } from 'react-native';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 import LinearGradient from 'react-native-linear-gradient';
+import * as Animatable from 'react-native-animatable';
+import { useTheme } from '../../theme/ThemeContext';
+import CustomAlert from '../../components/CustomAlert';
 import api from '../../services/api';
 
 const PRIMARY = '#1e3a8a';
@@ -23,7 +26,8 @@ const BORDER = '#e3e8ee';
 const ERROR = '#d90429';
 const SUCCESS = '#03c988';
 
-export default function SavedAddressesScreen() {
+export default function SavedAddressesScreen({ navigation }) {
+  const { theme } = useTheme();
   const [addresses, setAddresses] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -31,7 +35,10 @@ export default function SavedAddressesScreen() {
   const [modalMode, setModalMode] = useState('add'); // 'add' or 'edit'
   const [formFields, setFormFields] = useState({ line1: '', line2: '', line3: '', phone: '', city: '', state: '', pincode: '' });
   const [editingId, setEditingId] = useState(null);
-  const [alert, setAlert] = useState({ visible: false, message: '' });
+  const [alertVisible, setAlertVisible] = useState(false);
+  const [alertTitle, setAlertTitle] = useState('');
+  const [alertMessage, setAlertMessage] = useState('');
+  const [alertType, setAlertType] = useState('info');
 
   useEffect(() => {
     fetchAddresses();
@@ -77,17 +84,21 @@ export default function SavedAddressesScreen() {
     setFormFields({ line1: '', line2: '', line3: '', phone: '', city: '', state: '', pincode: '' });
   };
 
-  const showAlert = (message) => setAlert({ visible: true, message });
-  const hideAlert = () => setAlert({ visible: false, message: '' });
+  const showAlert = (title, message, type = 'info') => {
+    setAlertTitle(title);
+    setAlertMessage(message);
+    setAlertType(type);
+    setAlertVisible(true);
+  };
 
   const handleDelete = async (id) => {
-    showAlert('Deleting address...');
+    showAlert('Deleting Address', 'Please wait while we delete your address...', 'info');
     try {
       await api.deleteUserAddress(id);
       setAddresses(addresses.filter(addr => addr.id !== id));
-      hideAlert();
+      showAlert('Success', 'Address deleted successfully!', 'success');
     } catch (e) {
-      showAlert('Failed to delete address.');
+      showAlert('Error', 'Failed to delete address. Please try again.', 'error');
     }
   };
 
@@ -185,46 +196,131 @@ export default function SavedAddressesScreen() {
   );
 
   return (
-    <View style={styles.mainContainer}>
-      <StatusBar barStyle="light-content" backgroundColor={PRIMARY} />
-      <LinearGradient colors={[PRIMARY, '#4F8EF7']} style={styles.headerGradient}>
-        <Text style={styles.headerTitle}>My Saved Addresses</Text>
+    <View style={[styles.container, { backgroundColor: theme.background }]}>
+      <LinearGradient colors={['#22194f', '#22194f']} style={styles.headerGradient}>
+        <View style={styles.header}>
+          <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
+            <Icon name="arrow-back" size={24} color="white" />
+          </TouchableOpacity>
+          <Text style={styles.headerTitle}>Saved Addresses</Text>
+          <TouchableOpacity style={styles.addButton} onPress={openAddModal}>
+            <Icon name="add" size={24} color="white" />
+          </TouchableOpacity>
+        </View>
       </LinearGradient>
-      <View style={styles.content}>
+
+      <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
         {loading ? (
-          <ActivityIndicator size="large" color={PRIMARY} style={{ marginTop: 50 }} />
+          <View style={styles.loadingContainer}>
+            <ActivityIndicator size="large" color="#0058A3" />
+            <Text style={[styles.loadingText, { color: theme.text }]}>Loading addresses...</Text>
+          </View>
         ) : error ? (
-          <Text style={styles.errorText}>{error}</Text>
+          <View style={styles.errorContainer}>
+            <Icon name="error-outline" size={64} color="#FF6B6B" />
+            <Text style={[styles.errorText, { color: theme.text }]}>{error}</Text>
+            <TouchableOpacity style={styles.retryButton} onPress={fetchAddresses}>
+              <Text style={styles.retryButtonText}>Retry</Text>
+            </TouchableOpacity>
+          </View>
         ) : addresses.length === 0 ? (
           <View style={styles.emptyContainer}>
-            <Icon name="location-off" size={60} color={PRIMARY} />
+            <Icon name="location-off" size={64} color="#999" />
             <Text style={styles.emptyText}>No addresses saved yet.</Text>
           </View>
         ) : (
-          <FlatList
-            data={addresses}
-            keyExtractor={item => `${item.id}`}
-            renderItem={renderAddress}
-            contentContainerStyle={{ paddingVertical: 16 }}
-          />
+          <View style={styles.addressesList}>
+            {addresses.map((item, index) => (
+              <Animatable.View
+                key={item.id}
+                animation="fadeInUp"
+                delay={index * 100}
+                duration={500}
+                style={[styles.addressCard, { backgroundColor: theme.card }]}
+              >
+                <View style={styles.addressTop}>
+                  <View style={styles.addressIconContainer}>
+                    <Icon name="home" size={25} color="#0058A3" />
+                  </View>
+                  <View style={{ flex: 1 }}>
+                    <Text style={[styles.addressLine, { color: theme.text }]}>{item.line1}</Text>
+                    <Text style={[styles.addressLine, { color: theme.text }]}>{item.line2}</Text>
+                    <Text style={[styles.addressLine, { color: theme.text }]}>{item.line3}</Text>
+                    <Text style={[styles.addressDetails, { color: theme.textSecondary }]}>{`${item.city}, ${item.state} - ${item.pincode}`}</Text>
+                    <Text style={[styles.addressPhone, { color: theme.textSecondary }]}>{item.phone}</Text>
+                  </View>
+                  <TouchableOpacity onPress={() => openEditModal(item)} style={styles.iconBtn}>
+                    <Icon name="edit" size={20} color="#0058A3" />
+                  </TouchableOpacity>
+                  <TouchableOpacity onPress={() => handleDelete(item.id)} style={styles.iconBtn}>
+                    <Icon name="delete" size={20} color="#FF6B6B" />
+                  </TouchableOpacity>
+                </View>
+              </Animatable.View>
+            ))}
+          </View>
         )}
-        <TouchableOpacity style={styles.fab} onPress={openAddModal}>
-          <Icon name="add" size={28} color={WHITE} />
-        </TouchableOpacity>
-      </View>
+      </ScrollView>
+
       <Modal visible={modalVisible} transparent animationType="slide" onRequestClose={closeModal}>
         <View style={styles.modalOverlay}>
-          <View style={styles.modalBox}>
-            <Text style={styles.modalTitle}>
+          <View style={[styles.modalBox, { backgroundColor: theme.card }]}>
+            <Text style={[styles.modalTitle, { color: theme.text }]}>
               {modalMode === 'add' ? 'Add New Address' : 'Edit Address'}
             </Text>
-            <TextInput style={styles.input} placeholder="Pincode *" value={formFields.pincode} onChangeText={t => setFormFields({ ...formFields, pincode: t })} keyboardType="numeric" maxLength={6} placeholderTextColor="#8a97a9"/>
-            <TextInput style={[styles.input, { backgroundColor: '#f4f8fd' }]} placeholder="City (Autofilled)" value={formFields.city} editable={false} placeholderTextColor="#8a97a9"/>
-            <TextInput style={[styles.input, { backgroundColor: '#f4f8fd' }]} placeholder="State (Autofilled)" value={formFields.state} editable={false} placeholderTextColor="#8a97a9"/>
-            <TextInput style={styles.input} placeholder="Address Line 1 *" value={formFields.line1} onChangeText={t => setFormFields({ ...formFields, line1: t })} placeholderTextColor="#8a97a9"/>
-            <TextInput style={styles.input} placeholder="Address Line 2 *" value={formFields.line2} onChangeText={t => setFormFields({ ...formFields, line2: t })} placeholderTextColor="#8a97a9"/>
-            <TextInput style={styles.input} placeholder="Address Line 3 *" value={formFields.line3} onChangeText={t => setFormFields({ ...formFields, line3: t })} placeholderTextColor="#8a97a9"/>
-            <TextInput style={styles.input} placeholder="Phone Number *" value={formFields.phone} onChangeText={t => setFormFields({ ...formFields, phone: t })} keyboardType="phone-pad" maxLength={10} placeholderTextColor="#8a97a9"/>
+            <TextInput 
+              style={[styles.input, { backgroundColor: theme.background, color: theme.text }]} 
+              placeholder="Pincode *" 
+              value={formFields.pincode} 
+              onChangeText={t => setFormFields({ ...formFields, pincode: t })} 
+              keyboardType="numeric" 
+              maxLength={6} 
+              placeholderTextColor="#8a97a9"
+            />
+            <TextInput 
+              style={[styles.input, { backgroundColor: '#f4f8fd', color: theme.text }]} 
+              placeholder="City (Autofilled)" 
+              value={formFields.city} 
+              editable={false} 
+              placeholderTextColor="#8a97a9"
+            />
+            <TextInput 
+              style={[styles.input, { backgroundColor: '#f4f8fd', color: theme.text }]} 
+              placeholder="State (Autofilled)" 
+              value={formFields.state} 
+              editable={false} 
+              placeholderTextColor="#8a97a9"
+            />
+            <TextInput 
+              style={[styles.input, { backgroundColor: theme.background, color: theme.text }]} 
+              placeholder="Address Line 1 *" 
+              value={formFields.line1} 
+              onChangeText={t => setFormFields({ ...formFields, line1: t })} 
+              placeholderTextColor="#8a97a9"
+            />
+            <TextInput 
+              style={[styles.input, { backgroundColor: theme.background, color: theme.text }]} 
+              placeholder="Address Line 2 *" 
+              value={formFields.line2} 
+              onChangeText={t => setFormFields({ ...formFields, line2: t })} 
+              placeholderTextColor="#8a97a9"
+            />
+            <TextInput 
+              style={[styles.input, { backgroundColor: theme.background, color: theme.text }]} 
+              placeholder="Address Line 3 *" 
+              value={formFields.line3} 
+              onChangeText={t => setFormFields({ ...formFields, line3: t })} 
+              placeholderTextColor="#8a97a9"
+            />
+            <TextInput 
+              style={[styles.input, { backgroundColor: theme.background, color: theme.text }]} 
+              placeholder="Phone Number *" 
+              value={formFields.phone} 
+              onChangeText={t => setFormFields({ ...formFields, phone: t })} 
+              keyboardType="phone-pad" 
+              maxLength={10} 
+              placeholderTextColor="#8a97a9"
+            />
             <View style={styles.modalBtnRow}>
               <TouchableOpacity style={styles.modalSaveBtn} onPress={handleSave}>
                 <Text style={styles.modalSaveTxt}>{modalMode === 'add' ? 'Add' : 'Save'}</Text>
@@ -236,25 +332,85 @@ export default function SavedAddressesScreen() {
           </View>
         </View>
       </Modal>
-      <Modal visible={alert.visible} transparent animationType="fade">
-        <View style={styles.alertOverlay}>
-          <View style={styles.alertBox}>
-            <Text style={styles.alertText}>{alert.message}</Text>
-            <TouchableOpacity style={styles.alertBtn} onPress={hideAlert}>
-              <Text style={styles.alertBtnText}>OK</Text>
-            </TouchableOpacity>
-          </View>
-        </View>
-      </Modal>
+
+      <CustomAlert
+        visible={alertVisible}
+        title={alertTitle}
+        message={alertMessage}
+        type={alertType}
+        onClose={() => setAlertVisible(false)}
+      />
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  mainContainer: { flex: 1, backgroundColor: WHITE },
-  headerGradient: { paddingTop: 52, paddingBottom: 28, alignItems: 'center', borderBottomLeftRadius: 26, borderBottomRightRadius: 26 },
-  headerTitle: { color: WHITE, fontSize: 22, fontWeight: 'bold', letterSpacing: 1 },
-  content: { flex: 1, padding: 18 },
+  container: { flex: 1 },
+  headerGradient: { paddingTop: 50, paddingBottom: 20 },
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 20,
+    paddingVertical: 10,
+  },
+  backButton: {
+    padding: 8,
+  },
+  headerTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: 'white',
+    flex: 1,
+    textAlign: 'center',
+  },
+  addButton: {
+    padding: 8,
+  },
+  content: { flex: 1, padding: 20 },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingVertical: 50,
+  },
+  loadingText: {
+    marginTop: 12,
+    fontSize: 16,
+    fontWeight: '500',
+  },
+  errorContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingVertical: 50,
+  },
+  retryButton: {
+    backgroundColor: '#0058A3',
+    paddingHorizontal: 20,
+    paddingVertical: 10,
+    borderRadius: 8,
+    marginTop: 16,
+  },
+  retryButtonText: {
+    color: 'white',
+    fontWeight: 'bold',
+  },
+  addressesList: {
+    paddingVertical: 10,
+  },
+  emptyContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingVertical: 50,
+  },
+  emptyText: {
+    fontSize: 16,
+    color: '#999',
+    marginTop: 16,
+    textAlign: 'center',
+  },
   addressCard: {
     backgroundColor: CARD,
     borderRadius: 14,

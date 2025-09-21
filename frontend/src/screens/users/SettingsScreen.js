@@ -204,6 +204,12 @@ export default function SettingsScreen({ navigation }) {
                 () => showAlert('Coming Soon', 'Password change feature coming soon!')
               )}
               {renderSettingItem(
+                'security',
+                'Privacy & Security',
+                'Manage your privacy and security settings',
+                () => navigation.navigate('PrivacySecurity')
+              )}
+              {renderSettingItem(
                 'payment',
                 'Payment Methods',
                 'Manage your payment options',
