@@ -30,8 +30,6 @@ import java.io.ByteArrayOutputStream;
 import org.springframework.security.core.GrantedAuthority;
 import com.lipiprint.backend.service.PricingService;
 import com.openhtmltopdf.pdfboxout.PdfRendererBuilder;
-import java.nio.file.Files;
-import java.nio.file.Paths;
 import com.lipiprint.backend.repository.FileRepository;
 import jakarta.validation.Valid;
 import com.lipiprint.backend.dto.MessageResponse;
@@ -39,6 +37,8 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import com.lipiprint.backend.dto.OrderListDTO;
+import org.springframework.core.io.ClassPathResource;
+import java.nio.charset.StandardCharsets;
 
 @RestController
 @RequestMapping("/api/orders")
@@ -535,8 +535,10 @@ public class OrderController {
     // New HTML-to-PDF method
     private byte[] generateInvoicePdfHtml(Order order) {
         try {
-            String templatePath = "src/main/resources/invoice-template.html";
-            String html = new String(Files.readAllBytes(Paths.get(templatePath)));
+            ClassPathResource resource = new ClassPathResource("invoice-template.html");
+            byte[] templateBytes = resource.getInputStream().readAllBytes();
+            String html = new String(templateBytes, StandardCharsets.UTF_8);
+            
             // Replace placeholders with order data
             html = html.replace("${customerName}", order.getUser() != null ? order.getUser().getName() : "-");
             html = html.replace("${customerEmail}", order.getUser() != null ? order.getUser().getEmail() : "-");
