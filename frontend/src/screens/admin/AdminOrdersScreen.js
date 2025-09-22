@@ -6,14 +6,11 @@ import LinearGradient from 'react-native-linear-gradient';
 import api from '../../services/api';
 import CustomAlert from '../../components/CustomAlert';
 import Heading from '../../components/Heading';
-import RNHTMLtoPDF from 'react-native-html-to-pdf';
-import { PermissionsAndroid } from 'react-native';
 import LottieView from 'lottie-react-native';
 import LoadingAnim from '../../assets/animations/Loading_Paperplane.json';
-import RNFS from 'react-native-fs';
-import RNPrint from 'react-native-print';
 import Modal from 'react-native-modal';
 import Pdf from 'react-native-pdf';
+import RNFS from 'react-native-fs';
 
 const { width } = Dimensions.get('window');
 
@@ -44,7 +41,7 @@ export default function AdminOrdersScreen({ navigation }) {
   const [priceSort, setPriceSort] = useState('none'); // 'none', 'asc', 'desc'
   const [lastUpdatedOrderId, setLastUpdatedOrderId] = useState(null);
   const flatListRef = useRef(null);
-  const [invoiceModal, setInvoiceModal] = useState({ visible: false, filePath: '', orderId: null });
+  const [invoiceModal, setInvoiceModal] = useState({ visible: false, filePath: '', orderId: null, url: '', loading: false });
   const [refreshing, setRefreshing] = useState(false);
 
   const fetchOrders = async (reset = false) => {
@@ -235,13 +232,174 @@ export default function AdminOrdersScreen({ navigation }) {
     }
   };
 
-  const handleDownloadInvoice = (orderId) => {
-    const url = getAbsoluteUrl(`/orders/${orderId}/invoice`);
-    console.log('Download invoice URL:', url);
-    Linking.openURL(url).catch(err => {
-      console.error('Download invoice error:', err);
-      showAlert('Error', 'Failed to download invoice.', 'error');
+  // Function to download invoice for preview with authentication
+  const downloadInvoiceForPreview = async (orderId) => {
+    try {
+      const url = getAbsoluteUrl(`/orders/${orderId}/invoice`);
+      
+      // Use the correct path based on platform
+      let path;
+      if (Platform.OS === 'android') {
+        // For Android, use DocumentDirectoryPath (app-specific storage)
+        path = `${RNFS.DocumentDirectoryPath}/invoice_${orderId}.pdf`;
+      } else {
+        // For iOS, use DocumentDirectoryPath
+        path = `${RNFS.DocumentDirectoryPath}/invoice_${orderId}.pdf`;
+      }
+      
+      console.log('Downloading invoice to:', path);
+      
+      // Get the authentication token from the api service
+      // Use the correct method name: getToken instead of getAuthToken
+      const authToken = await api.getToken();
+      
+      if (!authToken) {
+        throw new Error('Authentication token not available');
+      }
+      
+      // Create headers with authentication
+      const headers = {
+        'Authorization': `Bearer ${authToken}`,
+        'Content-Type': 'application/json'
+      };
+      
+      // Download the file with authentication
+      const downloadOptions = {
+        fromUrl: url,
+        toFile: path,
+        headers: headers,
+      };
+      
+      const downloadResult = await RNFS.downloadFile(downloadOptions).promise;
+      
+      if (downloadResult.statusCode === 200) {
+        console.log('Invoice downloaded successfully');
+        return path;
+      } else {
+        throw new Error(`Download failed with status code: ${downloadResult.statusCode}`);
+      }
+    } catch (error) {
+      console.error('Error downloading invoice:', error);
+      throw error;
+    }
+  };
+
+  // Alternative approach using fetch if RNFS doesn't work with headers
+  const downloadInvoiceWithFetch = async (orderId) => {
+    try {
+      const url = getAbsoluteUrl(`/orders/${orderId}/invoice`);
+      
+      // Get the authentication token
+      const authToken = await api.getToken();
+      
+      if (!authToken) {
+        throw new Error('Authentication token not available');
+      }
+      
+      // Fetch the PDF with authentication
+      const response = await fetch(url, {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${authToken}`,
+          'Content-Type': 'application/pdf',
+        },
+      });
+      
+      if (!response.ok) {
+        throw new Error(`Download failed with status code: ${response.status}`);
+      }
+      
+      // Get the blob data
+      const blob = await response.blob();
+      
+      // Convert blob to base64
+      const base64 = await blobToBase64(blob);
+      
+      // Use the correct path based on platform
+      let path;
+      if (Platform.OS === 'android') {
+        path = `${RNFS.DocumentDirectoryPath}/invoice_${orderId}.pdf`;
+      } else {
+        path = `${RNFS.DocumentDirectoryPath}/invoice_${orderId}.pdf`;
+      }
+      
+      // Write the base64 data to a file
+      await RNFS.writeFile(path, base64, 'base64');
+      
+      console.log('Invoice downloaded successfully using fetch');
+      return path;
+    } catch (error) {
+      console.error('Error downloading invoice with fetch:', error);
+      throw error;
+    }
+  };
+  
+  // Helper function to convert blob to base64
+  const blobToBase64 = (blob) => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onloadend = () => resolve(reader.result);
+      reader.onerror = reject;
+      reader.readAsDataURL(blob);
     });
+  };
+
+  // New function to handle invoice preview
+  const handlePreviewInvoice = async (orderId) => {
+    setDownloadingInvoiceId(orderId);
+    setInvoiceModal({
+      visible: true,
+      filePath: '',
+      orderId: orderId,
+      url: '',
+      loading: true
+    });
+    
+    try {
+      let filePath;
+      
+      // Try RNFS download first
+      try {
+        filePath = await downloadInvoiceForPreview(orderId);
+      } catch (error) {
+        console.log('RNFS download failed, trying fetch method:', error);
+        // If RNFS fails, try fetch method
+        filePath = await downloadInvoiceWithFetch(orderId);
+      }
+      
+      setInvoiceModal(prev => ({
+        ...prev,
+        filePath: filePath,
+        loading: false
+      }));
+    } catch (e) {
+      console.error('Invoice preview error:', e);
+      showAlert('Error', 'Failed to load invoice preview. Please check your network connection and try again.', 'error');
+      setInvoiceModal(prev => ({ ...prev, loading: false }));
+    } finally {
+      setDownloadingInvoiceId(null);
+    }
+  };
+
+  // Function to print invoice
+  const handlePrintInvoice = async (orderId) => {
+    try {
+      // For printing, we'll use the downloaded file if available
+      if (invoiceModal.filePath) {
+        // For Android, we'll open the file in a PDF viewer that supports printing
+        if (Platform.OS === 'android') {
+          await Linking.openURL(`file://${invoiceModal.filePath}`);
+        } else {
+          // For iOS, we'll use the print functionality
+          showAlert('Info', 'Print functionality is not fully implemented on iOS', 'info');
+        }
+      } else {
+        showAlert('Error', 'Please preview the invoice first before printing', 'error');
+      }
+    } catch (error) {
+      console.error('Print error:', error);
+      showAlert('Error', 'Failed to print invoice', 'error');
+    }
   };
 
   // Status update actions
@@ -331,16 +489,16 @@ export default function AdminOrdersScreen({ navigation }) {
               style={styles.actionButton}
               onPress={(e) => {
                 e.stopPropagation();
-                handleAdminDownloadInvoice(item.id);
+                handlePreviewInvoice(item.id);
               }}
               disabled={downloadingInvoiceId === item.id}
             >
               {downloadingInvoiceId === item.id ? (
                 <ActivityIndicator size="small" color="#6B7280" />
               ) : (
-                <Icon name="file-download" size={20} color="#6B7280" />
+                <Icon name="visibility" size={20} color="#6B7280" />
               )}
-              <Text style={styles.actionButtonText}>Invoice</Text>
+              <Text style={styles.actionButtonText}>Preview</Text>
             </TouchableOpacity>
 
             {(status === 'PENDING' || status === 'PROCESSING') && (
@@ -362,7 +520,7 @@ export default function AdminOrdersScreen({ navigation }) {
                   <Icon name={status === 'PENDING' ? 'autorenew' : 'check-circle'} size={20} color="white" />
                 )}
                 <Text style={[styles.actionButtonText, { color: 'white' }]}>
-                  {status === 'PENDING' ? 'Start Processing' : 'Complete'}
+                  {status === 'PENDING' ? 'Process' : 'Complete'}
                 </Text>
               </TouchableOpacity>
             )}
@@ -373,7 +531,7 @@ export default function AdminOrdersScreen({ navigation }) {
                 onPress={(e) => { e.stopPropagation(); handleUpdateStatus(item.id, 'OUT_FOR_DELIVERY'); }}
               >
                 <Icon name="local-shipping" size={20} color="white" />
-                <Text style={[styles.actionButtonText, { color: 'white' }]}>Out for Delivery</Text>
+                <Text style={[styles.actionButtonText, { color: 'white' }]}>Deliver</Text>
               </TouchableOpacity>
             )}
 
@@ -383,7 +541,7 @@ export default function AdminOrdersScreen({ navigation }) {
                 onPress={(e) => { e.stopPropagation(); handleUpdateStatus(item.id, 'DELIVERED'); }}
               >
                 <Icon name="done-all" size={20} color="white" />
-                <Text style={[styles.actionButtonText, { color: 'white' }]}>Mark Delivered</Text>
+                <Text style={[styles.actionButtonText, { color: 'white' }]}>Delivered</Text>
               </TouchableOpacity>
             )}
           </View>
@@ -623,7 +781,7 @@ export default function AdminOrdersScreen({ navigation }) {
         </View>
       </ScrollView>
 
-      {/* Floating Action Button
+      {/* Floating Action Button */}
       <TouchableOpacity
         style={styles.fab}
         onPress={() => {
@@ -632,7 +790,7 @@ export default function AdminOrdersScreen({ navigation }) {
         }}
       >
         <Icon name="add" size={24} color="white" />
-      </TouchableOpacity> */}
+      </TouchableOpacity>
 
       <CustomAlert
         visible={alert.visible}
@@ -642,31 +800,64 @@ export default function AdminOrdersScreen({ navigation }) {
         onClose={closeAlert}
       />
       
-      <Modal isVisible={invoiceModal.visible} onBackdropPress={() => setInvoiceModal({ visible: false, filePath: '', orderId: null })}>
+      <Modal 
+        isVisible={invoiceModal.visible} 
+        onBackdropPress={() => setInvoiceModal({ visible: false, filePath: '', orderId: null, url: '', loading: false })}
+        style={styles.bottomModal}
+      >
         <View style={styles.modalContainer}>
-          <Text style={styles.modalTitle}>Invoice Downloaded</Text>
-          <Text style={styles.modalMessage}>Invoice saved to:
-            {'\n'}{invoiceModal.filePath}
-          </Text>
-          <View style={styles.modalActions}>
-            <TouchableOpacity style={styles.modalButton} onPress={() => setInvoiceModal(modal => ({ ...modal, preview: true }))}>
-              <Text style={styles.modalButtonText}>Preview</Text>
+          <View style={styles.modalHeader}>
+            <Text style={styles.modalTitle}>Invoice Preview</Text>
+            <TouchableOpacity 
+              style={styles.closeButton}
+              onPress={() => setInvoiceModal({ visible: false, filePath: '', orderId: null, url: '', loading: false })}
+            >
+              <Icon name="close" size={24} color="#6B7280" />
             </TouchableOpacity>
-            <TouchableOpacity style={styles.modalButton} onPress={async () => { if (invoiceModal.filePath) { await RNPrint.print({ filePath: invoiceModal.filePath }); } }}>
+          </View>
+          
+          <View style={styles.pdfPreview}>
+            {invoiceModal.loading ? (
+              <View style={styles.pdfPlaceholder}>
+                <ActivityIndicator size="large" color="#3B82F6" />
+                <Text style={styles.pdfPlaceholderText}>Loading invoice...</Text>
+              </View>
+            ) : invoiceModal.filePath ? (
+              <Pdf 
+                source={{ uri: `file://${invoiceModal.filePath}` }} 
+                style={styles.pdfViewer} 
+                trustAllCerts={false}
+              />
+            ) : (
+              <View style={styles.pdfPlaceholder}>
+                <Icon name="error" size={40} color="#EF4444" />
+                <Text style={styles.pdfPlaceholderText}>Failed to load invoice</Text>
+              </View>
+            )}
+          </View>
+          
+          <View style={styles.modalActions}>
+            <TouchableOpacity 
+              style={styles.modalButton}
+              onPress={() => handlePrintInvoice(invoiceModal.orderId)}
+            >
+              <Icon name="print" size={20} color="white" />
               <Text style={styles.modalButtonText}>Print</Text>
             </TouchableOpacity>
-            {/* <TouchableOpacity style={styles.modalButton} onPress={() => Linking.openURL(Platform.OS === 'android' ? 'file://' + RNFS.DownloadDirectoryPath : 'file://' + RNFS.DocumentDirectoryPath)}>
-              <Text style={styles.modalButtonText}>Open Folder</Text>
-            </TouchableOpacity> */}
+            
+            <TouchableOpacity 
+              style={styles.modalButton}
+              onPress={() => {
+                // Share or download the invoice
+                if (invoiceModal.filePath) {
+                  Linking.openURL(`file://${invoiceModal.filePath}`);
+                }
+              }}
+            >
+              <Icon name="share" size={20} color="white" />
+              <Text style={styles.modalButtonText}>Share</Text>
+            </TouchableOpacity>
           </View>
-          {invoiceModal.preview && (
-            <View style={styles.pdfPreview}>
-              <Pdf source={{ uri: 'file://' + invoiceModal.filePath }} style={styles.pdfViewer} />
-            </View>
-          )}
-          <TouchableOpacity style={styles.modalCloseButton} onPress={() => setInvoiceModal({ visible: false, filePath: '', orderId: null })}>
-            <Text style={styles.modalCloseText}>Close</Text>
-          </TouchableOpacity>
         </View>
       </Modal>
     </View>
@@ -679,8 +870,8 @@ const styles = StyleSheet.create({
     backgroundColor: '#F9FAFB',
   },
   headerGradient: {
-    paddingTop: 48,
-    paddingBottom: 18,
+    paddingTop: 40, // Reduced from 48
+    paddingBottom: 12, // Reduced from 18
     paddingHorizontal: 20,
     borderBottomLeftRadius: 24,
     borderBottomRightRadius: 24,
@@ -709,7 +900,7 @@ const styles = StyleSheet.create({
   content: {
     flex: 1,
     paddingHorizontal: 20,
-    paddingTop: 20,
+    paddingTop: 16, // Reduced from 20
   },
   loadingContainer: {
     flex: 1,
@@ -727,10 +918,10 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: 16,
-    paddingVertical: 12,
+    paddingVertical: 10, // Reduced from 12
     backgroundColor: '#fff',
     borderRadius: 12,
-    marginBottom: 20,
+    marginBottom: 12, // Reduced from 20
     elevation: 2,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 1 },
@@ -748,8 +939,8 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     backgroundColor: '#fff',
     borderRadius: 12,
-    padding: 16,
-    marginBottom: 20,
+    padding: 12, // Reduced from 16
+    marginBottom: 12, // Reduced from 20
     elevation: 2,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 1 },
@@ -770,7 +961,7 @@ const styles = StyleSheet.create({
     marginTop: 4,
   },
   statusFilter: {
-    marginBottom: 20,
+    marginBottom: 12, // Reduced from 20
   },
   statusFilterContent: {
     paddingRight: 20,
@@ -779,7 +970,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: 16,
-    paddingVertical: 8,
+    paddingVertical: 6, // Reduced from 8
     borderRadius: 20,
     marginRight: 12,
     elevation: 1,
@@ -808,7 +999,7 @@ const styles = StyleSheet.create({
   sortFilterContainer: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    marginBottom: 20,
+    marginBottom: 12, // Reduced from 20
   },
   sortButton: {
     flexDirection: 'row',
@@ -816,7 +1007,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#fff',
     borderRadius: 12,
     paddingHorizontal: 16,
-    paddingVertical: 10,
+    paddingVertical: 8, // Reduced from 10
     elevation: 2,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 1 },
@@ -836,8 +1027,8 @@ const styles = StyleSheet.create({
   },
   orderCard: {
     borderRadius: 16,
-    padding: 20,
-    marginBottom: 16,
+    padding: 12, // Reduced from 16
+    marginBottom: 12, // Reduced from 16
     elevation: 3,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
@@ -854,7 +1045,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'flex-start',
-    marginBottom: 12,
+    marginBottom: 6, // Reduced from 8
   },
   orderIdContainer: {
     flexDirection: 'row',
@@ -871,12 +1062,12 @@ const styles = StyleSheet.create({
     color: '#6B7280',
   },
   orderDetails: {
-    marginBottom: 16,
+    marginBottom: 8, // Reduced from 12
   },
   customerInfo: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 8,
+    marginBottom: 4, // Reduced from 6
   },
   customerName: {
     fontSize: 16,
@@ -896,8 +1087,8 @@ const styles = StyleSheet.create({
   orderStats: {
     flexDirection: 'row',
     justifyContent: 'space-around',
-    marginBottom: 16,
-    paddingVertical: 12,
+    marginBottom: 8, // Reduced from 12
+    paddingVertical: 6, // Reduced from 8
     backgroundColor: '#F9FAFB',
     borderRadius: 8,
   },
@@ -907,7 +1098,7 @@ const styles = StyleSheet.create({
   statLabel: {
     fontSize: 12,
     color: '#6B7280',
-    marginBottom: 4,
+    marginBottom: 2, // Reduced from 4
   },
   statValue: {
     fontSize: 16,
@@ -924,8 +1115,8 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    paddingHorizontal: 16,
-    paddingVertical: 10,
+    paddingHorizontal: 12,
+    paddingVertical: 6, // Reduced from 8
     borderRadius: 8,
     backgroundColor: '#F3F4F6',
     flex: 1,
@@ -988,56 +1179,68 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.2,
     shadowRadius: 3,
   },
+  bottomModal: {
+    justifyContent: 'flex-end',
+    margin: 0,
+  },
   modalContainer: {
     backgroundColor: '#fff',
-    borderRadius: 16,
-    padding: 24,
-    alignItems: 'center',
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    padding: 16, // Reduced from 20
+    maxHeight: '80%',
   },
-  modalTitle: {
-    fontWeight: 'bold',
-    fontSize: 18,
-    marginBottom: 12,
-    color: '#1F2937',
-  },
-  modalMessage: {
-    color: '#4B5563',
-    marginBottom: 18,
-    textAlign: 'center',
-  },
-  modalActions: {
+  modalHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    width: '100%',
-    marginBottom: 12,
-  },
-  modalButton: {
-    flex: 1,
-    marginHorizontal: 6,
-    paddingVertical: 12,
-    backgroundColor: '#3B82F6',
-    borderRadius: 8,
     alignItems: 'center',
+    marginBottom: 12, // Reduced from 16
   },
-  modalButtonText: {
-    color: '#fff',
+  modalTitle: {
+    fontSize: 20,
     fontWeight: 'bold',
+    color: '#1F2937',
+  },
+  closeButton: {
+    padding: 4,
   },
   pdfPreview: {
-    width: '100%',
-    height: 300,
-    marginTop: 10,
-    borderRadius: 8,
+    height: 250, // Reduced from 300
+    borderRadius: 12,
     overflow: 'hidden',
+    marginBottom: 12, // Reduced from 16
+    backgroundColor: '#F3F4F6',
   },
   pdfViewer: {
     flex: 1,
   },
-  modalCloseButton: {
-    marginTop: 18,
+  pdfPlaceholder: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
-  modalCloseText: {
-    color: '#3B82F6',
+  pdfPlaceholderText: {
+    marginTop: 8,
+    fontSize: 14,
+    color: '#6B7280',
+  },
+  modalActions: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    gap: 12,
+  },
+  modalButton: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#3B82F6',
+    paddingVertical: 12,
+    borderRadius: 8,
+    gap: 8,
+  },
+  modalButtonText: {
+    color: 'white',
     fontWeight: 'bold',
     fontSize: 16,
   },

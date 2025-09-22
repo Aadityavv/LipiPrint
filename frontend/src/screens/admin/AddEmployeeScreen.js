@@ -338,7 +338,7 @@ const styles = StyleSheet.create({
     borderWidth: 1, 
     borderColor: '#e9ecef',
     color: '#333',
-    paddingLeft: 50
+    paddingLeft: 10
   },
   roleContainer: { 
     flexDirection: 'row', 
