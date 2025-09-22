@@ -65,8 +65,35 @@ public class OrderService {
             });
         }
         
-        // *** PROCESS SHIPMENT FOR DELIVERY ORDERS ***
-        processShipment(savedOrder);
+        // Removed automatic shipment creation on save
+        logger.info("[OrderService] Order saved: {}", savedOrder);
+        return savedOrder;
+    }
+    
+    public Order save(Order order, String razorpayOrderId, String razorpayPaymentId) {
+        logger.info("[OrderService] save called with order: {}, razorpayOrderId: {}, razorpayPaymentId: {}", 
+                   order, razorpayOrderId, razorpayPaymentId);
+        Order savedOrder = orderRepository.save(order);
+        
+        if (razorpayOrderId != null) {
+            Payment payment = paymentRepository.findByRazorpayOrderId(razorpayOrderId)
+                .orElseGet(() -> {
+                    Payment newPayment = new Payment();
+                    newPayment.setRazorpayOrderId(razorpayOrderId);
+                    newPayment.setStatus(Payment.Status.PENDING);
+                    return newPayment;
+                });
+            
+            // Update payment with payment ID if available
+            if (razorpayPaymentId != null) {
+                payment.setRazorpayPaymentId(razorpayPaymentId);
+                payment.setStatus(Payment.Status.SUCCESS);
+            }
+            
+            payment.setOrder(savedOrder);
+            paymentRepository.save(payment);
+            logger.info("[OrderService] Linked payment {} to order {}", payment.getId(), savedOrder.getId());
+        }
         
         logger.info("[OrderService] Order saved: {}", savedOrder);
         return savedOrder;
@@ -130,87 +157,87 @@ public class OrderService {
         }
     }
 
-private UserAddress parseDeliveryAddress(Order order) {
-    if (order.getDeliveryAddress() == null || order.getDeliveryAddress().trim().isEmpty()) {
-        return null;
-    }
-
-    // ✅ UPDATED: Create UserAddress with proper field mapping
-    UserAddress address = new UserAddress();
-    String fullAddress = order.getDeliveryAddress().trim();
-    
-    // Split the address into parts (assuming comma-separated format)
-    String[] parts = fullAddress.split(",");
-    
-    if (parts.length >= 3) {
-        address.setLine1(parts[0].trim());
-        address.setLine2(parts[1].trim());
-        address.setLine3(parts[2].trim());
-        
-        // ✅ NEW: Extract city, state, pincode from line3 or use defaults
-        if (parts.length >= 6) {
-            // Format: line1, line2, line3, city, state, pincode
-            address.setCity(parts[3].trim());
-            address.setState(parts[4].trim());
-            address.setPincode(parts[5].trim());
-        } else {
-            // ✅ BETTER: Parse from line3 or extract from order if available
-            extractLocationFromLine3(address, parts[2].trim());
+    private UserAddress parseDeliveryAddress(Order order) {
+        if (order.getDeliveryAddress() == null || order.getDeliveryAddress().trim().isEmpty()) {
+            return null;
         }
-    } else {
-        // Handle insufficient parts
-        address.setLine1(fullAddress);
-        address.setLine2("Saharanpur");
-        address.setLine3("Saharanpur, UP 247001");
-        address.setCity("Saharanpur");
-        address.setState("Uttar Pradesh");
-        address.setPincode("247001");
-    }
-    
-    // Set phone from order
-    if (order.getPhone() != null && !order.getPhone().trim().isEmpty()) {
-        address.setPhone(order.getPhone());
-    } else if (order.getUser() != null && order.getUser().getPhone() != null) {
-        address.setPhone(order.getUser().getPhone());
-    } else {
-        address.setPhone("9999999999"); // Default phone
-    }
-    
-    return address;
-}
 
-// ✅ NEW HELPER METHOD
-private void extractLocationFromLine3(UserAddress address, String line3) {
-    // Extract pincode using regex
-    java.util.regex.Pattern pincodePattern = java.util.regex.Pattern.compile("\\b(\\d{6})\\b");
-    java.util.regex.Matcher matcher = pincodePattern.matcher(line3);
-    
-    if (matcher.find()) {
-        address.setPincode(matcher.group(1));
-    } else {
-        address.setPincode("247001"); // Default to Saharanpur
+        // ✅ UPDATED: Create UserAddress with proper field mapping
+        UserAddress address = new UserAddress();
+        String fullAddress = order.getDeliveryAddress().trim();
+        
+        // Split the address into parts (assuming comma-separated format)
+        String[] parts = fullAddress.split(",");
+        
+        if (parts.length >= 3) {
+            address.setLine1(parts[0].trim());
+            address.setLine2(parts[1].trim());
+            address.setLine3(parts[2].trim());
+            
+            // ✅ NEW: Extract city, state, pincode from line3 or use defaults
+            if (parts.length >= 6) {
+                // Format: line1, line2, line3, city, state, pincode
+                address.setCity(parts[3].trim());
+                address.setState(parts[4].trim());
+                address.setPincode(parts[5].trim());
+            } else {
+                // ✅ BETTER: Parse from line3 or extract from order if available
+                extractLocationFromLine3(address, parts[2].trim());
+            }
+        } else {
+            // Handle insufficient parts
+            address.setLine1(fullAddress);
+            address.setLine2("Saharanpur");
+            address.setLine3("Saharanpur, UP 247001");
+            address.setCity("Saharanpur");
+            address.setState("Uttar Pradesh");
+            address.setPincode("247001");
+        }
+        
+        // Set phone from order
+        if (order.getPhone() != null && !order.getPhone().trim().isEmpty()) {
+            address.setPhone(order.getPhone());
+        } else if (order.getUser() != null && order.getUser().getPhone() != null) {
+            address.setPhone(order.getUser().getPhone());
+        } else {
+            address.setPhone("9999999999"); // Default phone
+        }
+        
+        return address;
     }
-    
-    // Extract state and city from line3
-    String line3Lower = line3.toLowerCase();
-    if (line3Lower.contains("up") || line3Lower.contains("uttar pradesh")) {
-        address.setState("Uttar Pradesh");
-    } else if (line3Lower.contains("uttarakhand")) {
-        address.setState("Uttarakhand");
-    } else if (line3Lower.contains("delhi")) {
-        address.setState("Delhi");
-    } else {
-        address.setState("Uttar Pradesh"); // Default
+
+    // ✅ NEW HELPER METHOD
+    private void extractLocationFromLine3(UserAddress address, String line3) {
+        // Extract pincode using regex
+        java.util.regex.Pattern pincodePattern = java.util.regex.Pattern.compile("\\b(\\d{6})\\b");
+        java.util.regex.Matcher matcher = pincodePattern.matcher(line3);
+        
+        if (matcher.find()) {
+            address.setPincode(matcher.group(1));
+        } else {
+            address.setPincode("247001"); // Default to Saharanpur
+        }
+        
+        // Extract state and city from line3
+        String line3Lower = line3.toLowerCase();
+        if (line3Lower.contains("up") || line3Lower.contains("uttar pradesh")) {
+            address.setState("Uttar Pradesh");
+        } else if (line3Lower.contains("uttarakhand")) {
+            address.setState("Uttarakhand");
+        } else if (line3Lower.contains("delhi")) {
+            address.setState("Delhi");
+        } else {
+            address.setState("Uttar Pradesh"); // Default
+        }
+        
+        // Extract city (first word before comma or state)
+        String[] cityParts = line3.split("[,\\s]+");
+        if (cityParts.length > 0) {
+            address.setCity(cityParts[0].trim());
+        } else {
+            address.setCity("Saharanpur"); // Default
+        }
     }
-    
-    // Extract city (first word before comma or state)
-    String[] cityParts = line3.split("[,\\s]+");
-    if (cityParts.length > 0) {
-        address.setCity(cityParts[0].trim());
-    } else {
-        address.setCity("Saharanpur"); // Default
-    }
-}
 
     private LocalDateTime parseDeliveryDate(String dateString) {
         try {
@@ -262,65 +289,65 @@ private void extractLocationFromLine3(UserAddress address, String line3) {
         return nimbusPostService.trackShipment(awbNumber);
     }
 
-public boolean retryShipmentCreation(Long orderId) {
-    try {
-        logger.info("[OrderService] Retrying shipment creation for LipiPrint Saharanpur order: {}", orderId);
-        
-        Optional<Order> orderOpt = orderRepository.findById(orderId);
-        if (!orderOpt.isPresent()) {
-            logger.error("[OrderService] Order not found for retry: {}", orderId);
+    public boolean retryShipmentCreation(Long orderId) {
+        try {
+            logger.info("[OrderService] Retrying shipment creation for LipiPrint Saharanpur order: {}", orderId);
+            
+            Optional<Order> orderOpt = orderRepository.findById(orderId);
+            if (!orderOpt.isPresent()) {
+                logger.error("[OrderService] Order not found for retry: {}", orderId);
+                return false;
+            }
+            
+            Order order = orderOpt.get();
+            
+            // Validate order can be retried
+            if (!order.isDeliveryOrder()) {
+                logger.warn("[OrderService] Cannot retry shipment for pickup order: {}", orderId);
+                return false;
+            }
+            
+            if (order.getStatus() == Order.Status.CANCELLED || 
+                order.getStatus() == Order.Status.DELIVERED) {
+                logger.warn("[OrderService] Cannot retry shipment for order {} with status: {}", orderId, order.getStatus());
+                return false;
+            }
+            
+            // Reset shipping flags for retry
+            order.setShippingCreated(false);
+            order.setAwbNumber(null);
+            order.setCourierName(null);
+            order.setTrackingUrl(null);
+            order.setShipmentId(null);
+            order.setCourierId(null);
+            order.setExpectedDeliveryDate(null);
+            
+            // Save order with reset flags
+            orderRepository.save(order);
+            
+            // Attempt to create shipment again
+            processShipment(order);
+            
+            // Check if shipment was successfully created
+            Order updatedOrder = orderRepository.findById(orderId).orElse(order);
+            boolean success = Boolean.TRUE.equals(updatedOrder.getShippingCreated()) && 
+                             updatedOrder.getAwbNumber() != null && 
+                             !updatedOrder.getAwbNumber().isEmpty();
+            
+            if (success) {
+                logger.info("[OrderService] Shipment retry successful for order {}: AWB = {}", 
+                    orderId, updatedOrder.getAwbNumber());
+            } else {
+                logger.error("[OrderService] Shipment retry failed for order {}", orderId);
+            }
+            
+            return success;
+            
+        } catch (Exception e) {
+            logger.error("[OrderService] Failed to retry shipment creation for order {}: {}", orderId, e.getMessage());
             return false;
         }
-        
-        Order order = orderOpt.get();
-        
-        // Validate order can be retried
-        if (!order.isDeliveryOrder()) {
-            logger.warn("[OrderService] Cannot retry shipment for pickup order: {}", orderId);
-            return false;
-        }
-        
-        if (order.getStatus() == Order.Status.CANCELLED || 
-            order.getStatus() == Order.Status.DELIVERED) {
-            logger.warn("[OrderService] Cannot retry shipment for order {} with status: {}", orderId, order.getStatus());
-            return false;
-        }
-        
-        // Reset shipping flags for retry
-        order.setShippingCreated(false);
-        order.setAwbNumber(null);
-        order.setCourierName(null);
-        order.setTrackingUrl(null);
-        order.setShipmentId(null);
-        order.setCourierId(null);
-        order.setExpectedDeliveryDate(null);
-        
-        // Save order with reset flags
-        orderRepository.save(order);
-        
-        // Attempt to create shipment again
-        processShipment(order);
-        
-        // Check if shipment was successfully created
-        Order updatedOrder = orderRepository.findById(orderId).orElse(order);
-        boolean success = Boolean.TRUE.equals(updatedOrder.getShippingCreated()) && 
-                         updatedOrder.getAwbNumber() != null && 
-                         !updatedOrder.getAwbNumber().isEmpty();
-        
-        if (success) {
-            logger.info("[OrderService] Shipment retry successful for order {}: AWB = {}", 
-                orderId, updatedOrder.getAwbNumber());
-        } else {
-            logger.error("[OrderService] Shipment retry failed for order {}", orderId);
-        }
-        
-        return success;
-        
-    } catch (Exception e) {
-        logger.error("[OrderService] Failed to retry shipment creation for order {}: {}", orderId, e.getMessage());
-        return false;
     }
-}
 
     // *** EXISTING METHODS REMAIN UNCHANGED ***
     public Optional<Order> findById(Long id) {
@@ -360,44 +387,48 @@ public boolean retryShipmentCreation(Long orderId) {
             return List.of();
         }
     }
-// Add these optional methods for enhanced functionality
 
-public void cancelShipment(Long orderId) {
-    try {
+    public void cancelShipment(Long orderId) {
+        try {
+            Order order = orderRepository.findById(orderId)
+                .orElseThrow(() -> new RuntimeException("Order not found"));
+                
+            if (order.getAwbNumber() != null && nimbusPostService.isEnabled()) {
+                nimbusPostService.cancelShipment(order.getAwbNumber());
+                order.setAwbNumber(null);
+                order.setShippingCreated(false);
+                orderRepository.save(order);
+                logger.info("[OrderService] Shipment cancelled for order: {}", orderId);
+            }
+        } catch (Exception e) {
+            logger.error("[OrderService] Failed to cancel shipment for order {}: {}", orderId, e.getMessage());
+            throw new RuntimeException("Failed to cancel shipment: " + e.getMessage());
+        }
+    }
+
+    public List<Order> findPendingShipments() {
+        return orderRepository.findAll().stream()
+            .filter(order -> order.isDeliveryOrder() && 
+                            !Boolean.TRUE.equals(order.getShippingCreated()) &&
+                            order.getStatus() != Order.Status.CANCELLED)
+            .toList();
+    }
+
+    public void updateOrderStatus(Long orderId, Order.Status newStatus) {
         Order order = orderRepository.findById(orderId)
             .orElseThrow(() -> new RuntimeException("Order not found"));
-            
-        if (order.getAwbNumber() != null && nimbusPostService.isEnabled()) {
-            nimbusPostService.cancelShipment(order.getAwbNumber());
-            order.setAwbNumber(null);
-            order.setShippingCreated(false);
-            orderRepository.save(order);
-            logger.info("[OrderService] Shipment cancelled for order: {}", orderId);
+        
+        Order.Status oldStatus = order.getStatus();
+        order.setStatus(newStatus);
+        orderRepository.save(order);
+        
+        // Trigger shipment only when transitioning to PROCESSING for delivery orders
+        if (newStatus == Order.Status.PROCESSING && order.canBeShipped()) {
+            processShipment(order);
         }
-    } catch (Exception e) {
-        logger.error("[OrderService] Failed to cancel shipment for order {}: {}", orderId, e.getMessage());
-        throw new RuntimeException("Failed to cancel shipment: " + e.getMessage());
+        
+        logger.info("[OrderService] Order {} status updated: {} -> {}", orderId, oldStatus, newStatus);
     }
-}
-
-public List<Order> findPendingShipments() {
-    return orderRepository.findAll().stream()
-        .filter(order -> order.isDeliveryOrder() && 
-                        !Boolean.TRUE.equals(order.getShippingCreated()) &&
-                        order.getStatus() != Order.Status.CANCELLED)
-        .toList();
-}
-
-public void updateOrderStatus(Long orderId, Order.Status newStatus) {
-    Order order = orderRepository.findById(orderId)
-        .orElseThrow(() -> new RuntimeException("Order not found"));
-    
-    Order.Status oldStatus = order.getStatus();
-    order.setStatus(newStatus);
-    orderRepository.save(order);
-    
-    logger.info("[OrderService] Order {} status updated: {} -> {}", orderId, oldStatus, newStatus);
-}
 
     public JSONObject createRazorpayOrder(int amount, String currency, String receipt, Long userId) throws RazorpayException {
         logger.info("[OrderService] createRazorpayOrder called with amount={}, currency={}, receipt={}, userId={}", amount, currency, receipt, userId);

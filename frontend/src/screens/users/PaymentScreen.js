@@ -218,6 +218,13 @@ deliveryAddressData: structuredDeliveryAddress,  // Add structured data
       };
 
       const result = await launchRazorpay(options);
+      
+      // Check if payment was successful
+      if (!result || !result.razorpay_payment_id) {
+        setProcessing(false);
+        showAlert('Payment Failed', 'Payment was not completed successfully. Please try again.', 'error');
+        return;
+      }
 
       // Payment succeeded, now create order in backend
       if (!files[0]?.file?.id) {
@@ -230,6 +237,7 @@ deliveryAddressData: structuredDeliveryAddress,  // Add structured data
       const finalOrderData = {
         ...orderData,
         razorpayOrderId: orderRes.id,
+        razorpayPaymentId: result.razorpay_payment_id,
         paymentMethod: 'RAZORPAY',
       };
 

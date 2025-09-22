@@ -45,7 +45,6 @@ public class FileController {
             return ResponseEntity.badRequest().body(Map.of("error", "No file uploaded."));
         }
         String originalFilename = file.getOriginalFilename();
-        String contentType = file.getContentType();
         long maxSize = 50 * 1024 * 1024; // 50MB
         String[] allowedTypes = {"pdf", "doc", "docx", "txt", "jpg", "jpeg", "png"};
         boolean allowed = false;
@@ -156,4 +155,4 @@ public class FileController {
                 .body(Map.of("message", "Failed to delete file from Firebase."));
         }
     }
-} 
+}

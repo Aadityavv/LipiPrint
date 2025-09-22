@@ -61,6 +61,9 @@ public class Order {
     
     @Column(name = "razorpay_order_id")
     private String razorpayOrderId;
+    
+    @Column(name = "razorpay_payment_id")
+    private String razorpayPaymentId;
 
     @Enumerated(EnumType.STRING)
     @Column(name = "payment_method")
@@ -163,8 +166,21 @@ public class Order {
     public String getOrderNote() { return orderNote; }
     public void setOrderNote(String orderNote) { this.orderNote = orderNote; }
 
-    public String getRazorpayOrderId() { return razorpayOrderId; }
-    public void setRazorpayOrderId(String razorpayOrderId) { this.razorpayOrderId = razorpayOrderId; }
+    public String getRazorpayOrderId() {
+        return razorpayOrderId;
+    }
+
+    public void setRazorpayOrderId(String razorpayOrderId) {
+        this.razorpayOrderId = razorpayOrderId;
+    }
+    
+    public String getRazorpayPaymentId() {
+        return razorpayPaymentId;
+    }
+
+    public void setRazorpayPaymentId(String razorpayPaymentId) {
+        this.razorpayPaymentId = razorpayPaymentId;
+    }
 
     // *** PAYMENT METHOD GETTERS AND SETTERS ***
     public PaymentMethod getPaymentMethod() { return paymentMethod; }
@@ -251,7 +267,7 @@ public class Order {
 
     public boolean canBeShipped() {
         return isDeliveryOrder() && 
-               (status == Status.PENDING || status == Status.PROCESSING) &&
+               (status == Status.PROCESSING) &&
                !Boolean.TRUE.equals(shippingCreated);
     }
 

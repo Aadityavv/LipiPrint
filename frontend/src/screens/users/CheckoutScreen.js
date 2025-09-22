@@ -62,6 +62,8 @@ export default function CheckoutScreen({ navigation, route }) {
         deliveryType: 'DELIVERY',
         deliveryAddress: deliveryAddress,
         phone: order.phone,
+        razorpayOrderId: order.razorpayOrderId,
+        razorpayPaymentId: order.razorpayPaymentId,
       };
       const createdOrder = await api.createOrder(orderPayload);
       navigation.navigate('OrderConfirmation', { order: createdOrder });

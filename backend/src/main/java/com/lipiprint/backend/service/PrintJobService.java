@@ -31,4 +31,8 @@ public class PrintJobService {
     public List<PrintJob> findByOrderId(Long orderId) {
         return printJobRepository.findByOrderId(orderId);
     }
+
+    public List<PrintJob> findByFileId(Long fileId) {
+        return printJobRepository.findByFileId(fileId);
+    }
 } 

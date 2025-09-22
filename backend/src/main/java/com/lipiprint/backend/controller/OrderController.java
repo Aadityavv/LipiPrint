@@ -1,21 +1,19 @@
 package com.lipiprint.backend.controller;
 
-import java.io.IOException;
 import com.lipiprint.backend.dto.OrderDTO;
 import com.lipiprint.backend.entity.Order;
 import com.lipiprint.backend.entity.User;
 import com.lipiprint.backend.entity.UserAddress;
 import com.lipiprint.backend.service.OrderService;
 import com.lipiprint.backend.service.UserService;
-import com.lipiprint.backend.service.NimbusPostService;
-import com.lipiprint.backend.dto.ShipmentResponse;
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 import java.util.List;
 import java.util.Map;
-import java.util.HashMap;
 import java.util.stream.Collectors;
 import org.json.JSONObject;
 import com.razorpay.RazorpayException;
@@ -25,17 +23,11 @@ import com.lipiprint.backend.dto.PrintJobDTO;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import com.lipiprint.backend.entity.PrintJob;
-import com.lipiprint.backend.entity.File;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.core.io.ByteArrayResource;
-import org.apache.pdfbox.pdmodel.PDPageContentStream;
-import org.apache.pdfbox.pdmodel.font.PDType1Font;
-import org.apache.pdfbox.pdmodel.graphics.image.PDImageXObject;
 import java.io.ByteArrayOutputStream;
 import org.springframework.security.core.GrantedAuthority;
-import com.lipiprint.backend.service.PrintJobService;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.lipiprint.backend.service.PricingService;
 import com.openhtmltopdf.pdfboxout.PdfRendererBuilder;
 import java.nio.file.Files;
@@ -43,9 +35,7 @@ import java.nio.file.Paths;
 import com.lipiprint.backend.repository.FileRepository;
 import jakarta.validation.Valid;
 import com.lipiprint.backend.dto.MessageResponse;
-import com.fasterxml.jackson.core.type.TypeReference;
 import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import com.lipiprint.backend.dto.OrderListDTO;
@@ -55,23 +45,19 @@ import com.lipiprint.backend.dto.OrderListDTO;
 public class OrderController {
     private static final Logger logger = LoggerFactory.getLogger(OrderController.class);
     
-    @Autowired
     private OrderService orderService;
-    
-    @Autowired
     private UserService userService;
-    
-    @Autowired
-    private PrintJobService printJobService;
-    
-    @Autowired
     private PricingService pricingService;
-    
-    @Autowired
     private FileRepository fileRepository;
     
     @Autowired
-    private NimbusPostService nimbusPostService;
+    public OrderController(OrderService orderService, UserService userService, 
+                          PricingService pricingService, FileRepository fileRepository) {
+        this.orderService = orderService;
+        this.userService = userService;
+        this.pricingService = pricingService;
+        this.fileRepository = fileRepository;
+    }
 
     @PostMapping("")
     public ResponseEntity<?> createOrder(@Valid @RequestBody OrderDTO orderDTO, Authentication authentication) {
@@ -190,39 +176,13 @@ public class OrderController {
 
             // Save order and link payment if razorpayOrderId is present
             String razorpayOrderId = orderDTO.getRazorpayOrderId();
-            Order saved = orderService.save(order, razorpayOrderId);
+            String razorpayPaymentId = orderDTO.getRazorpayPaymentId();
+            Order saved = orderService.save(order, razorpayOrderId, razorpayPaymentId);
             saved = orderService.findById(saved.getId()).orElse(saved);
             
             logger.info("✅ Order saved with ID: {}", saved.getId());
 
-            // ✅ CRITICAL: Create shipment for delivery orders
-            if ("DELIVERY".equals(orderDTO.getDeliveryType()) && deliveryAddress != null) {
-                try {
-                    String customerName = user.getName();
-                    String customerEmail = user.getEmail();
-                    
-                    logger.info("🚚 Creating NimbusPost shipment for order {} with address pincode: {}", 
-                               saved.getId(), deliveryAddress.getPincode());
-                    
-                    ShipmentResponse shipmentResponse = nimbusPostService.createShipment(
-                        saved, deliveryAddress, customerName, customerEmail);
-                    
-                    if (shipmentResponse != null && shipmentResponse.isStatus()) {
-                        saved.setAwbNumber(shipmentResponse.getAwbNumber());
-                        saved.setShippingCreated(true);
-                        saved = orderService.save(saved, null);
-                        logger.info("✅ Shipment created successfully with AWB: {}", shipmentResponse.getAwbNumber());
-                    } else {
-                        String errorMsg = shipmentResponse != null ? shipmentResponse.getMessage() : "Unknown shipment error";
-                        logger.error("❌ Shipment creation failed: {}", errorMsg);
-                        // Don't fail the order, just log the shipment failure
-                    }
-                    
-                } catch (Exception e) {
-                    logger.error("❌ Shipment creation exception for order {}: {}", saved.getId(), e.getMessage(), e);
-                    // Don't fail the order, just log the shipment failure
-                }
-            }
+            // Shipment creation moved to status update when PROCESSING
 
             // Map to DTO for response
             OrderDTO dto = convertToDTO(saved);
@@ -404,6 +364,7 @@ public class OrderController {
             order.getDeliveryType() != null ? order.getDeliveryType().name() : null,
             order.getDeliveryAddress(),
             order.getRazorpayOrderId(),
+            order.getRazorpayPaymentId(),
             order.getOrderNote(),
             order.getSubtotal(),
             order.getDiscount(),
@@ -415,7 +376,6 @@ public class OrderController {
         );
     }
 
-    // ✅ REST OF YOUR EXISTING METHODS (keeping them as they were)
     @GetMapping("")
     public ResponseEntity<?> listOrders(
         Authentication authentication,
@@ -479,8 +439,16 @@ public class OrderController {
             } catch (IllegalArgumentException e) {
                 return ResponseEntity.badRequest().body(Map.of("error", "Invalid status value: " + status));
             }
+            // Removed unused variable oldStatus
             order.setStatus(newStatus);
-            Order updated = orderService.save(order, null);
+            Order updated = orderService.save(order, null, null);
+            // Trigger shipment only when transitioning to PROCESSING and eligible
+            if (newStatus == Order.Status.PROCESSING && updated.canBeShipped()) {
+                // OrderService handles creating the shipment
+                // We call an internal method by updating again through service layer
+                orderService.updateOrderStatus(updated.getId(), newStatus);
+                updated = orderService.findById(updated.getId()).orElse(updated);
+            }
             OrderDTO dto = convertToDTO(updated);
             return ResponseEntity.ok(dto);
         } catch (Exception e) {
@@ -590,8 +558,8 @@ public class OrderController {
                     String printOptions = "";
                     try {
                         if (pj.getOptions() != null) {
-                            com.fasterxml.jackson.databind.ObjectMapper mapper = new com.fasterxml.jackson.databind.ObjectMapper();
-                            java.util.Map<String, Object> opts = mapper.readValue(pj.getOptions(), java.util.Map.class);
+                            ObjectMapper mapper = new ObjectMapper();
+                            java.util.Map<String, Object> opts = mapper.convertValue(mapper.readTree(pj.getOptions()), new TypeReference<Map<String, Object>>() {});
                             printOptions = opts.entrySet().stream()
                                 .map(e -> "<b>" + escapeHtml(e.getKey().replace("_", " ")) + ":</b> " + escapeHtml(String.valueOf(e.getValue())))
                                 .reduce((a, b) -> a + "<br>" + b).orElse("");
@@ -600,8 +568,8 @@ public class OrderController {
                     // Calculate per-file price
                     double price = 0.0;
                     try {
-                        com.fasterxml.jackson.databind.ObjectMapper mapper = new com.fasterxml.jackson.databind.ObjectMapper();
-                        java.util.Map<String, Object> opts = pj.getOptions() != null ? mapper.readValue(pj.getOptions(), java.util.Map.class) : new java.util.HashMap<>();
+                        ObjectMapper mapper = new ObjectMapper();
+                        java.util.Map<String, Object> opts = pj.getOptions() != null ? mapper.convertValue(mapper.readTree(pj.getOptions()), new TypeReference<Map<String, Object>>() {}) : new java.util.HashMap<>();
                         String color = (String) opts.getOrDefault("color", null);
                         String paper = (String) opts.getOrDefault("paper", null);
                         String quality = (String) opts.getOrDefault("quality", null);
@@ -662,12 +630,5 @@ public class OrderController {
                                  .replace("'", "&#39;");
     }
 
-    private void drawText(PDPageContentStream content, float x, float y, String text) throws IOException {
-        content.beginText();
-        content.setFont(PDType1Font.HELVETICA, 12);
-        content.setNonStrokingColor(java.awt.Color.BLACK);
-        content.newLineAtOffset(x, y);
-        content.showText(text);
-        content.endText();
-    }
+    // Removed unused method
 }

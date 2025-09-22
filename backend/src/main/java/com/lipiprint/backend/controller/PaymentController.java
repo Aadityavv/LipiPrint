@@ -2,17 +2,15 @@ package com.lipiprint.backend.controller;
 
 import com.lipiprint.backend.entity.Payment;
 import com.lipiprint.backend.entity.Order;
-import com.lipiprint.backend.entity.User;
+// Removed unused import
 import com.lipiprint.backend.service.PaymentService;
 import com.lipiprint.backend.service.OrderService;
-import com.lipiprint.backend.service.UserService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import jakarta.servlet.http.HttpServletRequest;
 import java.io.BufferedReader;
 import java.security.SignatureException;
@@ -28,7 +26,7 @@ public class PaymentController {
     @Autowired
     private OrderService orderService;
     @Autowired
-    private UserService userService;
+    // Removed unused field
 
     @Value("${razorpay.key_secret}")
     private String razorpayKeySecret;
@@ -52,13 +50,14 @@ public class PaymentController {
             }
             // Parse payload as JSON
             com.fasterxml.jackson.databind.ObjectMapper mapper = new com.fasterxml.jackson.databind.ObjectMapper();
-            Map<String, Object> body = mapper.readValue(payload, Map.class);
-            String event = (String) body.get("event");
-            Map<String, Object> paymentEntity = (Map<String, Object>) body.get("payload");
+            com.fasterxml.jackson.core.type.TypeReference<Map<String, Object>> typeRef = new com.fasterxml.jackson.core.type.TypeReference<Map<String, Object>>() {};
+            Map<String, Object> body = mapper.readValue(payload, typeRef);
+            // Unused variable removed
+            Map<String, Object> paymentEntity = mapper.convertValue(body.get("payload"), typeRef);
             if (paymentEntity == null) return ResponseEntity.badRequest().body("Missing payload");
-            Map<String, Object> payment = (Map<String, Object>) paymentEntity.get("payment");
+            Map<String, Object> payment = mapper.convertValue(paymentEntity.get("payment"), typeRef);
             if (payment == null) return ResponseEntity.badRequest().body("Missing payment");
-            Map<String, Object> paymentData = (Map<String, Object>) payment.get("entity");
+            Map<String, Object> paymentData = mapper.convertValue(payment.get("entity"), typeRef);
             if (paymentData == null) return ResponseEntity.badRequest().body("Missing payment entity");
             String razorpayOrderId = (String) paymentData.get("order_id");
             String razorpayPaymentId = (String) paymentData.get("id");
@@ -120,4 +119,4 @@ public class PaymentController {
         List<Payment> payments = paymentService.findPaymentsWithNoOrder(Payment.Status.SUCCESS);
         return ResponseEntity.ok(payments);
     }
-} 
+}

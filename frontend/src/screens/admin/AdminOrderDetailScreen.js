@@ -115,15 +115,12 @@ export default function AdminOrderDetailScreen() {
   // Toggle tick (printed) state
   const handleToggleTick = async (file, idx, printJobId) => {
     if (printedFiles.includes(file.id)) {
-      // Remove tick
+      // Remove tick: set print job back to QUEUED
       setPrintedFiles(prev => prev.filter(id => id !== file.id));
-      // Update print job status to PRINTING
-      await api.request(`/print-jobs/${printJobId}/status?status=PRINTING`, { method: 'PUT' });
-      // If no files are ticked, set order to PENDING; else PRINTING
+      await api.request(`/print-jobs/${printJobId}/status?status=QUEUED`, { method: 'PUT' });
+      // If none printed, revert order to PENDING
       if (printedFiles.length - 1 === 0) {
         await api.request(`/orders/${orderId}/status?status=PENDING`, { method: 'PUT' });
-      } else {
-        await api.request(`/orders/${orderId}/status?status=PRINTING`, { method: 'PUT' });
       }
     }
     fetchOrder();
@@ -137,13 +134,18 @@ export default function AdminOrderDetailScreen() {
     }
     
     try {
-      // 1. Update print job status to PRINTING
+      // 1. Ensure order is moved to PROCESSING if currently PENDING
+      if ((order.status || '').toUpperCase() === 'PENDING') {
+        await api.request(`/orders/${orderId}/status?status=PROCESSING`, { method: 'PUT' });
+      }
+      
+      // 2. Set the print job to PRINTING
       await api.request(`/print-jobs/${printJobId}/status?status=PRINTING`, { method: 'PUT' });
       
-      // 2. Get the absolute URL
+      // 3. Get the absolute URL
       const fileUrl = getAbsoluteUrl(file.url);
       
-      // 3. Check file type
+      // 4. Check file type
       const isPdf = file.originalFilename?.toLowerCase().endsWith('.pdf');
       
       if (isPdf) {
@@ -179,12 +181,14 @@ export default function AdminOrderDetailScreen() {
         await RNFS.unlink(tempPath);
       }
       
-      // 4. Show modal to confirm printing
+      // 5. Show modal to confirm printing
       setPrintingFileIdx(idx);
       setShowPrintModal(true);
     } catch (e) {
       console.error('Print error:', e);
       setDownloadingFile(false);
+      // Rollback print job to QUEUED on failure
+      try { await api.request(`/print-jobs/${printJobId}/status?status=QUEUED`, { method: 'PUT' }); } catch {}
       
       // Fallback to opening in browser
       Alert.alert(
@@ -216,8 +220,10 @@ export default function AdminOrderDetailScreen() {
     setPrintedFiles(prev => [...prev, file.id]);
     // 2. Update print job status to COMPLETED
     await api.request(`/print-jobs/${printJob.id}/status?status=COMPLETED`, { method: 'PUT' });
+    
     // 3. If all files printed, update order status to COMPLETED
-    if (printedFiles.length + 1 === files.length) {
+    const printedCount = printedFiles.length + 1;
+    if (printedCount === files.length) {
       await api.request(`/orders/${orderId}/status?status=COMPLETED`, { method: 'PUT' });
       Alert.alert('Order Completed', 'All files printed. Order marked as completed.');
       fetchOrder();

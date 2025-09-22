@@ -1,19 +1,43 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, TextInput, ScrollView } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, TextInput, ScrollView, Alert } from 'react-native';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 import * as Animatable from 'react-native-animatable';
 import LinearGradient from 'react-native-linear-gradient';
+import api from '../../services/api';
 
 export default function AddEmployeeScreen({ navigation }) {
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [phone, setPhone] = useState('');
-  const [role, setRole] = useState('delivery');
+  const [password, setPassword] = useState('');
+  const [role, setRole] = useState('ADMIN');
 
-  const handleAddEmployee = () => {
-    // Handle adding employee logic here
-    console.log('Adding employee:', { name, email, phone, role });
-    navigation.goBack();
+  const handleAddEmployee = async () => {
+    // Validate inputs
+    if (!name || !email || !phone || !password) {
+      Alert.alert('Error', 'Please fill in all fields');
+      return;
+    }
+
+    try {
+      // Create user with API call
+      const response = await api.request('/auth/register', {
+        method: 'POST',
+        body: JSON.stringify({
+          name,
+          email,
+          phone,
+          password,
+          role
+        })
+      });
+
+      Alert.alert('Success', 'Employee added successfully');
+      navigation.goBack();
+    } catch (error) {
+      console.error('Error adding employee:', error);
+      Alert.alert('Error', error?.message || 'Failed to add employee');
+    }
   };
 
   return (
@@ -65,21 +89,32 @@ export default function AddEmployeeScreen({ navigation }) {
           </View>
 
           <View style={styles.inputContainer}>
+            <Text style={styles.inputLabel}>Password</Text>
+            <TextInput
+              style={styles.input}
+              placeholder="Enter password"
+              value={password}
+              onChangeText={setPassword}
+              secureTextEntry={true}
+            />
+          </View>
+
+          <View style={styles.inputContainer}>
             <Text style={styles.inputLabel}>Role</Text>
             <View style={styles.roleContainer}>
               <TouchableOpacity
-                style={[styles.roleButton, role === 'delivery' && styles.roleButtonActive]}
-                onPress={() => setRole('delivery')}
+                style={[styles.roleButton, role === 'USER' && styles.roleButtonActive]}
+                onPress={() => setRole('USER')}
               >
-                <Icon name="local-shipping" size={20} color={role === 'delivery' ? 'white' : '#667eea'} />
-                <Text style={[styles.roleText, role === 'delivery' && styles.roleTextActive]}>Delivery</Text>
+                <Icon name="person" size={20} color={role === 'USER' ? 'white' : '#667eea'} />
+                <Text style={[styles.roleText, role === 'USER' && styles.roleTextActive]}>User</Text>
               </TouchableOpacity>
               <TouchableOpacity
-                style={[styles.roleButton, role === 'admin' && styles.roleButtonActive]}
-                onPress={() => setRole('admin')}
+                style={[styles.roleButton, role === 'ADMIN' && styles.roleButtonActive]}
+                onPress={() => setRole('ADMIN')}
               >
-                <Icon name="admin-panel-settings" size={20} color={role === 'admin' ? 'white' : '#667eea'} />
-                <Text style={[styles.roleText, role === 'admin' && styles.roleTextActive]}>Admin</Text>
+                <Icon name="admin-panel-settings" size={20} color={role === 'ADMIN' ? 'white' : '#667eea'} />
+                <Text style={[styles.roleText, role === 'ADMIN' && styles.roleTextActive]}>Admin</Text>
               </TouchableOpacity>
             </View>
           </View>
@@ -111,4 +146,4 @@ const styles = StyleSheet.create({
   roleTextActive: { color: 'white' },
   addButton: { backgroundColor: '#667eea', borderRadius: 12, padding: 16, alignItems: 'center', marginTop: 20 },
   addButtonText: { color: 'white', fontSize: 18, fontWeight: 'bold' },
-}); 
+});

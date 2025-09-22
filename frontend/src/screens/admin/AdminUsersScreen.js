@@ -92,6 +92,10 @@ export default function AdminUsersScreen({ navigation }) {
     }
     return true;
   });
+  
+  // Separate admins and users
+  const adminUsers = filteredUsers.filter(user => user.role === 'ADMIN');
+  const regularUsers = filteredUsers.filter(user => user.role !== 'ADMIN');
 
   const renderUser = ({ item, index }) => (
     <Animatable.View animation="fadeInUp" delay={index * 60} duration={400}>
@@ -184,13 +188,81 @@ export default function AdminUsersScreen({ navigation }) {
           <Text style={{ color: '#aaa', fontSize: 18, marginTop: 10 }}>No users found.</Text>
         </View>
       ) : (
-        <FlatList
-          data={filteredUsers}
-          renderItem={renderUser}
-          keyExtractor={item => item.id?.toString()}
-          contentContainerStyle={styles.listContent}
-          showsVerticalScrollIndicator={false}
-        />
+        <ScrollView contentContainerStyle={styles.listContent} showsVerticalScrollIndicator={false}>
+          {/* Admin Users Section */}
+          {adminUsers.length > 0 && (
+            <View style={styles.sectionContainer}>
+              <Text style={styles.sectionTitle}>Administrators ({adminUsers.length})</Text>
+              {adminUsers.map((item, index) => (
+                <Animatable.View key={item.id?.toString()} animation="fadeInUp" delay={index * 60} duration={400}>
+                  <View style={[styles.userCard, item.blocked && { borderColor: '#FF3B30', backgroundColor: '#fff6f6' }, styles.adminCard]}> 
+                    <View style={styles.userInfo}>
+                      <Icon name="admin-panel-settings" size={32} color={item.blocked ? '#FF3B30' : '#667eea'} style={{ marginRight: 12 }} />
+                      <View style={{ flex: 1 }}>
+                        <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 2 }}>
+                          <Text style={styles.userName}>{item.name}</Text>
+                          {item.blocked && (
+                            <Text style={styles.blockedTag}>(Blocked)</Text>
+                          )}
+                        </View>
+                        <Text style={styles.userEmail}>{item.email}</Text>
+                        <Text style={styles.userRole}>{item.role}</Text>
+                      </View>
+                    </View>
+                    <View style={styles.userActions}>
+                      {item.blocked ? (
+                        <TouchableOpacity style={styles.actionBtn} onPress={() => handleUnblockUser(item)}>
+                          <Icon name="lock-open" size={22} color="#2ecc71" />
+                        </TouchableOpacity>
+                      ) : (
+                        <TouchableOpacity style={styles.actionBtn} onPress={() => handleBlockUser(item)}>
+                          <Icon name="block" size={22} color="#FF3B30" />
+                        </TouchableOpacity>
+                      )}
+                    </View>
+                  </View>
+                </Animatable.View>
+              ))}
+            </View>
+          )}
+
+          {/* Regular Users Section */}
+          {regularUsers.length > 0 && (
+            <View style={styles.sectionContainer}>
+              <Text style={styles.sectionTitle}>Users ({regularUsers.length})</Text>
+              {regularUsers.map((item, index) => (
+                <Animatable.View key={item.id?.toString()} animation="fadeInUp" delay={index * 60} duration={400}>
+                  <View style={[styles.userCard, item.blocked && { borderColor: '#FF3B30', backgroundColor: '#fff6f6' }]}> 
+                    <View style={styles.userInfo}>
+                      <Icon name="person" size={32} color={item.blocked ? '#FF3B30' : '#667eea'} style={{ marginRight: 12 }} />
+                      <View style={{ flex: 1 }}>
+                        <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 2 }}>
+                          <Text style={styles.userName}>{item.name}</Text>
+                          {item.blocked && (
+                            <Text style={styles.blockedTag}>(Blocked)</Text>
+                          )}
+                        </View>
+                        <Text style={styles.userEmail}>{item.email}</Text>
+                        <Text style={styles.userRole}>{item.role}</Text>
+                      </View>
+                    </View>
+                    <View style={styles.userActions}>
+                      {item.blocked ? (
+                        <TouchableOpacity style={styles.actionBtn} onPress={() => handleUnblockUser(item)}>
+                          <Icon name="lock-open" size={22} color="#2ecc71" />
+                        </TouchableOpacity>
+                      ) : (
+                        <TouchableOpacity style={styles.actionBtn} onPress={() => handleBlockUser(item)}>
+                          <Icon name="block" size={22} color="#FF3B30" />
+                        </TouchableOpacity>
+                      )}
+                    </View>
+                  </View>
+                </Animatable.View>
+              ))}
+            </View>
+          )}
+        </ScrollView>
       )}
       <CustomAlert
         visible={alert.visible}
@@ -232,4 +304,7 @@ const styles = StyleSheet.create({
   emptyState: { flex: 1, justifyContent: 'center', alignItems: 'center', marginTop: 60 },
   centered: { flex: 1, justifyContent: 'center', alignItems: 'center' },
   listContent: { paddingBottom: 30 },
-}); 
+  sectionContainer: { marginTop: 16, marginBottom: 8 },
+  sectionTitle: { fontSize: 18, fontWeight: 'bold', color: '#333', marginBottom: 12, paddingHorizontal: 16 },
+  adminCard: { borderLeftWidth: 4, borderLeftColor: '#667eea' },
+});

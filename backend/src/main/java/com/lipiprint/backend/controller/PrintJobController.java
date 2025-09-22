@@ -12,9 +12,10 @@ import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 import java.util.List;
 import java.util.stream.Collectors;
-import java.math.BigDecimal;
+// Removed unused import
 import java.util.Map;
 import java.util.HashSet;
+import com.fasterxml.jackson.core.type.TypeReference;
 import java.util.Set;
 import java.util.HashMap;
 import com.lipiprint.backend.repository.BindingOptionRepository;
@@ -84,7 +85,8 @@ public class PrintJobController {
         Object filesObj = payload.get("files");
         if (filesObj instanceof List filesList && !filesList.isEmpty()) {
             // New: per-file pricing
-            List<Map<String, Object>> files = (List<Map<String, Object>>) filesObj;
+            com.fasterxml.jackson.databind.ObjectMapper mapper = new com.fasterxml.jackson.databind.ObjectMapper();
+            List<Map<String, Object>> files = mapper.convertValue(filesObj, new TypeReference<List<Map<String, Object>>>() {});
             List<PrintJob> printJobs = new java.util.ArrayList<>();
             for (Map<String, Object> file : files) {
                 PrintJob pj = new PrintJob();
@@ -94,7 +96,7 @@ public class PrintJobController {
                 pj.setFile(f);
                 // Store options as JSON
                 try {
-                    com.fasterxml.jackson.databind.ObjectMapper mapper = new com.fasterxml.jackson.databind.ObjectMapper();
+                    // Reuse the existing mapper instance
                     java.util.Map<String, Object> opts = new java.util.HashMap<>();
                     if (file.get("color") != null) opts.put("color", file.get("color"));
                     if (file.get("paper") != null) opts.put("paper", file.get("paper"));
@@ -188,4 +190,4 @@ public class PrintJobController {
     public ResponseEntity<List<com.lipiprint.backend.entity.DiscountRule>> getDiscountRules() {
         return ResponseEntity.ok(discountRuleRepository.findAll());
     }
-} 
+}

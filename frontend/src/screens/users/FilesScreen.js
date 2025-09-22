@@ -53,14 +53,14 @@ export default function FilesScreen({ navigation }) {
 
   const canDeleteFile = (file) => {
     if (!file.orders || file.orders.length === 0) return true;
-    return file.orders.every(order => order.status === 'DELIVERED' || order.status === 'COMPLETED');
+    return file.orders.every(order => ['COMPLETED', 'CANCELLED', 'FAILED'].includes(order.status));
   };
 
   const handleDelete = (file) => {
     if (!canDeleteFile(file)) {
       showAlert(
         'Cannot Delete File',
-        'This file is still linked to an order that is not yet delivered or completed. You can only delete files that are not in use or have been fully processed.',
+        'This file is still linked to an order that has not been completed. You can delete files only after linked orders are completed.',
         'warning'
       );
       return;
@@ -168,4 +168,4 @@ const styles = StyleSheet.create({
   empty: { textAlign: 'center', color: '#888', marginTop: 32 },
   refreshBtn: { flexDirection: 'row', alignItems: 'center', alignSelf: 'center', marginTop: 16 },
   refreshText: { color: '#667eea', marginLeft: 8, fontWeight: 'bold' },
-}); 
+});

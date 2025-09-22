@@ -101,13 +101,30 @@ export default function AdminDashboardScreen({ navigation }) {
       api.request('/analytics/users'),
       api.request('/analytics/revenue'),
       api.request('/analytics/recent-activities'),
+      api.request('/analytics/trends/orders'),
+      api.request('/analytics/trends/revenue'),
     ])
-      .then(([orders, pendingOrders, users, revenue, activities]) => {
+      .then(([orders, pendingOrders, users, revenue, activities, orderTrends, revenueTrends]) => {
+        // Calculate percentage changes based on trends data
+        const calculateChange = (trends) => {
+          if (!Array.isArray(trends) || trends.length < 2) return '+0%';
+          const current = parseFloat(trends[trends.length - 1]?.count || trends[trends.length - 1]?.revenue || 0);
+          const previous = parseFloat(trends[trends.length - 2]?.count || trends[trends.length - 2]?.revenue || 0);
+          if (previous === 0) return current > 0 ? '+100%' : '+0%';
+          const percentChange = ((current - previous) / previous) * 100;
+          return (percentChange >= 0 ? '+' : '') + percentChange.toFixed(0) + '%';
+        };
+
+        // Get user change from the last two days of order trends as a simple approximation
+        const userChange = Array.isArray(orderTrends) && orderTrends.length >= 2 
+          ? calculateChange(orderTrends.map(t => ({ count: t.count / 2 }))) // Rough estimate: users ≈ orders/2
+          : '+0%';
+
         setStats([
-          { title: 'Total Orders', value: orders?.value ?? 0, change: '+12%', color: '#4F8EF7' },
-          { title: 'Pending Orders', value: pendingOrders?.value ?? 0, change: '-5%', color: '#FF7043' },
-          { title: 'Active Users', value: users?.value ?? 0, change: '+8%', color: '#43B581' },
-          { title: 'Revenue', value: revenue?.value ?? 0, change: '+15%', color: '#FFB300' },
+          { title: 'Total Orders', value: orders?.value ?? 0, change: calculateChange(orderTrends), color: '#4F8EF7' },
+          { title: 'Pending Orders', value: pendingOrders?.value ?? 0, change: pendingOrders?.change ?? '+0%', color: '#FF7043' },
+          { title: 'Active Users', value: users?.value ?? 0, change: userChange, color: '#43B581' },
+          { title: 'Revenue', value: revenue?.value ?? 0, change: calculateChange(revenueTrends), color: '#FFB300' },
         ]);
         setRecentActivities(Array.isArray(activities) ? activities : []);
       })
@@ -1031,4 +1048,4 @@ const styles = StyleSheet.create({
     shadowRadius: 6,
     elevation: 5,
   },
-}); 
+});

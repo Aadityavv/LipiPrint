@@ -49,6 +49,21 @@ public class FileService {
     // Delete file from Firebase Storage and DB
     public void deleteFileAndFromFirebase(Long id) {
         File file = fileRepository.findById(id).orElseThrow();
+        // Enforce completed-only rule: if file is linked to any order not COMPLETED or CANCELLED, block deletion
+        List<PrintJob> jobs = printJobService.findByFileId(file.getId());
+        boolean hasUncompletedLink = false;
+        for (PrintJob pj : jobs) {
+            Order linkedOrder = pj.getOrder();
+            if (linkedOrder != null && 
+                linkedOrder.getStatus() != Order.Status.COMPLETED && 
+                linkedOrder.getStatus() != Order.Status.CANCELLED) {
+                hasUncompletedLink = true;
+                break;
+            }
+        }
+        if (hasUncompletedLink) {
+            throw new IllegalStateException("Cannot delete file: it is linked to orders that are not completed or cancelled.");
+        }
         // Delete from Firebase Storage
         try {
             Bucket bucket = StorageClient.getInstance().bucket();
@@ -178,7 +193,7 @@ public class FileService {
         java.util.Set<File> result = new java.util.HashSet<>();
         for (PrintJob pj : printJobs) {
             if (pj.getOrder() != null &&
-                pj.getOrder().getStatus() == Order.Status.DELIVERED &&
+                pj.getOrder().getStatus() == Order.Status.COMPLETED &&
                 pj.getFile() != null &&
                 !pj.getFile().isDeleted()) {
                 result.add(pj.getFile());
@@ -186,4 +201,4 @@ public class FileService {
         }
         return new java.util.ArrayList<>(result);
     }
-} 
+}

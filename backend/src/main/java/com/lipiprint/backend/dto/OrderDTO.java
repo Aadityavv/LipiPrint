@@ -50,6 +50,7 @@ public class OrderDTO {
     
     private String phone;
     private String razorpayOrderId;
+    private String razorpayPaymentId;
     private String orderNote;
     
     // Pricing fields
@@ -68,8 +69,9 @@ public class OrderDTO {
     public OrderDTO(Long id, UserDTO user, List<PrintJobDTO> printJobs, String status, 
                    Double totalAmount, LocalDateTime createdAt, LocalDateTime updatedAt,
                    String deliveryType, String deliveryAddress, String razorpayOrderId, 
-                   String orderNote, Double subtotal, Double discount, Double discountedSubtotal,
-                   Double gst, Double delivery, Double grandTotal, List<PricingService.BreakdownItem> breakdown) {
+                   String razorpayPaymentId, String orderNote, Double subtotal, Double discount, 
+                   Double discountedSubtotal, Double gst, Double delivery, Double grandTotal, 
+                   List<PricingService.BreakdownItem> breakdown) {
         this.id = id;
         this.user = user;
         this.printJobs = printJobs;
@@ -80,6 +82,7 @@ public class OrderDTO {
         this.deliveryType = deliveryType;
         this.deliveryAddress = deliveryAddress;
         this.razorpayOrderId = razorpayOrderId;
+        this.razorpayPaymentId = razorpayPaymentId;
         this.orderNote = orderNote;
         this.subtotal = subtotal;
         this.discount = discount;
@@ -139,8 +142,21 @@ public class OrderDTO {
     public String getPhone() { return phone; }
     public void setPhone(String phone) { this.phone = phone; }
 
-    public String getRazorpayOrderId() { return razorpayOrderId; }
-    public void setRazorpayOrderId(String razorpayOrderId) { this.razorpayOrderId = razorpayOrderId; }
+    public String getRazorpayOrderId() {
+        return razorpayOrderId;
+    }
+
+    public void setRazorpayOrderId(String razorpayOrderId) {
+        this.razorpayOrderId = razorpayOrderId;
+    }
+    
+    public String getRazorpayPaymentId() {
+        return razorpayPaymentId;
+    }
+
+    public void setRazorpayPaymentId(String razorpayPaymentId) {
+        this.razorpayPaymentId = razorpayPaymentId;
+    }
 
     public String getOrderNote() { return orderNote; }
     public void setOrderNote(String orderNote) { this.orderNote = orderNote; }

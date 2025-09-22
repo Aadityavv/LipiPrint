@@ -2,7 +2,7 @@ package com.lipiprint.backend.controller;
 
 import com.lipiprint.backend.dto.HelpCenterArticleDTO;
 import com.lipiprint.backend.dto.SupportTicketDTO;
-import com.lipiprint.backend.entity.HelpCenterArticle;
+// Removed unused import
 import com.lipiprint.backend.entity.SupportTicket;
 import com.lipiprint.backend.entity.User;
 import com.lipiprint.backend.service.HelpCenterService;
@@ -51,4 +51,4 @@ public class HelpCenterController {
         SupportTicketDTO dto = new SupportTicketDTO(saved.getId(), null, saved.getSubject(), saved.getDescription(), saved.getStatus().name(), saved.getCreatedAt(), saved.getUpdatedAt());
         return ResponseEntity.ok(dto);
     }
-} 
+}

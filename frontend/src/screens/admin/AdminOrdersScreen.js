@@ -168,54 +168,14 @@ export default function AdminOrdersScreen({ navigation }) {
     DELIVERED: 'Delivered',
   };
 
-  const getStatusColor = (status) => {
-    switch (status) {
-      case 'pending': return '#F59E0B';
-      case 'confirmed': return '#FFA726';
-      case 'printing': return '#3B82F6';
-      case 'ready': return '#66BB6A';
-      case 'completed': return '#10B981';
-      default: return '#9E9E9E';
-    }
-  };
-
-  const getStatusText = (status) => {
-    switch (status) {
-      case 'pending': return 'Pending';
-      case 'confirmed': return 'Confirmed';
-      case 'printing': return 'Printing';
-      case 'ready': return 'Ready for Pickup';
-      case 'completed': return 'Completed';
-      default: return 'Unknown';
-    }
-  };
-
-  const getStatusIcon = (status) => {
-    switch (status) {
-      case 'pending': return 'schedule';
-      case 'confirmed': return 'check-circle';
-      case 'printing': return 'print';
-      case 'ready': return 'inventory-2';
-      case 'completed': return 'verified';
+  const getStatusIcon = (statusUpper) => {
+    switch (statusUpper) {
+      case 'PENDING': return 'schedule';
+      case 'PROCESSING': return 'autorenew';
+      case 'COMPLETED': return 'verified';
+      case 'OUT_FOR_DELIVERY': return 'local-shipping';
+      case 'DELIVERED': return 'check-circle';
       default: return 'help';
-    }
-  };
-
-  const getPriorityColor = (priority) => {
-    switch (priority) {
-      case 'urgent': return '#EF4444';
-      case 'high': return '#F59E0B';
-      case 'normal': return '#10B981';
-      default: return '#9E9E9E';
-    }
-  };
-
-  const getPriorityText = (priority) => {
-    switch (priority) {
-      case 'urgent': return 'URGENT';
-      case 'high': return 'HIGH';
-      case 'normal': return 'NORMAL';
-      default: return 'LOW';
     }
   };
 
@@ -228,13 +188,12 @@ export default function AdminOrdersScreen({ navigation }) {
   const filteredOrders = orders.filter(order => {
     if (selectedFilter !== 'all' && (order.status || '').toUpperCase() !== selectedFilter) return false;
     if (!search) return true;
-    const user = order.user;
-    const printJob = order.printJob;
-    const file = printJob?.file;
+    const userName = order.userName;
     if (searchBy === 'user') {
-      return (user?.name || '').toLowerCase().includes(search.toLowerCase());
+      return (userName || '').toLowerCase().includes(search.toLowerCase());
     } else if (searchBy === 'file') {
-      return (file?.originalFilename || '').toLowerCase().includes(search.toLowerCase());
+      // Not available in lightweight DTO; skip file searching here
+      return false;
     } else if (searchBy === 'date') {
       return (order.createdAt || '').slice(0, 10).includes(search);
     }
@@ -276,32 +235,6 @@ export default function AdminOrdersScreen({ navigation }) {
     }
   };
 
-  const handlePrintFile = (fileUrl) => {
-    const absUrl = getAbsoluteUrl(fileUrl);
-    console.log('Print file URL:', absUrl);
-    if (absUrl && absUrl.startsWith('http')) {
-      Linking.openURL(absUrl).catch(err => {
-        console.error('Print file error:', err);
-        showAlert('Error', 'Failed to open file for printing.', 'error');
-      });
-    } else {
-      showAlert('No file', 'No file available to print.', 'warning');
-    }
-  };
-
-  const handleDownloadFile = (fileUrl) => {
-    const absUrl = getAbsoluteUrl(fileUrl);
-    console.log('Download file URL:', absUrl);
-    if (absUrl && absUrl.startsWith('http')) {
-      Linking.openURL(absUrl).catch(err => {
-        console.error('Download file error:', err);
-        showAlert('Error', 'Failed to download file.', 'error');
-      });
-    } else {
-      showAlert('No file', 'No file available to download.', 'warning');
-    }
-  };
-
   const handleDownloadInvoice = (orderId) => {
     const url = getAbsoluteUrl(`/orders/${orderId}/invoice`);
     console.log('Download invoice URL:', url);
@@ -315,276 +248,20 @@ export default function AdminOrdersScreen({ navigation }) {
   const statusActions = [
     { status: 'PROCESSING', label: 'Start Processing' },
     { status: 'COMPLETED', label: 'Complete Order' },
-    { status: 'CANCELLED', label: 'Cancel Order' },
+    { status: 'OUT_FOR_DELIVERY', label: 'Out for Delivery' },
     { status: 'DELIVERED', label: 'Mark Delivered' },
+    { status: 'CANCELLED', label: 'Cancel Order' },
   ];
 
-  // Add icons for each status
   const statusActionIcons = {
     PROCESSING: 'autorenew',
     COMPLETED: 'check-circle',
+    OUT_FOR_DELIVERY: 'local-shipping',
+    DELIVERED: 'done-all',
     CANCELLED: 'cancel',
-    DELIVERED: 'local-shipping',
   };
 
-  // Copy buildInvoiceHtml and groupPrintJobsByOptions from InvoiceDetailScreen.js
-  function buildInvoiceHtml(order, printJobGroups) {
-    const companyName = 'NAGPAL PRINT HOUSE';
-    const companyAddress = 'Near Civil Court Sadar Thana Road, Saharanpur';
-    const companyGSTIN = '09AJ0PN3715E1Z3';
-    const companyEmail = 'support@lipiprint.in';
-    const companyPhone = '+91 12345 67890';
-    const invoiceNo = order.id ? `LP${order.id}` : '-';
-    const invoiceDate = order.createdAt ? order.createdAt.split('T')[0] : '-';
-    const customerName = order.user?.name || '-';
-    const customerAddress = order.deliveryAddress || '-';
-    const customerEmail = order.user?.email || '-';
-    const customerPhone = order.user?.phone || '-';
-    const customerGSTIN = order.user?.gstin || '-';
-    const printDate = new Date().toLocaleString();
-    const groupedJobs = {};
-    if (order.printJobs && order.printJobs.length > 0) {
-      order.printJobs.forEach((pj) => {
-        let opts = {};
-        try {
-          opts = typeof pj.options === 'string' ? JSON.parse(pj.options) : pj.options;
-        } catch {}
-        const key = JSON.stringify({
-          color: opts.color || '',
-          paper: opts.paper || '',
-          quality: opts.quality || '',
-          side: opts.side || '',
-          binding: opts.binding || '',
-        });
-        if (!groupedJobs[key]) {
-          groupedJobs[key] = {
-            files: [],
-            totalPages: 0,
-            printOptions: opts,
-          };
-        }
-        groupedJobs[key].files.push(pj.file);
-        groupedJobs[key].totalPages += pj.file?.pages || 1;
-      });
-    }
-    const breakdown = order.breakdown || [];
-    let sNo = 1;
-    let orderItemsRows = '';
-    breakdown.forEach(item => {
-      orderItemsRows += `
-      <tr>
-        <td style='padding:6px 4px;text-align:center;'>${sNo++}</td>
-        <td style='padding:6px 4px;'>${item.description}</td>
-        <td style='padding:6px 4px;text-align:center;'>${item.quantity}</td>
-        <td style='padding:6px 4px;text-align:center;'>${item.hsn}</td>
-        <td style='padding:6px 4px;text-align:right;'>${item.rate.toFixed(2)}</td>
-        <td style='padding:6px 4px;text-align:right;'>${item.amount.toFixed(2)}</td>
-        <td style='padding:6px 4px;text-align:right;'>${item.discount.toFixed(2)}</td>
-        <td style='padding:6px 4px;text-align:right;'>${item.total.toFixed(2)}</td>
-      </tr>
-      <tr>
-        <td></td>
-        <td colspan='7' style='font-size:13px;color:#555;padding-bottom:8px;'>${item.printOptions || ''}</td>
-      </tr>
-      `;
-    });
-    const summarySubtotal = order.subtotal !== undefined && order.subtotal !== null ? order.subtotal.toFixed(2) : '0.00';
-    const summaryDiscount = order.discount !== undefined && order.discount !== null ? order.discount.toFixed(2) : '0.00';
-    const summaryDiscountedSubtotal = order.discountedSubtotal !== undefined && order.discountedSubtotal !== null ? order.discountedSubtotal.toFixed(2) : '0.00';
-    const summaryGST = order.gst !== undefined && order.gst !== null ? order.gst.toFixed(2) : '0.00';
-    const summaryDelivery = order.delivery !== undefined && order.delivery !== null ? order.delivery.toFixed(2) : '0.00';
-    const summaryGrandTotal = order.grandTotal !== undefined && order.grandTotal !== null ? order.grandTotal.toFixed(2) : '0.00';
-    return `
-    <!DOCTYPE html>
-    <html lang='en'>
-    <head>
-      <meta charset='UTF-8' />
-      <title>Invoice - LipiPrint</title>
-      <style>
-        body { font-family: 'Inter', 'Segoe UI', Arial, sans-serif; margin: 0; padding: 0; background: #f7f9fb; color: #222; }
-        .container { max-width: 800px; margin: 0px auto 0px auto; background: #fff; border-radius: 16px; box-shadow: 0 4px 24px #0001; padding: 36px 32px; }
-        .header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 32px; }
-        .company-info { font-size: 15px; line-height: 1.6; margin-top: 10px; color: #555; }
-        .invoice-meta { text-align: right; font-size: 15px; }
-        .invoice-title { font-size: 28px; font-weight: 700; color: #2d6cdf; margin-bottom: 8px; letter-spacing: 1px; }
-        .section { margin-top: 28px; }
-        .section-title { font-size: 18px; font-weight: 600; color: #4a4a4a; margin-bottom: 12px; letter-spacing: 0.5px; }
-        .info-table { width: 100%; border-collapse: collapse; }
-        .info-table td { padding: 4px 0; font-size: 15px; }
-        .order-table { width: 100%; border-collapse: collapse; margin-top: 10px; }
-        .order-table th, .order-table td { border: 1px solid #e0e0e0; }
-        .order-table th { background: #f0f4ff; color: #22194f; font-size: 15px; font-weight: 700; padding: 8px 4px; }
-        .order-table td { font-size: 15px; color: #333; padding: 6px 4px; }
-        .totals { margin-top: 18px; width: 100%; border-collapse: collapse; }
-        .totals td { font-size: 16px; padding: 8px 0; }
-        .totals .label { text-align: right; color: #666; font-weight: 600; }
-        .totals .value { text-align: right; font-weight: 700; }
-        .grand-total { font-size: 20px; color: #2d6cdf; font-weight: 700; border-top: 2px solid #eee; padding-top: 10px; }
-        .footer { margin-top: 40px; text-align: center; color: #888; font-size: 14px; border-top: 1px solid #eee; padding-top: 16px; background: #fff; }
-        .highlight { background: #eaf6ff; border-radius: 8px; padding: 12px 10px; margin-bottom: 10px; }
-      </style>
-    </head>
-    <body>
-    <div class='container'>
-      <div class='header'>
-        <div>
-          <div class='company-info'>
-            <b>${companyName}</b><br />
-            ${companyAddress}<br />
-            <b>GSTIN:</b> ${companyGSTIN}<br />
-            ${companyEmail} | ${companyPhone}
-          </div>
-        </div>
-        <div class='invoice-meta'>
-          <div class='invoice-title'>INVOICE</div>
-          <div>Invoice No.: <b>${invoiceNo}</b></div>
-          <div>Date: <b>${invoiceDate}</b></div>
-        </div>
-      </div>
-      <div class='section'>
-        <div class='section-title'>Bill To</div>
-        <table class='info-table'>
-          <tr><td><b>Name:</b></td><td>${customerName}</td></tr>
-          <tr><td><b>Email:</b></td><td>${customerEmail}</td></tr>
-          <tr><td><b>Phone:</b></td><td>${customerPhone}</td></tr>
-          <tr><td><b>Address:</b></td><td>${customerAddress}</td></tr>
-          <tr><td><b>GSTIN:</b></td><td>${customerGSTIN}</td></tr>
-        </table>
-      </div>
-      <div class='section'>
-        <div class='section-title'>Order Items</div>
-        <table class='order-table'>
-          <tr>
-            <th>S.No</th>
-            <th>Description</th>
-            <th>Quantity</th>
-            <th>HSN</th>
-            <th>Rate</th>
-            <th>Amount</th>
-            <th>Discount</th>
-            <th>Total</th>
-          </tr>
-          ${orderItemsRows}
-        </table>
-        <div style='font-size:13px;color:#888;margin-top:8px;'>All prices are backend-calculated for accuracy. See summary below.</div>
-      </div>
-      <div class='section'>
-        <div class='section-title'>Summary</div>
-        <table class='totals'>
-          <tr><td class='label'>Subtotal</td><td class='value'>INR ${summarySubtotal}</td></tr>
-          <tr><td class='label'>Discount</td><td class='value'>INR ${summaryDiscount}</td></tr>
-          <tr><td class='label'>Subtotal (After Discount)</td><td class='value'>INR ${summaryDiscountedSubtotal}</td></tr>
-          <tr><td class='label'>GST</td><td class='value'>INR ${summaryGST}</td></tr>
-          <tr><td class='label'>Delivery</td><td class='value'>INR ${summaryDelivery}</td></tr>
-          <tr><td class='label grand-total'>Grand Total</td><td class='value grand-total'>INR ${summaryGrandTotal}</td></tr>
-        </table>
-      </div>
-      <div class='footer'>
-        All subject to Saharanpur Jurisdiction only<br>
-        Our responsibility ceases the moment the goods leave from office.<br>
-        Certified that particulars given above are true and correct.<br>
-        This is computer generated invoice. Printed on ${printDate}
-      </div>
-    </div>
-    </body>
-    </html>
-    `;
-  }
-
-  function groupPrintJobsByOptions(printJobs) {
-    if (!printJobs) return [];
-    const groups = [];
-    const seen = new Map();
-    printJobs.forEach(pj => {
-      let optionsKey = '';
-      try {
-        const opts = typeof pj.options === 'string' ? JSON.parse(pj.options) : pj.options;
-        optionsKey = JSON.stringify(opts, Object.keys(opts).sort());
-      } catch {
-        optionsKey = String(pj.options);
-      }
-      if (!seen.has(optionsKey)) {
-        seen.set(optionsKey, { options: pj.options, files: [pj.file], createdAts: [pj.file?.createdAt] });
-      } else {
-        const group = seen.get(optionsKey);
-        group.files.push(pj.file);
-        group.createdAts.push(pj.file?.createdAt);
-      }
-    });
-    return Array.from(seen.values());
-  }
-
-  const handleAdminDownloadInvoice = async (orderId) => {
-    setDownloadingInvoiceId(orderId);
-    try {
-      // Fetch order details
-      const order = await api.getOrder(orderId);
-      // Group print jobs
-      const printJobGroups = groupPrintJobsByOptions(order.printJobs);
-      // Build invoice HTML
-      const html = buildInvoiceHtml(order, printJobGroups);
-      // Request storage permission if needed (Android < 11)
-      let granted = true;
-      if (Platform.OS === 'android' && Platform.Version < 30) {
-        granted = await PermissionsAndroid.request(
-          PermissionsAndroid.PERMISSIONS.WRITE_EXTERNAL_STORAGE,
-          {
-            title: 'Storage Permission',
-            message: 'App needs access to your storage to save the invoice PDF.',
-            buttonNeutral: 'Ask Me Later',
-            buttonNegative: 'Cancel',
-            buttonPositive: 'OK',
-          },
-        ) === PermissionsAndroid.RESULTS.GRANTED;
-      }
-      if (!granted) {
-        setDownloadingInvoiceId(null);
-        showAlert('Permission Denied', 'Cannot save PDF without storage permission.', 'error');
-        return;
-      }
-      // Generate PDF to temp path
-      const tempFile = await RNHTMLtoPDF.convert({
-        html,
-        fileName: `invoice-${order.id}`,
-        directory: 'Documents',
-        base64: false,
-      });
-      // Move to Downloads
-      let destPath = '';
-      if (Platform.OS === 'android' && RNFS.DownloadDirectoryPath) {
-        destPath = `${RNFS.DownloadDirectoryPath}/invoice-${order.id}.pdf`;
-      } else {
-        destPath = `${RNFS.DocumentDirectoryPath}/invoice-${order.id}.pdf`;
-      }
-      await RNFS.moveFile(tempFile.filePath, destPath);
-      setDownloadingInvoiceId(null);
-      setInvoiceModal({ visible: true, filePath: destPath, orderId });
-      showAlert('Download Complete', `Invoice saved at:\n${destPath}`, 'success');
-    } catch (e) {
-      setDownloadingInvoiceId(null);
-      showAlert('Download Failed', 'Could not generate invoice PDF.', 'error');
-    }
-  };
-
-  const handlePreviewInvoice = () => {
-    setInvoiceModal(modal => ({ ...modal, preview: true }));
-  };
-  const handlePrintInvoice = async () => {
-    if (invoiceModal.filePath) {
-      await RNPrint.print({ filePath: invoiceModal.filePath });
-    }
-  };
-  const handleOpenInFolder = () => {
-    if (Platform.OS === 'android') {
-      Linking.openURL('file://' + RNFS.DownloadDirectoryPath);
-    } else {
-      Linking.openURL('file://' + RNFS.DocumentDirectoryPath);
-    }
-  };
-
-  // In renderOrderCard, update to use OrderListDTO fields
   const renderOrderCard = ({ item, index }) => {
-    // item: { id, userName, status, totalAmount, createdAt, deliveryType }
     const status = (item.status || '').toUpperCase();
     const statusColor = statusColors[status] || '#9E9E9E';
     const isHighlighted = item.id === lastUpdatedOrderId;
@@ -608,7 +285,7 @@ export default function AdminOrdersScreen({ navigation }) {
             <View style={styles.orderIdContainer}>
               <Text style={styles.orderId}>#{item.id}</Text>
               <View style={[styles.statusBadge, { backgroundColor: statusColor }]}>
-                <Icon name={getStatusIcon(status.toLowerCase())} size={12} color="white" />
+                <Icon name={getStatusIcon(status)} size={12} color="white" />
                 <Text style={styles.statusBadgeText}>{statusLabels[status] || status}</Text>
               </View>
             </View>
@@ -687,6 +364,26 @@ export default function AdminOrdersScreen({ navigation }) {
                 <Text style={[styles.actionButtonText, { color: 'white' }]}>
                   {status === 'PENDING' ? 'Start Processing' : 'Complete'}
                 </Text>
+              </TouchableOpacity>
+            )}
+
+            {status === 'COMPLETED' && (
+              <TouchableOpacity
+                style={[styles.actionButton, styles.statusActionButton, { backgroundColor: '#FBC02D' }]}
+                onPress={(e) => { e.stopPropagation(); handleUpdateStatus(item.id, 'OUT_FOR_DELIVERY'); }}
+              >
+                <Icon name="local-shipping" size={20} color="white" />
+                <Text style={[styles.actionButtonText, { color: 'white' }]}>Out for Delivery</Text>
+              </TouchableOpacity>
+            )}
+
+            {status === 'OUT_FOR_DELIVERY' && (
+              <TouchableOpacity
+                style={[styles.actionButton, styles.statusActionButton, { backgroundColor: '#66BB6A' }]}
+                onPress={(e) => { e.stopPropagation(); handleUpdateStatus(item.id, 'DELIVERED'); }}
+              >
+                <Icon name="done-all" size={20} color="white" />
+                <Text style={[styles.actionButtonText, { color: 'white' }]}>Mark Delivered</Text>
               </TouchableOpacity>
             )}
           </View>
@@ -952,15 +649,15 @@ export default function AdminOrdersScreen({ navigation }) {
             {'\n'}{invoiceModal.filePath}
           </Text>
           <View style={styles.modalActions}>
-            <TouchableOpacity style={styles.modalButton} onPress={handlePreviewInvoice}>
+            <TouchableOpacity style={styles.modalButton} onPress={() => setInvoiceModal(modal => ({ ...modal, preview: true }))}>
               <Text style={styles.modalButtonText}>Preview</Text>
             </TouchableOpacity>
-            <TouchableOpacity style={styles.modalButton} onPress={handlePrintInvoice}>
+            <TouchableOpacity style={styles.modalButton} onPress={async () => { if (invoiceModal.filePath) { await RNPrint.print({ filePath: invoiceModal.filePath }); } }}>
               <Text style={styles.modalButtonText}>Print</Text>
             </TouchableOpacity>
-            <TouchableOpacity style={styles.modalButton} onPress={handleOpenInFolder}>
+            {/* <TouchableOpacity style={styles.modalButton} onPress={() => Linking.openURL(Platform.OS === 'android' ? 'file://' + RNFS.DownloadDirectoryPath : 'file://' + RNFS.DocumentDirectoryPath)}>
               <Text style={styles.modalButtonText}>Open Folder</Text>
-            </TouchableOpacity>
+            </TouchableOpacity> */}
           </View>
           {invoiceModal.preview && (
             <View style={styles.pdfPreview}>

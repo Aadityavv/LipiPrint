@@ -20,7 +20,7 @@ public class FirebaseConfig {
         }
         FileInputStream serviceAccount = new FileInputStream(keyPath);
 
-        FirebaseOptions options = new FirebaseOptions.Builder()
+        FirebaseOptions options = FirebaseOptions.builder()
             .setCredentials(GoogleCredentials.fromStream(serviceAccount))
             .setStorageBucket("lipiprint-c2066.firebasestorage.app") // Correct bucket name
             .build();
@@ -29,4 +29,4 @@ public class FirebaseConfig {
             FirebaseApp.initializeApp(options);
         }
     }
-} 
+}
