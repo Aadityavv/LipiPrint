@@ -67,7 +67,6 @@ public class OrderController {
         logger.info("========================================");
         
         try {
-            // Validate user
             User user = userService.findByPhone(authentication.getName()).orElseThrow();
             logger.info("✅ User validated: {} (ID: {})", user.getName(), user.getId());
             
@@ -78,16 +77,13 @@ public class OrderController {
                 return ResponseEntity.badRequest().body(new MessageResponse("Delivery type is required."));
             }
 
-            // ✅ CRITICAL: Handle structured address data
             UserAddress deliveryAddress = null;
             String deliveryAddressDisplay = orderDTO.getDeliveryAddress();
             
             if ("DELIVERY".equals(orderDTO.getDeliveryType())) {
-                // ✅ NEW: Check if we have structured address data in the DTO
                 Map<String, Object> addressData = extractAddressData(orderDTO);
                 
                 if (addressData != null) {
-                    // Create UserAddress from structured data
                     deliveryAddress = new UserAddress();
                     deliveryAddress.setLine1((String) addressData.get("line1"));
                     deliveryAddress.setLine2((String) addressData.get("line2"));
@@ -105,7 +101,6 @@ public class OrderController {
                     logger.info("   State: '{}'", deliveryAddress.getState());
                     logger.info("   Phone: '{}'", deliveryAddress.getPhone());
                     
-                    // ✅ CRITICAL: Validate pincode
                     if (deliveryAddress.getPincode() == null || 
                         deliveryAddress.getPincode().trim().isEmpty() || 
                         !deliveryAddress.getPincode().matches("\\d{6}")) {
@@ -115,29 +110,25 @@ public class OrderController {
                     }
                     
                 } else if (deliveryAddressDisplay != null && !deliveryAddressDisplay.trim().isEmpty()) {
-                    // Fallback: parse from display string
                     logger.warn("⚠️ No structured address data, parsing from display string: '{}'", deliveryAddressDisplay);
                     deliveryAddress = parseAddressFromString(deliveryAddressDisplay);
                 } else {
                     return ResponseEntity.badRequest().body(new MessageResponse("Delivery address is required for delivery orders."));
                 }
                 
-                // ✅ VALIDATION: Final check for required fields
                 if (deliveryAddress.getPincode() == null || deliveryAddress.getPincode().equals("000000")) {
                     logger.error("❌ No valid pincode found in address data");
                     return ResponseEntity.badRequest().body(new MessageResponse("Valid delivery pincode is required."));
                 }
             }
 
-            // Map DTO to entity
             Order order = new Order();
             order.setUser(user);
             order.setDeliveryType(Order.DeliveryType.valueOf(orderDTO.getDeliveryType().toUpperCase()));
-            order.setDeliveryAddress(deliveryAddressDisplay); // Store display format for compatibility
+            order.setDeliveryAddress(deliveryAddressDisplay);
             order.setStatus(Order.Status.PENDING);
             order.setTotalAmount(orderDTO.getTotalAmount());
 
-            // Map print jobs
             if (orderDTO.getPrintJobs() != null) {
                 var printJobs = new java.util.ArrayList<com.lipiprint.backend.entity.PrintJob>();
                 for (var pjDTO : orderDTO.getPrintJobs()) {
@@ -159,7 +150,6 @@ public class OrderController {
                 order.setPrintJobs(printJobs);
             }
 
-            // Calculate and store price summary at order placement
             if (order.getPrintJobs() != null && !order.getPrintJobs().isEmpty()) {
                 PricingService.PriceSummary summary = pricingService.calculatePriceSummaryForPrintJobs(order.getPrintJobs());
                 double delivery = order.getDeliveryType() != null && order.getDeliveryType() == Order.DeliveryType.PICKUP ? 0.0 : 30.0;
@@ -174,7 +164,6 @@ public class OrderController {
                 order.setBreakdown(summary.breakdown);
             }
 
-            // Save order and link payment if razorpayOrderId is present
             String razorpayOrderId = orderDTO.getRazorpayOrderId();
             String razorpayPaymentId = orderDTO.getRazorpayPaymentId();
             Order saved = orderService.save(order, razorpayOrderId, razorpayPaymentId);
@@ -182,9 +171,6 @@ public class OrderController {
             
             logger.info("✅ Order saved with ID: {}", saved.getId());
 
-            // Shipment creation moved to status update when PROCESSING
-
-            // Map to DTO for response
             OrderDTO dto = convertToDTO(saved);
             
             logger.info("✅ Order creation completed successfully - Order ID: {}", saved.getId());
@@ -198,17 +184,14 @@ public class OrderController {
         }
     }
 
-    // ✅ UPDATED: Extract structured address data from OrderDTO
     private Map<String, Object> extractAddressData(OrderDTO orderDTO) {
         try {
-            // First, try the structured address data field
             Map<String, Object> addressData = orderDTO.getStructuredDeliveryAddress();
             if (addressData != null && addressData.containsKey("pincode") && addressData.containsKey("line1")) {
                 logger.info("✅ Found structured address data in DTO: {}", addressData);
                 return addressData;
             }
             
-            // If no structured data, return null to trigger fallback parsing
             logger.info("⚠️ No structured address data found in DTO");
             return null;
             
@@ -218,7 +201,6 @@ public class OrderController {
         }
     }
 
-    // ✅ ENHANCED: Parse address from string (fallback method)
     private UserAddress parseAddressFromString(String addressString) {
         UserAddress address = new UserAddress();
         
@@ -229,18 +211,15 @@ public class OrderController {
                 address.setLine1(parts[0].trim());
                 address.setLine2(parts[1].trim());
                 
-                // Try to extract pincode from the last part
                 String lastPart = parts[parts.length - 1].trim();
                 String pincode = extractPincode(lastPart);
                 address.setPincode(pincode);
                 
-                // Extract city and state
                 address.setCity(extractCity(addressString));
                 address.setState(extractState(addressString));
             }
         }
         
-        // Set defaults if not found
         if (address.getPincode() == null || address.getPincode().isEmpty()) {
             address.setPincode("000000");
         }
@@ -264,7 +243,6 @@ public class OrderController {
         return address;
     }
 
-    // ✅ ENHANCED: Utility methods for address parsing
     private String extractPincode(String text) {
         if (text == null || text.trim().isEmpty()) {
             return "000000";
@@ -323,10 +301,9 @@ public class OrderController {
             return "Himachal Pradesh";
         }
         
-        return "Uttar Pradesh"; // Default for your region
+        return "Uttar Pradesh";
     }
 
-    // ✅ ENHANCED: Convert Order entity to DTO
     private OrderDTO convertToDTO(Order order) {
         User u = order.getUser();
         List<PrintJob> printJobs = order.getPrintJobs();
@@ -439,13 +416,9 @@ public class OrderController {
             } catch (IllegalArgumentException e) {
                 return ResponseEntity.badRequest().body(Map.of("error", "Invalid status value: " + status));
             }
-            // Removed unused variable oldStatus
             order.setStatus(newStatus);
             Order updated = orderService.save(order, null, null);
-            // Trigger shipment only when transitioning to PROCESSING and eligible
             if (newStatus == Order.Status.PROCESSING && updated.canBeShipped()) {
-                // OrderService handles creating the shipment
-                // We call an internal method by updating again through service layer
                 orderService.updateOrderStatus(updated.getId(), newStatus);
                 updated = orderService.findById(updated.getId()).orElse(updated);
             }
@@ -511,119 +484,189 @@ public class OrderController {
 
     @GetMapping("/{id}/invoice")
     public ResponseEntity<ByteArrayResource> downloadInvoice(@PathVariable Long id, Authentication authentication) {
-        Order order = orderService.findById(id).orElseThrow();
-        User currentUser = null;
-        boolean isAdmin = false;
-        if (authentication != null) {
-            currentUser = userService.findByPhone(authentication.getName()).orElse(null);
-            logger.info("[INVOICE] Current user: {} (id: {}), authorities: {}", currentUser != null ? currentUser.getEmail() : null, currentUser != null ? currentUser.getId() : null, authentication.getAuthorities());
-            isAdmin = authentication.getAuthorities().stream().map(a -> a.getAuthority()).anyMatch(a -> a.equals("ROLE_ADMIN"));
+        try {
+            Order order = orderService.findById(id).orElseThrow(() -> 
+                new RuntimeException("Order not found with id: " + id));
+            
+            User currentUser = null;
+            boolean isAdmin = false;
+            if (authentication != null) {
+                currentUser = userService.findByPhone(authentication.getName()).orElse(null);
+                logger.info("[INVOICE] Current user: {} (id: {}), authorities: {}", 
+                    currentUser != null ? currentUser.getEmail() : null, 
+                    currentUser != null ? currentUser.getId() : null, 
+                    authentication.getAuthorities());
+                isAdmin = authentication.getAuthorities().stream()
+                    .map(a -> a.getAuthority())
+                    .anyMatch(a -> a.equals("ROLE_ADMIN"));
+            }
+            
+            if (!isAdmin && (currentUser == null || order.getUser() == null || !order.getUser().getId().equals(currentUser.getId()))) {
+                logger.warn("[INVOICE] Access denied for user: {} (id: {})", 
+                    currentUser != null ? currentUser.getEmail() : null, 
+                    currentUser != null ? currentUser.getId() : null);
+                return ResponseEntity.status(403).body(null);
+            }
+            
+            byte[] pdfBytes = generateInvoicePdfHtml(order);
+            ByteArrayResource resource = new ByteArrayResource(pdfBytes);
+            
+            return ResponseEntity.ok()
+                    .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=invoice-" + order.getId() + ".pdf")
+                    .contentType(MediaType.APPLICATION_PDF)
+                    .contentLength(pdfBytes.length)
+                    .body(resource);
+                
+        } catch (Exception e) {
+            logger.error("[INVOICE] Error generating invoice for order {}: {}", id, e.getMessage(), e);
+            return ResponseEntity.status(500).body(null);
         }
-        if (!isAdmin && (currentUser == null || order.getUser() == null || !order.getUser().getId().equals(currentUser.getId()))) {
-            logger.warn("[INVOICE] Access denied for user: {} (id: {})", currentUser != null ? currentUser.getEmail() : null, currentUser != null ? currentUser.getId() : null);
-            return ResponseEntity.status(403).body(null);
-        }
-        byte[] pdfBytes = generateInvoicePdfHtml(order);
-        ByteArrayResource resource = new ByteArrayResource(pdfBytes);
-        return ResponseEntity.ok()
-                .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=invoice-" + order.getId() + ".pdf")
-                .contentType(MediaType.APPLICATION_PDF)
-                .contentLength(pdfBytes.length)
-                .body(resource);
     }
 
-    // New HTML-to-PDF method
     private byte[] generateInvoicePdfHtml(Order order) {
         try {
-            ClassPathResource resource = new ClassPathResource("invoice-template.html");
-            byte[] templateBytes = resource.getInputStream().readAllBytes();
+            if (order == null) {
+                throw new IllegalArgumentException("Order cannot be null");
+            }
+            
+            ClassPathResource resource;
+            try {
+                resource = new ClassPathResource("invoice-template.html");
+                if (!resource.exists()) {
+                    logger.error("[PDF] Invoice template file not found");
+                    throw new RuntimeException("Invoice template file not found");
+                }
+            } catch (Exception e) {
+                logger.error("[PDF] Error loading invoice template: {}", e.getMessage(), e);
+                throw new RuntimeException("Error loading invoice template", e);
+            }
+            
+            byte[] templateBytes;
+            try {
+                templateBytes = resource.getInputStream().readAllBytes();
+            } catch (Exception e) {
+                logger.error("[PDF] Error reading template file: {}", e.getMessage(), e);
+                throw new RuntimeException("Error reading template file", e);
+            }
+            
             String html = new String(templateBytes, StandardCharsets.UTF_8);
             
-            // Replace placeholders with order data
-            html = html.replace("${customerName}", order.getUser() != null ? order.getUser().getName() : "-");
-            html = html.replace("${customerEmail}", order.getUser() != null ? order.getUser().getEmail() : "-");
-            html = html.replace("${customerPhone}", order.getUser() != null ? order.getUser().getPhone() : "-");
-            html = html.replace("${customerAddress}", order.getDeliveryAddress() != null ? order.getDeliveryAddress() : "-");
+            html = html.replace("${customerName}", order.getUser() != null && order.getUser().getName() != null ? 
+                order.getUser().getName() : "-");
+            html = html.replace("${customerEmail}", order.getUser() != null && order.getUser().getEmail() != null ? 
+                order.getUser().getEmail() : "-");
+            html = html.replace("${customerPhone}", order.getUser() != null && order.getUser().getPhone() != null ? 
+                order.getUser().getPhone() : "-");
+            html = html.replace("${customerAddress}", order.getDeliveryAddress() != null ? 
+                order.getDeliveryAddress() : "-");
             html = html.replace("${orderId}", String.valueOf(order.getId()));
-            html = html.replace("${orderDate}", order.getCreatedAt() != null ? order.getCreatedAt().toLocalDate().toString() : "-");
-            html = html.replace("${orderStatus}", order.getStatus() != null ? order.getStatus().name() : "-");
-            html = html.replace("${deliveryType}", order.getDeliveryType() != null ? order.getDeliveryType().name() : "-");
-            html = html.replace("${customerGSTIN}", order.getUser() != null && order.getUser().getGstin() != null ? order.getUser().getGstin() : "-");
+            html = html.replace("${orderDate}", order.getCreatedAt() != null ? 
+                order.getCreatedAt().toLocalDate().toString() : "-");
+            html = html.replace("${orderStatus}", order.getStatus() != null ? 
+                order.getStatus().name() : "-");
+            html = html.replace("${deliveryType}", order.getDeliveryType() != null ? 
+                order.getDeliveryType().name() : "-");
+            html = html.replace("${customerGSTIN}", order.getUser() != null && order.getUser().getGstin() != null ? 
+                order.getUser().getGstin() : "-");
 
-            // Build orderItemsBlock with per-file price
             StringBuilder orderItemsBlock = new StringBuilder();
             if (order.getPrintJobs() != null) {
                 for (var pj : order.getPrintJobs()) {
-                    var file = pj.getFile();
-                    String fileName = file != null ? (file.getOriginalFilename() != null ? file.getOriginalFilename() : file.getFilename()) : "-";
-                    int pages = file != null && file.getPages() != null ? file.getPages() : 1;
-                    String printOptions = "";
                     try {
+                        var file = pj.getFile();
+                        if (file == null) continue;
+                        
+                        String fileName = file.getOriginalFilename() != null ? 
+                            file.getOriginalFilename() : file.getFilename();
+                        int pages = file.getPages() != null ? file.getPages() : 1;
+                        
+                        String printOptions = "";
                         if (pj.getOptions() != null) {
-                            ObjectMapper mapper = new ObjectMapper();
-                            java.util.Map<String, Object> opts = mapper.convertValue(mapper.readTree(pj.getOptions()), new TypeReference<Map<String, Object>>() {});
-                            printOptions = opts.entrySet().stream()
-                                .map(e -> "<b>" + escapeHtml(e.getKey().replace("_", " ")) + ":</b> " + escapeHtml(String.valueOf(e.getValue())))
-                                .reduce((a, b) -> a + "<br>" + b).orElse("");
+                            try {
+                                ObjectMapper mapper = new ObjectMapper();
+                                java.util.Map<String, Object> opts = mapper.convertValue(
+                                    mapper.readTree(pj.getOptions()), new TypeReference<Map<String, Object>>() {});
+                                printOptions = opts.entrySet().stream()
+                                    .map(e -> "<b>" + escapeHtml(e.getKey().replace("_", " ")) + ":</b> " + 
+                                        escapeHtml(String.valueOf(e.getValue())))
+                                    .reduce((a, b) -> a + "<br>" + b).orElse("");
+                            } catch (Exception e) {
+                                logger.warn("[PDF] Error parsing print options: {}", e.getMessage());
+                                printOptions = "Error parsing options";
+                            }
                         }
-                    } catch (Exception e) { printOptions = "-"; }
-                    // Calculate per-file price
-                    double price = 0.0;
-                    try {
-                        ObjectMapper mapper = new ObjectMapper();
-                        java.util.Map<String, Object> opts = pj.getOptions() != null ? mapper.convertValue(mapper.readTree(pj.getOptions()), new TypeReference<Map<String, Object>>() {}) : new java.util.HashMap<>();
-                        String color = (String) opts.getOrDefault("color", null);
-                        String paper = (String) opts.getOrDefault("paper", null);
-                        String quality = (String) opts.getOrDefault("quality", null);
-                        String side = (String) opts.getOrDefault("side", null);
-                        String binding = (String) opts.getOrDefault("binding", null);
-                        java.math.BigDecimal printCost = pricingService.calculatePrintCost(color, paper, quality, side, pages);
-                        java.math.BigDecimal bindingCost = (binding != null && !binding.isBlank()) ? pricingService.calculateBindingCost(binding, pages) : java.math.BigDecimal.ZERO;
-                        price = printCost.add(bindingCost).doubleValue();
-                    } catch (Exception e) { price = 0.0; }
-                    orderItemsBlock.append("<tr>")
-                        .append("<td style='padding:8px 6px;'>").append(escapeHtml(fileName)).append("</td>")
-                        .append("<td style='padding:8px 6px;'>").append(printOptions).append("</td>")
-                        .append("<td style='padding:8px 6px;'>").append(pages).append("</td>")
-                        .append("<td style='padding:8px 6px;'>INR ").append(String.format("%.2f", price)).append("</td>")
-                        .append("</tr>");
+                        
+                        double price = 0.0;
+                        try {
+                            ObjectMapper mapper = new ObjectMapper();
+                            java.util.Map<String, Object> opts = pj.getOptions() != null ? 
+                                mapper.convertValue(mapper.readTree(pj.getOptions()), 
+                                    new TypeReference<Map<String, Object>>() {}) : new java.util.HashMap<>();
+                            
+                            String color = (String) opts.getOrDefault("color", null);
+                            String paper = (String) opts.getOrDefault("paper", null);
+                            String quality = (String) opts.getOrDefault("quality", null);
+                            String side = (String) opts.getOrDefault("side", null);
+                            String binding = (String) opts.getOrDefault("binding", null);
+                            
+                            java.math.BigDecimal printCost = pricingService.calculatePrintCost(color, paper, quality, side, pages);
+                            java.math.BigDecimal bindingCost = (binding != null && !binding.isBlank()) ? 
+                                pricingService.calculateBindingCost(binding, pages) : java.math.BigDecimal.ZERO;
+                            price = printCost.add(bindingCost).doubleValue();
+                        } catch (Exception e) {
+                            logger.warn("[PDF] Error calculating price for print job: {}", e.getMessage());
+                            price = 0.0;
+                        }
+                        
+                        orderItemsBlock.append("<tr>")
+                            .append("<td style='padding:8px 6px;'>").append(escapeHtml(fileName)).append("</td>")
+                            .append("<td style='padding:8px 6px;'>").append(printOptions).append("</td>")
+                            .append("<td style='padding:8px 6px;'>").append(pages).append("</td>")
+                            .append("<td style='padding:8px 6px;'>INR ").append(String.format("%.2f", price)).append("</td>")
+                            .append("</tr>");
+                    } catch (Exception e) {
+                        logger.error("[PDF] Error processing print job: {}", e.getMessage(), e);
+                    }
                 }
             }
             html = html.replace("${orderItemsBlock}", orderItemsBlock.toString());
 
-            // Order note
             String orderNoteBlock = "";
             if (order.getOrderNote() != null && !order.getOrderNote().isBlank()) {
-                orderNoteBlock = "<div class='order-note-block'><b>Order Note:</b> " + escapeHtml(order.getOrderNote()) + "</div>";
+                orderNoteBlock = "<div class='order-note-block'><b>Order Note:</b> " + 
+                    escapeHtml(order.getOrderNote()) + "</div>";
             }
             html = html.replace("${orderNoteBlock}", orderNoteBlock);
             
-            // Pricing (use order's saved values)
             double subtotal = order.getSubtotal() != null ? order.getSubtotal() : 0.0;
             double discount = order.getDiscount() != null ? order.getDiscount() : 0.0;
             double gst = order.getGst() != null ? order.getGst() : 0.0;
             double delivery = order.getDelivery() != null ? order.getDelivery() : 0.0;
             double grandTotal = order.getGrandTotal() != null ? order.getGrandTotal() : 0.0;
+            
             html = html.replace("${subtotal}", String.format("%.2f", subtotal));
             html = html.replace("${discount}", String.format("%.2f", discount));
             html = html.replace("${gst}", String.format("%.2f", gst));
             html = html.replace("${delivery}", String.format("%.2f", delivery));
             html = html.replace("${grandTotal}", String.format("%.2f", grandTotal));
             
-            // Render HTML to PDF
-            ByteArrayOutputStream baos = new ByteArrayOutputStream();
-            PdfRendererBuilder builder = new PdfRendererBuilder();
-            builder.withHtmlContent(html, null);
-            builder.toStream(baos);
-            builder.run();
-            return baos.toByteArray();
+            try {
+                ByteArrayOutputStream baos = new ByteArrayOutputStream();
+                PdfRendererBuilder builder = new PdfRendererBuilder();
+                builder.withHtmlContent(html, null);
+                builder.toStream(baos);
+                builder.run();
+                return baos.toByteArray();
+            } catch (Exception e) {
+                logger.error("[PDF] Error rendering HTML to PDF: {}", e.getMessage(), e);
+                throw new RuntimeException("Error rendering PDF", e);
+            }
         } catch (Exception e) {
-            logger.error("[PDF] Exception during HTML PDF generation", e);
-            throw new RuntimeException("Failed to generate invoice PDF (HTML)", e);
+            logger.error("[PDF] Exception during HTML PDF generation: {}", e.getMessage(), e);
+            throw new RuntimeException("Failed to generate invoice PDF: " + e.getMessage(), e);
         }
     }
 
-    // Utility to escape HTML special characters
     private String escapeHtml(String s) {
         return s == null ? "" : s.replace("&", "&amp;")
                                  .replace("<", "&lt;")
@@ -631,6 +674,4 @@ public class OrderController {
                                  .replace("\"", "&quot;")
                                  .replace("'", "&#39;");
     }
-
-    // Removed unused method
 }

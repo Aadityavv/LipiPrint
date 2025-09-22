@@ -22,30 +22,27 @@ export default function AdminOrdersScreen({ navigation }) {
   const [selectedFilter, setSelectedFilter] = useState('all');
   const [updatingId, setUpdatingId] = useState(null);
   const [search, setSearch] = useState('');
-  const [searchBy, setSearchBy] = useState('user'); // 'user', 'file', 'date'
+  const [searchBy, setSearchBy] = useState('user');
   const [alert, setAlert] = useState({ visible: false, title: '', message: '', type: 'info' });
-  const [activeTab, setActiveTab] = useState('recentOrders'); // 'recentOrders', 'orders', 'failedPayments', 'paymentsNoOrder'
+  const [activeTab, setActiveTab] = useState('recentOrders');
   const [failedPaymentsOrders, setFailedPaymentsOrders] = useState([]);
   const [paymentsNoOrder, setPaymentsNoOrder] = useState([]);
   const [tabLoading, setTabLoading] = useState(false);
   const [downloadingInvoiceId, setDownloadingInvoiceId] = useState(null);
-  // Add pagination state
   const [page, setPage] = useState(1);
   const [hasMore, setHasMore] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
   const PAGE_SIZE = 20;
   const [totalOrders, setTotalOrders] = useState(0);
-  // Add filter state for status, date, and price
   const [statusFilter, setStatusFilter] = useState('all');
-  const [dateSort, setDateSort] = useState('desc'); // 'desc' (newest) or 'asc' (oldest)
-  const [priceSort, setPriceSort] = useState('none'); // 'none', 'asc', 'desc'
+  const [dateSort, setDateSort] = useState('desc');
+  const [priceSort, setPriceSort] = useState('none');
   const [lastUpdatedOrderId, setLastUpdatedOrderId] = useState(null);
   const flatListRef = useRef(null);
   const [invoiceModal, setInvoiceModal] = useState({ visible: false, filePath: '', orderId: null, url: '', loading: false });
   const [refreshing, setRefreshing] = useState(false);
 
   const fetchOrders = async (reset = false) => {
-    // Defensive: if reset is a synthetic event, treat as true
     if (reset && typeof reset === 'object' && reset.nativeEvent) reset = true;
     console.log('fetchOrders called', { reset, loading, loadingMore });
     if (!reset && (loading || loadingMore)) return;
@@ -61,12 +58,11 @@ export default function AdminOrdersScreen({ navigation }) {
     try {
       const currentPage = reset ? 1 : page;
       console.log('[API DEBUG] About to fetch orders:', currentPage);
-      const data = await api.request(`/orders?limit=${PAGE_SIZE}&page=${currentPage - 1}`); // Spring pages are 0-based
+      const data = await api.request(`/orders?limit=${PAGE_SIZE}&page=${currentPage - 1}`);
       const ordersPage = data.content || [];
       if (reset) {
         setOrders(ordersPage);
       } else {
-        // Deduplicate by ID
         const allOrders = [...orders, ...ordersPage];
         const seen = new Map();
         const duplicates = [];
@@ -137,7 +133,6 @@ export default function AdminOrdersScreen({ navigation }) {
       if (idx >= 0 && flatListRef.current) {
         flatListRef.current.scrollToIndex({ index: idx, animated: true });
       }
-      // Remove highlight after 2s
       const timeout = setTimeout(() => setLastUpdatedOrderId(null), 2000);
       return () => clearTimeout(timeout);
     }
@@ -189,7 +184,6 @@ export default function AdminOrdersScreen({ navigation }) {
     if (searchBy === 'user') {
       return (userName || '').toLowerCase().includes(search.toLowerCase());
     } else if (searchBy === 'file') {
-      // Not available in lightweight DTO; skip file searching here
       return false;
     } else if (searchBy === 'date') {
       return (order.createdAt || '').slice(0, 10).includes(search);
@@ -197,12 +191,10 @@ export default function AdminOrdersScreen({ navigation }) {
     return true;
   });
 
-  // Get the 10 most recent orders
   const recentOrders = [...orders]
     .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
     .slice(0, 10);
 
-  // Calculate summary statistics
   const summaryStats = {
     totalOrders: orders.length,
     pendingOrders: orders.filter(o => (o.status || '').toUpperCase() === 'PENDING').length,
@@ -221,8 +213,8 @@ export default function AdminOrdersScreen({ navigation }) {
       console.log('Updating order status:', orderId, newStatus);
       const res = await api.request(`/orders/${orderId}/status?status=${newStatus.toUpperCase()}`, { method: 'PUT' });
       console.log('Status update response:', res);
-      setLastUpdatedOrderId(orderId); // Remember which order was updated
-      await fetchOrders(true); // Reset and fetch latest
+      setLastUpdatedOrderId(orderId);
+      await fetchOrders(true);
       showAlert('Success', `Order status updated to ${newStatus}`, 'success');
     } catch (e) {
       console.error('Status update error:', e);
@@ -232,38 +224,30 @@ export default function AdminOrdersScreen({ navigation }) {
     }
   };
 
-  // Function to download invoice for preview with authentication
   const downloadInvoiceForPreview = async (orderId) => {
     try {
       const url = getAbsoluteUrl(`/orders/${orderId}/invoice`);
       
-      // Use the correct path based on platform
       let path;
       if (Platform.OS === 'android') {
-        // For Android, use DocumentDirectoryPath (app-specific storage)
         path = `${RNFS.DocumentDirectoryPath}/invoice_${orderId}.pdf`;
       } else {
-        // For iOS, use DocumentDirectoryPath
         path = `${RNFS.DocumentDirectoryPath}/invoice_${orderId}.pdf`;
       }
       
       console.log('Downloading invoice to:', path);
       
-      // Get the authentication token from the api service
-      // Use the correct method name: getToken instead of getAuthToken
       const authToken = await api.getToken();
       
       if (!authToken) {
         throw new Error('Authentication token not available');
       }
       
-      // Create headers with authentication
       const headers = {
         'Authorization': `Bearer ${authToken}`,
         'Content-Type': 'application/json'
       };
       
-      // Download the file with authentication
       const downloadOptions = {
         fromUrl: url,
         toFile: path,
@@ -284,19 +268,16 @@ export default function AdminOrdersScreen({ navigation }) {
     }
   };
 
-  // Alternative approach using fetch if RNFS doesn't work with headers
   const downloadInvoiceWithFetch = async (orderId) => {
     try {
       const url = getAbsoluteUrl(`/orders/${orderId}/invoice`);
       
-      // Get the authentication token
       const authToken = await api.getToken();
       
       if (!authToken) {
         throw new Error('Authentication token not available');
       }
       
-      // Fetch the PDF with authentication
       const response = await fetch(url, {
         method: 'GET',
         headers: {
@@ -309,13 +290,9 @@ export default function AdminOrdersScreen({ navigation }) {
         throw new Error(`Download failed with status code: ${response.status}`);
       }
       
-      // Get the blob data
       const blob = await response.blob();
-      
-      // Convert blob to base64
       const base64 = await blobToBase64(blob);
       
-      // Use the correct path based on platform
       let path;
       if (Platform.OS === 'android') {
         path = `${RNFS.DocumentDirectoryPath}/invoice_${orderId}.pdf`;
@@ -323,7 +300,6 @@ export default function AdminOrdersScreen({ navigation }) {
         path = `${RNFS.DocumentDirectoryPath}/invoice_${orderId}.pdf`;
       }
       
-      // Write the base64 data to a file
       await RNFS.writeFile(path, base64, 'base64');
       
       console.log('Invoice downloaded successfully using fetch');
@@ -334,7 +310,6 @@ export default function AdminOrdersScreen({ navigation }) {
     }
   };
   
-  // Helper function to convert blob to base64
   const blobToBase64 = (blob) => {
     return new Promise((resolve, reject) => {
       const reader = new FileReader();
@@ -344,7 +319,6 @@ export default function AdminOrdersScreen({ navigation }) {
     });
   };
 
-  // New function to handle invoice preview
   const handlePreviewInvoice = async (orderId) => {
     setDownloadingInvoiceId(orderId);
     setInvoiceModal({
@@ -358,12 +332,10 @@ export default function AdminOrdersScreen({ navigation }) {
     try {
       let filePath;
       
-      // Try RNFS download first
       try {
         filePath = await downloadInvoiceForPreview(orderId);
       } catch (error) {
         console.log('RNFS download failed, trying fetch method:', error);
-        // If RNFS fails, try fetch method
         filePath = await downloadInvoiceWithFetch(orderId);
       }
       
@@ -374,23 +346,29 @@ export default function AdminOrdersScreen({ navigation }) {
       }));
     } catch (e) {
       console.error('Invoice preview error:', e);
-      showAlert('Error', 'Failed to load invoice preview. Please check your network connection and try again.', 'error');
+      let errorMessage = 'Failed to load invoice preview.';
+      
+      if (e.message && e.message.includes('403')) {
+        errorMessage = 'You are not authorized to view this invoice.';
+      } else if (e.message && e.message.includes('404')) {
+        errorMessage = 'Invoice not found. Please contact support.';
+      } else if (e.message && e.message.includes('500')) {
+        errorMessage = 'Server error occurred while generating the invoice. Please try again later.';
+      }
+      
+      showAlert('Error', errorMessage, 'error');
       setInvoiceModal(prev => ({ ...prev, loading: false }));
     } finally {
       setDownloadingInvoiceId(null);
     }
   };
 
-  // Function to print invoice
   const handlePrintInvoice = async (orderId) => {
     try {
-      // For printing, we'll use the downloaded file if available
       if (invoiceModal.filePath) {
-        // For Android, we'll open the file in a PDF viewer that supports printing
         if (Platform.OS === 'android') {
           await Linking.openURL(`file://${invoiceModal.filePath}`);
         } else {
-          // For iOS, we'll use the print functionality
           showAlert('Info', 'Print functionality is not fully implemented on iOS', 'info');
         }
       } else {
@@ -402,7 +380,6 @@ export default function AdminOrdersScreen({ navigation }) {
     }
   };
 
-  // Status update actions
   const statusActions = [
     { status: 'PROCESSING', label: 'Start Processing' },
     { status: 'COMPLETED', label: 'Complete Order' },
@@ -550,7 +527,6 @@ export default function AdminOrdersScreen({ navigation }) {
     );
   };
 
-  // Filter and sort orders before rendering
   const getFilteredSortedOrders = () => {
     let filtered = orders;
     if (statusFilter !== 'all') {
@@ -674,7 +650,6 @@ export default function AdminOrdersScreen({ navigation }) {
           />
         }
       >
-        {/* Search Bar */}
         <View style={styles.searchContainer}>
           <Icon name="search" size={20} color="#6B7280" />
           <TextInput
@@ -693,7 +668,6 @@ export default function AdminOrdersScreen({ navigation }) {
           )}
         </View>
 
-        {/* Summary Stats */}
         <View style={styles.summaryContainer}>
           <View style={styles.summaryItem}>
             <Text style={styles.summaryValue}>{summaryStats.totalOrders}</Text>
@@ -713,10 +687,8 @@ export default function AdminOrdersScreen({ navigation }) {
           </View>
         </View>
 
-        {/* Status Filter */}
         {renderStatusFilter()}
 
-        {/* Date/Price Filter Row */}
         <View style={styles.sortFilterContainer}>
           <TouchableOpacity
             style={styles.sortButton}
@@ -739,7 +711,6 @@ export default function AdminOrdersScreen({ navigation }) {
           </TouchableOpacity>
         </View>
 
-        {/* Orders List */}
         <View style={styles.ordersList}>
           {error ? (
             <View style={styles.emptyContainer}>
@@ -781,11 +752,9 @@ export default function AdminOrdersScreen({ navigation }) {
         </View>
       </ScrollView>
 
-      {/* Floating Action Button */}
       <TouchableOpacity
         style={styles.fab}
         onPress={() => {
-          // Add your quick action here, e.g., create new order
           navigation.navigate('CreateOrderScreen');
         }}
       >
@@ -848,7 +817,6 @@ export default function AdminOrdersScreen({ navigation }) {
             <TouchableOpacity 
               style={styles.modalButton}
               onPress={() => {
-                // Share or download the invoice
                 if (invoiceModal.filePath) {
                   Linking.openURL(`file://${invoiceModal.filePath}`);
                 }
@@ -870,8 +838,8 @@ const styles = StyleSheet.create({
     backgroundColor: '#F9FAFB',
   },
   headerGradient: {
-    paddingTop: 40, // Reduced from 48
-    paddingBottom: 12, // Reduced from 18
+    paddingTop: 40,
+    paddingBottom: 12,
     paddingHorizontal: 20,
     borderBottomLeftRadius: 24,
     borderBottomRightRadius: 24,
@@ -900,7 +868,7 @@ const styles = StyleSheet.create({
   content: {
     flex: 1,
     paddingHorizontal: 20,
-    paddingTop: 16, // Reduced from 20
+    paddingTop: 16,
   },
   loadingContainer: {
     flex: 1,
@@ -918,10 +886,10 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: 16,
-    paddingVertical: 10, // Reduced from 12
+    paddingVertical: 10,
     backgroundColor: '#fff',
     borderRadius: 12,
-    marginBottom: 12, // Reduced from 20
+    marginBottom: 12,
     elevation: 2,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 1 },
@@ -939,8 +907,8 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     backgroundColor: '#fff',
     borderRadius: 12,
-    padding: 12, // Reduced from 16
-    marginBottom: 12, // Reduced from 20
+    padding: 12,
+    marginBottom: 12,
     elevation: 2,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 1 },
@@ -961,7 +929,7 @@ const styles = StyleSheet.create({
     marginTop: 4,
   },
   statusFilter: {
-    marginBottom: 12, // Reduced from 20
+    marginBottom: 12,
   },
   statusFilterContent: {
     paddingRight: 20,
@@ -970,7 +938,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: 16,
-    paddingVertical: 6, // Reduced from 8
+    paddingVertical: 6,
     borderRadius: 20,
     marginRight: 12,
     elevation: 1,
@@ -999,7 +967,7 @@ const styles = StyleSheet.create({
   sortFilterContainer: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    marginBottom: 12, // Reduced from 20
+    marginBottom: 12,
   },
   sortButton: {
     flexDirection: 'row',
@@ -1007,7 +975,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#fff',
     borderRadius: 12,
     paddingHorizontal: 16,
-    paddingVertical: 8, // Reduced from 10
+    paddingVertical: 8,
     elevation: 2,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 1 },
@@ -1027,8 +995,8 @@ const styles = StyleSheet.create({
   },
   orderCard: {
     borderRadius: 16,
-    padding: 12, // Reduced from 16
-    marginBottom: 12, // Reduced from 16
+    padding: 12,
+    marginBottom: 12,
     elevation: 3,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
@@ -1045,7 +1013,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'flex-start',
-    marginBottom: 6, // Reduced from 8
+    marginBottom: 6,
   },
   orderIdContainer: {
     flexDirection: 'row',
@@ -1062,12 +1030,12 @@ const styles = StyleSheet.create({
     color: '#6B7280',
   },
   orderDetails: {
-    marginBottom: 8, // Reduced from 12
+    marginBottom: 8,
   },
   customerInfo: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 4, // Reduced from 6
+    marginBottom: 4,
   },
   customerName: {
     fontSize: 16,
@@ -1087,8 +1055,8 @@ const styles = StyleSheet.create({
   orderStats: {
     flexDirection: 'row',
     justifyContent: 'space-around',
-    marginBottom: 8, // Reduced from 12
-    paddingVertical: 6, // Reduced from 8
+    marginBottom: 8,
+    paddingVertical: 6,
     backgroundColor: '#F9FAFB',
     borderRadius: 8,
   },
@@ -1098,7 +1066,7 @@ const styles = StyleSheet.create({
   statLabel: {
     fontSize: 12,
     color: '#6B7280',
-    marginBottom: 2, // Reduced from 4
+    marginBottom: 2,
   },
   statValue: {
     fontSize: 16,
@@ -1116,7 +1084,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     paddingHorizontal: 12,
-    paddingVertical: 6, // Reduced from 8
+    paddingVertical: 6,
     borderRadius: 8,
     backgroundColor: '#F3F4F6',
     flex: 1,
@@ -1187,14 +1155,14 @@ const styles = StyleSheet.create({
     backgroundColor: '#fff',
     borderTopLeftRadius: 20,
     borderTopRightRadius: 20,
-    padding: 16, // Reduced from 20
+    padding: 16,
     maxHeight: '80%',
   },
   modalHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 12, // Reduced from 16
+    marginBottom: 12,
   },
   modalTitle: {
     fontSize: 20,
@@ -1205,10 +1173,10 @@ const styles = StyleSheet.create({
     padding: 4,
   },
   pdfPreview: {
-    height: 250, // Reduced from 300
+    height: 250,
     borderRadius: 12,
     overflow: 'hidden',
-    marginBottom: 12, // Reduced from 16
+    marginBottom: 12,
     backgroundColor: '#F3F4F6',
   },
   pdfViewer: {
