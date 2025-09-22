@@ -24,7 +24,7 @@ public class UserService {
     private PrintJobRepository printJobRepository;
 
     public User register(User user) {
-        user.setRole(User.Role.USER);
+        // Don't override the role that was set in the controller
         user.setCreatedAt(java.time.LocalDateTime.now());
         user.setUpdatedAt(java.time.LocalDateTime.now());
         // Encode password before saving
