@@ -25,6 +25,8 @@ public class UserCreateRequest {
     private String gstin; // Optional
     @NotBlank
     private String userType; // 'student' or 'professional'
+    
+    private String role; // 'USER' or 'ADMIN'
 
     public String getName() { return name; }
     public void setName(String name) { this.name = name; }
@@ -38,4 +40,6 @@ public class UserCreateRequest {
     public void setGstin(String gstin) { this.gstin = gstin; }
     public String getUserType() { return userType; }
     public void setUserType(String userType) { this.userType = userType; }
-} 
+    public String getRole() { return role; }
+    public void setRole(String role) { this.role = role; }
+}

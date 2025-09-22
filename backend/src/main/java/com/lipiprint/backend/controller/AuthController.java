@@ -46,8 +46,15 @@ public class AuthController {
             }
             
             // Create new user with password
+            User.Role userRole = User.Role.USER; // Default role
+            
+            // Check if role is specified in the request
+            if (signUpRequest.getRole() != null && signUpRequest.getRole().equalsIgnoreCase("ADMIN")) {
+                userRole = User.Role.ADMIN;
+            }
+            
             User user = new User(signUpRequest.getName(), signUpRequest.getPhone(), 
-                               signUpRequest.getEmail(), signUpRequest.getPassword(), User.Role.USER);
+                               signUpRequest.getEmail(), signUpRequest.getPassword(), userRole);
             user.setUserType(signUpRequest.getUserType());
             user.setGstin(signUpRequest.getGstin());
             
