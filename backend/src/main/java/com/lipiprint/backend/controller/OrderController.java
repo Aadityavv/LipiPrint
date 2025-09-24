@@ -354,7 +354,7 @@ public class OrderController {
             }).collect(Collectors.toList());
         }
 
-        return new OrderDTO(
+        OrderDTO orderDTO = new OrderDTO(
             order.getId(),
             userDTO,
             printJobDTOs,
@@ -375,6 +375,17 @@ public class OrderController {
             order.getGrandTotal(),
             order.getBreakdown()
         );
+        
+        // ✅ ADD: Map shipping fields
+        orderDTO.setAwbNumber(order.getAwbNumber());
+        orderDTO.setCourierName(order.getCourierName());
+        orderDTO.setTrackingUrl(order.getTrackingUrl());
+        orderDTO.setExpectedDeliveryDate(order.getExpectedDeliveryDate());
+        orderDTO.setShipmentId(order.getShipmentId());
+        orderDTO.setCourierId(order.getCourierId());
+        orderDTO.setShippingCreated(order.getShippingCreated());
+        
+        return orderDTO;
     }
 
     @GetMapping("")

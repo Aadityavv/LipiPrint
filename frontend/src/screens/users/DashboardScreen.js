@@ -111,13 +111,12 @@ export default function DashboardScreen({ navigation }) {
   const getStatusIcon = (status) => {
     switch (status) {
       case 'PENDING': return 'schedule';
-      case 'PROCESSING': return 'build';
-      case 'COMPLETED': return 'check-circle';
-      case 'SHIPPED': return 'local-shipping';
-      case 'OUT_FOR_DELIVERY': return 'delivery-dining';
-      case 'DELIVERED': return 'done-all';
+      case 'PROCESSING': return 'print';
+      case 'COMPLETED': return 'done-all';
+      case 'OUT_FOR_DELIVERY': return 'local-shipping';
+      case 'DELIVERED': return 'check-circle';
       case 'CANCELLED': return 'cancel';
-      default: return 'help';
+      default: return 'info';
     }
   };
 

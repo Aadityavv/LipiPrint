@@ -28,6 +28,8 @@ export default function TrackOrderScreen({ navigation }) {
   const [selectedOrder, setSelectedOrder] = useState(null);
   const [trackingData, setTrackingData] = useState(null);
   const [trackingLoading, setTrackingLoading] = useState(false);
+  const [showDetailsModal, setShowDetailsModal] = useState(false);
+  const [detailsOrder, setDetailsOrder] = useState(null);
 
   useEffect(() => {
     fetchOrders();
@@ -68,6 +70,11 @@ export default function TrackOrderScreen({ navigation }) {
     } finally {
       setTrackingLoading(false);
     }
+  };
+
+  const showOrderDetails = (order) => {
+    setDetailsOrder(order);
+    setShowDetailsModal(true);
   };
 
   const getStatusColor = (status) => {
@@ -130,19 +137,19 @@ export default function TrackOrderScreen({ navigation }) {
         <View style={styles.orderInfo}>
           <Text style={styles.orderId}>Order #{order.id}</Text>
           <Text style={styles.orderDate}>{new Date(order.createdAt).toLocaleDateString()}</Text>
-        </View>
-        <View style={[styles.statusBadge, { backgroundColor: getStatusColor(order.status) }]}>
+            </View>
+              <View style={[styles.statusBadge, { backgroundColor: getStatusColor(order.status) }]}>
           <Icon name={getStatusIcon(order.status)} size={16} color="white" />
-          <Text style={styles.statusText}>{order.status.replace('_', ' ')}</Text>
-        </View>
-      </View>
+                <Text style={styles.statusText}>{order.status.replace('_', ' ')}</Text>
+              </View>
+            </View>
 
       <View style={styles.orderDetails}>
         <Text style={styles.amount}>₹{order.totalAmount}</Text>
         <Text style={styles.deliveryType}>
           {order.deliveryType === 'DELIVERY' ? '🚚 Home Delivery' : '🏪 Store Pickup'}
         </Text>
-      </View>
+            </View>
 
       {/* Enhanced Tracking Information */}
       <View style={styles.trackingInfo}>
@@ -159,14 +166,14 @@ export default function TrackOrderScreen({ navigation }) {
               <Text style={styles.trackingText}>
                 AWB: <Text style={styles.awbText}>{order.awbNumber}</Text>
               </Text>
-            </View>
+              </View>
             {order.expectedDeliveryDate && (
               <View style={styles.trackingRow}>
                 <Icon name="schedule" size={16} color="#667eea" />
                 <Text style={styles.trackingText}>
                   Expected: {new Date(order.expectedDeliveryDate).toLocaleDateString()}
                 </Text>
-              </View>
+            </View>
             )}
             {order.trackingUrl && (
               <View style={styles.trackingRow}>
@@ -174,7 +181,7 @@ export default function TrackOrderScreen({ navigation }) {
                 <Text style={styles.trackingText}>
                   Tracking URL Available
                 </Text>
-              </View>
+            </View>
             )}
           </>
         ) : (
@@ -183,20 +190,20 @@ export default function TrackOrderScreen({ navigation }) {
             <Text style={[styles.trackingText, { color: '#FF9800' }]}>
               {order.status === 'COMPLETED' ? 'Shipment being prepared' : 'Tracking not available yet'}
             </Text>
-          </View>
-        )}
+              </View>
+            )}
       </View>
 
       {/* Progress Steps */}
       <View style={styles.progressContainer}>
         {getTrackingSteps(order).map((step, stepIndex) => (
           <View key={step.key} style={styles.stepContainer}>
-            <View style={[
-              styles.stepIcon,
+                      <View style={[
+                        styles.stepIcon, 
               { backgroundColor: step.completed ? '#4CAF50' : '#E0E0E0' }
-            ]}>
+                      ]}>
               <Icon name={step.icon} size={16} color={step.completed ? 'white' : '#9E9E9E'} />
-            </View>
+                      </View>
             <Text style={[
               styles.stepText,
               { color: step.completed ? '#4CAF50' : '#9E9E9E' }
@@ -204,19 +211,19 @@ export default function TrackOrderScreen({ navigation }) {
               {step.title}
             </Text>
             {stepIndex < getTrackingSteps(order).length - 1 && (
-              <View style={[
-                styles.stepLine,
+                        <View style={[
+                          styles.stepLine, 
                 { backgroundColor: step.completed ? '#4CAF50' : '#E0E0E0' }
-              ]} />
-            )}
-          </View>
+                        ]} />
+                      )}
+                    </View>
         ))}
       </View>
 
       <View style={styles.orderActions}>
         <TouchableOpacity
           style={styles.actionButton}
-          onPress={() => navigation.navigate('InvoiceDetailScreen', { orderId: order.id, navigation })}
+          onPress={() => showOrderDetails(order)}
         >
           <Icon name="visibility" size={16} color="#667eea" />
           <Text style={styles.actionButtonText}>View Details</Text>
@@ -240,7 +247,7 @@ export default function TrackOrderScreen({ navigation }) {
         {order.status === 'DELIVERED' && (
           <TouchableOpacity
             style={[styles.actionButton, styles.invoiceButton]}
-            onPress={() => navigation.navigate('InvoiceScreen', { orderId: order.id })}
+            onPress={() => navigation.navigate('InvoiceDetailScreen', { orderId: order.id, navigation })}
           >
             <Icon name="receipt" size={16} color="#667eea" />
             <Text style={styles.actionButtonText}>Invoice</Text>
@@ -304,6 +311,141 @@ export default function TrackOrderScreen({ navigation }) {
     );
   };
 
+  const renderOrderDetailsModal = () => {
+    if (!showDetailsModal || !detailsOrder) return null;
+
+    return (
+      <View style={styles.modalOverlay}>
+        <View style={styles.modalContent}>
+          <View style={styles.modalHeader}>
+            <Text style={styles.modalTitle}>Order Details</Text>
+            <TouchableOpacity onPress={() => setShowDetailsModal(false)}>
+              <Icon name="close" size={24} color="#666" />
+            </TouchableOpacity>
+          </View>
+
+          <ScrollView style={styles.orderDetailsContent}>
+            {/* Order Information */}
+            <View style={styles.detailsSection}>
+              <Text style={styles.sectionTitle}>Order Information</Text>
+              <View style={styles.detailRow}>
+                <Text style={styles.detailLabel}>Order ID:</Text>
+                <Text style={styles.detailValue}>#{detailsOrder.id}</Text>
+              </View>
+              <View style={styles.detailRow}>
+                <Text style={styles.detailLabel}>Status:</Text>
+                <Text style={[styles.detailValue, { color: getStatusColor(detailsOrder.status) }]}>
+                  {detailsOrder.status}
+                </Text>
+              </View>
+              <View style={styles.detailRow}>
+                <Text style={styles.detailLabel}>Total Amount:</Text>
+                <Text style={styles.detailValue}>₹{detailsOrder.totalAmount}</Text>
+              </View>
+              <View style={styles.detailRow}>
+                <Text style={styles.detailLabel}>Order Date:</Text>
+                <Text style={styles.detailValue}>
+                  {new Date(detailsOrder.createdAt).toLocaleDateString()}
+                      </Text>
+              </View>
+              <View style={styles.detailRow}>
+                <Text style={styles.detailLabel}>Delivery Type:</Text>
+                <Text style={styles.detailValue}>
+                  {detailsOrder.deliveryType === 'DELIVERY' ? 'Home Delivery' : 'Store Pickup'}
+                      </Text>
+                    </View>
+                  </View>
+
+            {/* Shipping Information */}
+            {detailsOrder.deliveryType === 'DELIVERY' && (
+              <View style={styles.detailsSection}>
+                <Text style={styles.sectionTitle}>Shipping Information</Text>
+                {detailsOrder.awbNumber ? (
+                  <>
+                    <View style={styles.detailRow}>
+                      <Text style={styles.detailLabel}>AWB Number:</Text>
+                      <Text style={[styles.detailValue, styles.awbValue]}>{detailsOrder.awbNumber}</Text>
+                    </View>
+                    {detailsOrder.courierName && (
+                      <View style={styles.detailRow}>
+                        <Text style={styles.detailLabel}>Courier:</Text>
+                        <Text style={[styles.detailValue, { color: '#667eea' }]}>{detailsOrder.courierName}</Text>
+                      </View>
+                    )}
+                    {detailsOrder.expectedDeliveryDate && (
+                      <View style={styles.detailRow}>
+                        <Text style={styles.detailLabel}>Expected Delivery:</Text>
+                        <Text style={styles.detailValue}>
+                          {new Date(detailsOrder.expectedDeliveryDate).toLocaleDateString()}
+                        </Text>
+                      </View>
+                    )}
+                    {detailsOrder.trackingUrl && (
+                      <View style={styles.detailRow}>
+                        <Text style={styles.detailLabel}>Tracking URL:</Text>
+                        <Text style={[styles.detailValue, { color: '#667eea' }]}>Available</Text>
+                      </View>
+                    )}
+                  </>
+                ) : (
+                  <View style={styles.detailRow}>
+                    <Text style={[styles.detailValue, { color: '#FF9800' }]}>
+                      Shipment not created yet
+                    </Text>
+                  </View>
+                )}
+              </View>
+            )}
+
+            {/* Files Information */}
+            <View style={styles.detailsSection}>
+              <Text style={styles.sectionTitle}>Files ({detailsOrder.printJobs?.length || 0})</Text>
+              {detailsOrder.printJobs && detailsOrder.printJobs.length > 0 ? (
+                detailsOrder.printJobs.map((printJob, index) => (
+                  <View key={printJob.id || index} style={styles.fileItem}>
+                    <Text style={styles.fileName}>{printJob.file?.originalFilename || 'Unknown file'}</Text>
+                    <Text style={styles.fileDetails}>
+                      {printJob.file?.pages || 0} pages • {printJob.status}
+                    </Text>
+                  </View>
+                ))
+              ) : (
+                <Text style={styles.detailValue}>No files found</Text>
+              )}
+            </View>
+
+          {/* Action Buttons */}
+            <View style={styles.modalActions}>
+              <TouchableOpacity
+                style={[styles.modalButton, styles.primaryButton]}
+                onPress={() => {
+                  setShowDetailsModal(false);
+                  navigation.navigate('InvoiceDetailScreen', { orderId: detailsOrder.id, navigation });
+                }}
+              >
+                <Icon name="receipt" size={16} color="white" />
+                <Text style={styles.modalButtonText}>View Invoice</Text>
+              </TouchableOpacity>
+              
+              {detailsOrder.awbNumber && (
+              <TouchableOpacity
+                  style={[styles.modalButton, styles.secondaryButton]}
+                  onPress={() => {
+                    setShowDetailsModal(false);
+                    trackOrder(detailsOrder);
+                  }}
+                >
+                  <Icon name="track-changes" size={16} color="#667eea" />
+                  <Text style={[styles.modalButtonText, { color: '#667eea' }]}>Track Shipment</Text>
+              </TouchableOpacity>
+              )}
+        </View>
+      </ScrollView>
+        </View>
+      </View>
+    );
+  };
+
   if (loading) {
     return (
       <View style={[styles.container, { backgroundColor: theme.background }]}>
@@ -349,13 +491,14 @@ export default function TrackOrderScreen({ navigation }) {
       </ScrollView>
 
       {renderTrackingModal()}
+      {renderOrderDetailsModal()}
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
+  container: { 
+    flex: 1, 
     backgroundColor: '#f8f9fa',
   },
   headerGradient: {
@@ -562,9 +705,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   modalContent: {
-    backgroundColor: 'white',
-    borderRadius: 16,
-    padding: 20,
+    backgroundColor: 'white', 
+    borderRadius: 16, 
+    padding: 20, 
     margin: 20,
     maxHeight: '80%',
     width: width - 40,
@@ -600,12 +743,12 @@ const styles = StyleSheet.create({
   },
   historyTitle: {
     fontSize: 16,
-    fontWeight: 'bold',
+    fontWeight: 'bold', 
     color: '#333',
     marginBottom: 12,
   },
   historyItem: {
-    flexDirection: 'row',
+    flexDirection: 'row', 
     marginBottom: 16,
   },
   historyDot: {
@@ -620,7 +763,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   historyStatus: {
-    fontSize: 16,
+    fontSize: 16, 
     fontWeight: '600',
     color: '#333',
   },
@@ -634,4 +777,88 @@ const styles = StyleSheet.create({
     color: '#999',
     marginTop: 2,
   },
-});
+  // Order Details Modal Styles
+  orderDetailsContent: {
+    maxHeight: 500,
+  },
+  detailsSection: {
+    marginBottom: 20,
+  },
+  sectionTitle: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: '#333',
+    marginBottom: 12,
+  },
+  detailRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 8,
+    paddingVertical: 4,
+  },
+  detailLabel: {
+    fontSize: 14,
+    color: '#666',
+    fontWeight: '500',
+  },
+  detailValue: {
+    fontSize: 14,
+    color: '#333',
+    fontWeight: '600',
+    textAlign: 'right',
+    flex: 1,
+    marginLeft: 12,
+  },
+  awbValue: {
+    fontFamily: 'monospace',
+    color: '#667eea',
+  },
+  fileItem: {
+    backgroundColor: '#f8f9fa',
+    padding: 12,
+    borderRadius: 8,
+    marginBottom: 8,
+  },
+  fileName: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#333',
+    marginBottom: 4,
+  },
+  fileDetails: {
+    fontSize: 12,
+    color: '#666',
+  },
+  modalActions: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+    marginTop: 20,
+    paddingTop: 20,
+    borderTopWidth: 1,
+    borderTopColor: '#eee',
+  },
+  modalButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderRadius: 8,
+    minWidth: 120,
+    justifyContent: 'center',
+  },
+  primaryButton: {
+    backgroundColor: '#667eea',
+  },
+  secondaryButton: {
+    backgroundColor: '#f0f8ff',
+    borderWidth: 1,
+    borderColor: '#667eea',
+  },
+  modalButtonText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: 'white',
+    marginLeft: 6,
+  },
+}); 

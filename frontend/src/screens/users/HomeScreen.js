@@ -102,6 +102,7 @@ const quickActions = [
       case 'PENDING': return '#FFA500';
       case 'PROCESSING': return '#0058A3';
       case 'COMPLETED': return '#4CAF50';
+      case 'OUT_FOR_DELIVERY': return '#FF9800';
       case 'CANCELLED': return '#FF3B30';
       case 'DELIVERED': return '#66BB6A';
       default: return '#666';
@@ -110,9 +111,12 @@ const quickActions = [
 
   const getStatusIcon = (status) => {
     switch (status) {
-      case 'Ordered': return 'schedule';
-      case 'In Process': return 'print';
-      case 'Completed': return 'check-circle';
+      case 'PENDING': return 'schedule';
+      case 'PROCESSING': return 'print';
+      case 'COMPLETED': return 'done-all';
+      case 'OUT_FOR_DELIVERY': return 'local-shipping';
+      case 'DELIVERED': return 'check-circle';
+      case 'CANCELLED': return 'cancel';
       default: return 'info';
     }
   };

@@ -9,6 +9,7 @@ import {
   Image,
   ActivityIndicator,
   RefreshControl,
+  Alert,
 } from 'react-native';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 import LinearGradient from 'react-native-linear-gradient';
@@ -312,19 +313,19 @@ export default function ProfileScreen({ navigation }) {
               if (item.id === 'logout') {
                 handleLogout();
               } else if (item.id === 'settings') {
-                navigation.navigate('Settings');
+                Alert.alert('Coming Soon', 'Settings screen is under development');
               } else if (item.id === 'helpCenter') {
-                navigation.navigate('HelpCenter');
+                Alert.alert('Coming Soon', 'Help Center is under development');
               } else if (item.id === 'personal') {
                 navigation.navigate('PersonalInfo');
               } else if (item.id === 'addresses') {
-                navigation.navigate('SavedAddresses');
+                Alert.alert('Coming Soon', 'Saved Addresses is under development');
               } else if (item.id === 'tutorial') {
                 navigation.navigate('Tutorial');
               } else if (item.id === 'support') {
-                navigation.navigate('CustomerSupport');
+                Alert.alert('Coming Soon', 'Customer Support is under development');
               } else if (item.id === 'about') {
-                navigation.navigate('About');
+                Alert.alert('Coming Soon', 'About screen is under development');
               } else if (item.id === 'files') {
                 navigation.navigate('FilesScreen');
               } else {

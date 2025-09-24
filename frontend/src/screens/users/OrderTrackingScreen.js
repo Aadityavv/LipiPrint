@@ -9,9 +9,9 @@ import {
   Alert,
   Dimensions,
 } from 'react-native';
+import Icon from 'react-native-vector-icons/MaterialIcons';
 import * as Animatable from 'react-native-animatable';
 import LinearGradient from 'react-native-linear-gradient';
-import Icon from 'react-native-vector-icons/MaterialIcons';
 import ApiService from '../../services/api';
 import { useTheme } from '../../theme/ThemeContext';
 import Heading from '../../components/Heading';
@@ -82,15 +82,15 @@ export default function OrderTrackingScreen({ route, navigation }) {
   };
 
   const getStatusIcon = (status) => {
-    const icons = {
-      'SHIPPED': '📦',
-      'IN_TRANSIT': '🚛',
-      'OUT_FOR_DELIVERY': '🚚', 
-      'DELIVERED': '✅',
-      'CANCELLED': '❌',
-      'PENDING': '⏳'
-    };
-    return icons[status?.toUpperCase()] || '📮';
+    switch (status?.toUpperCase()) {
+      case 'SHIPPED': return 'local-shipping';
+      case 'IN_TRANSIT': return 'local-shipping';
+      case 'OUT_FOR_DELIVERY': return 'local-shipping'; 
+      case 'DELIVERED': return 'check-circle';
+      case 'CANCELLED': return 'cancel';
+      case 'PENDING': return 'schedule';
+      default: return 'info';
+    }
   };
 
   if (loading) {
@@ -162,7 +162,7 @@ export default function OrderTrackingScreen({ route, navigation }) {
                 <View style={styles.statusCard}>
                   <View style={styles.statusHeader}>
                     <Text style={styles.statusIcon}>
-                      {getStatusIcon(trackingData.currentStatus)}
+                      <Icon name={getStatusIcon(trackingData.currentStatus)} size={16} color="white" />
                     </Text>
                     <View style={styles.statusInfo}>
                       <Text style={[styles.statusText, { color: getStatusColor(trackingData.currentStatus) }]}>

@@ -61,6 +61,28 @@ public class OrderDTO {
     private Double delivery;
     private Double grandTotal;
     private List<PricingService.BreakdownItem> breakdown;
+    
+    // *** NIMBUSPOST SHIPPING FIELDS ***
+    @JsonProperty("awb_number")
+    private String awbNumber;
+    
+    @JsonProperty("courier_name")
+    private String courierName;
+    
+    @JsonProperty("tracking_url")
+    private String trackingUrl;
+    
+    @JsonProperty("expected_delivery_date")
+    private LocalDateTime expectedDeliveryDate;
+    
+    @JsonProperty("shipment_id")
+    private String shipmentId;
+    
+    @JsonProperty("courier_id")
+    private String courierId;
+    
+    @JsonProperty("shipping_created")
+    private Boolean shippingCreated;
 
     // Default constructor
     public OrderDTO() {}
@@ -181,6 +203,28 @@ public class OrderDTO {
 
     public List<PricingService.BreakdownItem> getBreakdown() { return breakdown; }
     public void setBreakdown(List<PricingService.BreakdownItem> breakdown) { this.breakdown = breakdown; }
+    
+    // *** NIMBUSPOST SHIPPING GETTERS AND SETTERS ***
+    public String getAwbNumber() { return awbNumber; }
+    public void setAwbNumber(String awbNumber) { this.awbNumber = awbNumber; }
+    
+    public String getCourierName() { return courierName; }
+    public void setCourierName(String courierName) { this.courierName = courierName; }
+    
+    public String getTrackingUrl() { return trackingUrl; }
+    public void setTrackingUrl(String trackingUrl) { this.trackingUrl = trackingUrl; }
+    
+    public LocalDateTime getExpectedDeliveryDate() { return expectedDeliveryDate; }
+    public void setExpectedDeliveryDate(LocalDateTime expectedDeliveryDate) { this.expectedDeliveryDate = expectedDeliveryDate; }
+    
+    public String getShipmentId() { return shipmentId; }
+    public void setShipmentId(String shipmentId) { this.shipmentId = shipmentId; }
+    
+    public String getCourierId() { return courierId; }
+    public void setCourierId(String courierId) { this.courierId = courierId; }
+    
+    public Boolean getShippingCreated() { return shippingCreated; }
+    public void setShippingCreated(Boolean shippingCreated) { this.shippingCreated = shippingCreated; }
 
     @Override
     public String toString() {

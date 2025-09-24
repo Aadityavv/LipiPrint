@@ -96,12 +96,13 @@ export default function OrdersScreen({ navigation }) {
 
   const getStatusIcon = (status) => {
     switch (status) {
-      case 'PENDING': return <Icon name="schedule" size={16} color="#fff" />;
-      case 'PROCESSING': return <Icon name="print" size={16} color="#fff" />;
-      case 'COMPLETED': return <Icon name="done-all" size={16} color="#fff" />;
-      case 'OUT_FOR_DELIVERY': return <Icon name="local-shipping" size={16} color="#fff" />;
-      case 'DELIVERED': return <Icon name="check-circle" size={16} color="#fff" />;
-      default: return <Icon name="info" size={16} color="#fff" />;
+      case 'PENDING': return 'schedule';
+      case 'PROCESSING': return 'print';
+      case 'COMPLETED': return 'done-all';
+      case 'OUT_FOR_DELIVERY': return 'local-shipping';
+      case 'DELIVERED': return 'check-circle';
+      case 'CANCELLED': return 'cancel';
+      default: return 'info';
     }
   };
 
@@ -326,7 +327,7 @@ export default function OrdersScreen({ navigation }) {
                     
                     <View style={styles.orderActions}>
                       <View style={[styles.statusBadge, { backgroundColor: getStatusColor(item.status) }]}>
-                        {getStatusIcon(item.status)}
+                        <Icon name={getStatusIcon(item.status)} size={16} color="#fff" />
                         <Text style={styles.statusText}>{getStatusText(item.status)}</Text>
                       </View>
                     </View>
