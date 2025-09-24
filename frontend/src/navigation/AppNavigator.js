@@ -23,6 +23,7 @@ import OrderConfirmationScreen from '../screens/users/OrderConfirmationScreen';
 import OrdersScreen from '../screens/users/OrdersScreen';
 import ProfileScreen from '../screens/users/ProfileScreen';
 import TrackOrderScreen from '../screens/users/TrackOrderScreen';
+import DashboardScreen from '../screens/users/DashboardScreen';
 import CheckoutScreen from '../screens/users/CheckoutScreen';
 import ReviewOrderScreen from '../screens/users/ReviewOrderScreen';
 import OnboardingScreen from '../screens/users/OnboardingScreen';
@@ -64,8 +65,7 @@ function TabNavigator() {
         tabBarIcon: ({ color, size }) => {
           let iconName = 'home';
           if (route.name === 'Upload') iconName = 'upload-file';
-          if (route.name === 'OrdersScreen') iconName = 'assignment';
-          // Remove Orders icon
+          if (route.name === 'Dashboard') iconName = 'dashboard';
           return <Icon name={iconName} size={size} color={color} />;
         },
         tabBarActiveTintColor: '#0058A3',
@@ -75,8 +75,7 @@ function TabNavigator() {
     >
       <Tab.Screen name="Home" component={HomeScreen} />
       <Tab.Screen name="Upload" component={UploadScreen} />
-      <Tab.Screen name="OrdersScreen" component={OrdersScreen} options={{ tabBarLabel: 'Orders' }} />
-      {/* Orders tab removed from bottom nav */}
+      <Tab.Screen name="Dashboard" component={DashboardScreen} options={{ tabBarLabel: 'Dashboard' }} />
     </Tab.Navigator>
   );
 }
@@ -137,6 +136,7 @@ export default function AppNavigator() {
         <Stack.Screen name="Payment" component={PaymentScreen} />
         <Stack.Screen name="OrderConfirmation" component={OrderConfirmationScreen} />
         <Stack.Screen name="TrackOrderScreen" component={TrackOrderScreen} />
+        <Stack.Screen name="OrdersScreen" component={OrdersScreen} />
         <Stack.Screen name="Checkout" component={CheckoutScreen} />
         <Stack.Screen name="ReviewOrder" component={ReviewOrderScreen} />
         <Stack.Screen

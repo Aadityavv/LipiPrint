@@ -440,12 +440,9 @@ public class OrderController {
             } catch (IllegalArgumentException e) {
                 return ResponseEntity.badRequest().body(Map.of("error", "Invalid status value: " + status));
             }
-            order.setStatus(newStatus);
-            Order updated = orderService.save(order, null, null);
-            if (newStatus == Order.Status.COMPLETED && updated.canBeShipped()) {
-                orderService.updateOrderStatus(updated.getId(), newStatus);
-                updated = orderService.findById(updated.getId()).orElse(updated);
-            }
+            // Use the service method which handles shipment creation properly
+            orderService.updateOrderStatus(id, newStatus);
+            Order updated = orderService.findById(id).orElse(order);
             OrderDTO dto = convertToDTO(updated);
             return ResponseEntity.ok(dto);
         } catch (Exception e) {

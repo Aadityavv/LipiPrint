@@ -1,474 +1,603 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, ScrollView, Dimensions, TouchableOpacity, ActivityIndicator, Alert } from 'react-native';
+import {
+  View,
+  Text,
+  StyleSheet,
+  ScrollView,
+  TouchableOpacity,
+  Alert,
+  Dimensions,
+  RefreshControl,
+  ActivityIndicator,
+} from 'react-native';
 import * as Animatable from 'react-native-animatable';
 import LinearGradient from 'react-native-linear-gradient';
 import Icon from 'react-native-vector-icons/MaterialIcons';
-import api from '../../services/api';
 import { useTheme } from '../../theme/ThemeContext';
 import Heading from '../../components/Heading';
+import api from '../../services/api';
+import LottieView from 'lottie-react-native';
 
 const { width } = Dimensions.get('window');
 
-const statusIcons = {
-  'PENDING': <Icon name="schedule" size={24} color="#FFA726" />,
-  'PROCESSING': <Icon name="print" size={24} color="#42A5F5" />,
-  'COMPLETED': <Icon name="done-all" size={24} color="#4CAF50" />,
-  'OUT_FOR_DELIVERY': <Icon name="local-shipping" size={24} color="#FFA726" />,
-  'DELIVERED': <Icon name="done-all" size={24} color="#4CAF50" />,
-};
-const orderStatusSteps = [
-  { key: 'PENDING', label: 'Order Pending', description: 'Your order is being processed' },
-  { key: 'PROCESSING', label: 'Processing', description: 'Your order is being processed' },
-  { key: 'COMPLETED', label: 'Completed', description: 'Your order is completed' },
-  { key: 'OUT_FOR_DELIVERY', label: 'Out for Delivery', description: 'Your order is out for delivery' },
-  { key: 'DELIVERED', label: 'Delivered', description: 'Your order has been delivered' },
-];
-
-export default function TrackOrderScreen({ navigation, route }) {
+export default function TrackOrderScreen({ navigation }) {
   const { theme } = useTheme();
-  const [order, setOrder] = useState(null);
+  const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
-  const { orderId } = route.params;
+  const [refreshing, setRefreshing] = useState(false);
+  const [selectedOrder, setSelectedOrder] = useState(null);
+  const [trackingData, setTrackingData] = useState(null);
+  const [trackingLoading, setTrackingLoading] = useState(false);
 
   useEffect(() => {
-    fetchOrderDetails();
-  }, [orderId]);
+    fetchOrders();
+  }, []);
 
-  const fetchOrderDetails = async () => {
+  const fetchOrders = async () => {
     try {
-      setLoading(true);
-      // Extract the actual order ID from the formatted string (e.g., "LP123456" -> "123456")
-      const actualOrderId = orderId.replace('LP', '');
-      const response = await api.request(`/orders/${actualOrderId}`);
-      setOrder(response);
-    } catch (err) {
-      console.error('Failed to fetch order details:', err);
-      setError('Failed to load order details. Please try again.');
+      const response = await api.request('/api/orders');
+      setOrders(response.content || response);
+    } catch (error) {
+      console.error('Failed to fetch orders:', error);
+      Alert.alert('Error', 'Failed to load orders');
     } finally {
       setLoading(false);
+      setRefreshing(false);
     }
   };
 
-  const getCurrentStepIndex = () => {
-    if (!order) return 0;
-    const statusIndex = orderStatusSteps.findIndex(step => step.key === order.status);
-    return statusIndex >= 0 ? statusIndex : 0;
+  const onRefresh = () => {
+    setRefreshing(true);
+    fetchOrders();
+  };
+
+  const trackOrder = async (order) => {
+    if (!order.awbNumber) {
+      Alert.alert('No Tracking Available', 'This order does not have a tracking number yet.');
+      return;
+    }
+
+    setTrackingLoading(true);
+    try {
+      const response = await api.request(`/api/shipping/track/awb/${order.awbNumber}`);
+      setTrackingData(response);
+      setSelectedOrder(order);
+    } catch (error) {
+      console.error('Failed to track order:', error);
+      Alert.alert('Tracking Error', 'Failed to get tracking information');
+    } finally {
+      setTrackingLoading(false);
+    }
   };
 
   const getStatusColor = (status) => {
-    const colors = {
-      'PENDING': '#FFA726',
-      'PROCESSING': '#42A5F5',
-      'COMPLETED': '#4CAF50',
-      'OUT_FOR_DELIVERY': '#FFA726',
-      'DELIVERED': '#4CAF50',
-    };
-    return colors[status] || '#667eea';
+    switch (status) {
+      case 'PENDING': return '#FF9800';
+      case 'PROCESSING': return '#2196F3';
+      case 'COMPLETED': return '#4CAF50';
+      case 'SHIPPED': return '#9C27B0';
+      case 'OUT_FOR_DELIVERY': return '#FF5722';
+      case 'DELIVERED': return '#4CAF50';
+      case 'CANCELLED': return '#F44336';
+      default: return '#9E9E9E';
+    }
   };
 
-  const formatDate = (dateString) => {
-    if (!dateString) return 'N/A';
-    const date = new Date(dateString);
-    return date.toLocaleDateString('en-IN', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit',
-    });
+  const getStatusIcon = (status) => {
+    switch (status) {
+      case 'PENDING': return 'schedule';
+      case 'PROCESSING': return 'build';
+      case 'COMPLETED': return 'check-circle';
+      case 'SHIPPED': return 'local-shipping';
+      case 'OUT_FOR_DELIVERY': return 'delivery-dining';
+      case 'DELIVERED': return 'done-all';
+      case 'CANCELLED': return 'cancel';
+      default: return 'help';
+    }
+  };
+
+  const getTrackingSteps = (order) => {
+    const steps = [
+      { key: 'PENDING', title: 'Order Placed', icon: 'shopping-cart', completed: true },
+      { key: 'PROCESSING', title: 'Processing', icon: 'build', completed: ['PROCESSING', 'COMPLETED', 'SHIPPED', 'OUT_FOR_DELIVERY', 'DELIVERED'].includes(order.status) },
+      { key: 'COMPLETED', title: 'Completed', icon: 'check-circle', completed: ['COMPLETED', 'SHIPPED', 'OUT_FOR_DELIVERY', 'DELIVERED'].includes(order.status) },
+    ];
+
+    if (order.deliveryType === 'DELIVERY') {
+      steps.push(
+        { key: 'SHIPPED', title: 'Shipped', icon: 'local-shipping', completed: ['SHIPPED', 'OUT_FOR_DELIVERY', 'DELIVERED'].includes(order.status) },
+        { key: 'OUT_FOR_DELIVERY', title: 'Out for Delivery', icon: 'delivery-dining', completed: ['OUT_FOR_DELIVERY', 'DELIVERED'].includes(order.status) },
+        { key: 'DELIVERED', title: 'Delivered', icon: 'done-all', completed: order.status === 'DELIVERED' }
+      );
+    } else {
+      steps.push(
+        { key: 'PICKUP_READY', title: 'Ready for Pickup', icon: 'store', completed: ['COMPLETED', 'SHIPPED', 'OUT_FOR_DELIVERY', 'DELIVERED'].includes(order.status) }
+      );
+    }
+
+    return steps;
+  };
+
+  const renderOrderCard = (order, index) => (
+    <Animatable.View
+      key={order.id}
+      animation="fadeInUp"
+      delay={index * 100}
+      duration={500}
+      style={styles.orderCard}
+    >
+      <View style={styles.orderHeader}>
+        <View style={styles.orderInfo}>
+          <Text style={styles.orderId}>Order #{order.id}</Text>
+          <Text style={styles.orderDate}>{new Date(order.createdAt).toLocaleDateString()}</Text>
+        </View>
+        <View style={[styles.statusBadge, { backgroundColor: getStatusColor(order.status) }]}>
+          <Icon name={getStatusIcon(order.status)} size={16} color="white" />
+          <Text style={styles.statusText}>{order.status.replace('_', ' ')}</Text>
+        </View>
+      </View>
+
+      <View style={styles.orderDetails}>
+        <Text style={styles.amount}>₹{order.totalAmount}</Text>
+        <Text style={styles.deliveryType}>
+          {order.deliveryType === 'DELIVERY' ? '🚚 Home Delivery' : '🏪 Store Pickup'}
+        </Text>
+      </View>
+
+      {/* Tracking Information */}
+      {order.awbNumber && (
+        <View style={styles.trackingInfo}>
+          <View style={styles.trackingRow}>
+            <Icon name="local-shipping" size={16} color="#667eea" />
+            <Text style={styles.trackingText}>
+              {order.courierName ? `${order.courierName} - ` : ''}AWB: {order.awbNumber}
+            </Text>
+          </View>
+          {order.expectedDeliveryDate && (
+            <View style={styles.trackingRow}>
+              <Icon name="schedule" size={16} color="#667eea" />
+              <Text style={styles.trackingText}>
+                Expected: {new Date(order.expectedDeliveryDate).toLocaleDateString()}
+              </Text>
+            </View>
+          )}
+        </View>
+      )}
+
+      {/* Progress Steps */}
+      <View style={styles.progressContainer}>
+        {getTrackingSteps(order).map((step, stepIndex) => (
+          <View key={step.key} style={styles.stepContainer}>
+            <View style={[
+              styles.stepIcon,
+              { backgroundColor: step.completed ? '#4CAF50' : '#E0E0E0' }
+            ]}>
+              <Icon name={step.icon} size={16} color={step.completed ? 'white' : '#9E9E9E'} />
+            </View>
+            <Text style={[
+              styles.stepText,
+              { color: step.completed ? '#4CAF50' : '#9E9E9E' }
+            ]}>
+              {step.title}
+            </Text>
+            {stepIndex < getTrackingSteps(order).length - 1 && (
+              <View style={[
+                styles.stepLine,
+                { backgroundColor: step.completed ? '#4CAF50' : '#E0E0E0' }
+              ]} />
+            )}
+          </View>
+        ))}
+      </View>
+
+      <View style={styles.orderActions}>
+        <TouchableOpacity
+          style={styles.actionButton}
+          onPress={() => navigation.navigate('OrderDetailScreen', { orderId: order.id })}
+        >
+          <Icon name="visibility" size={16} color="#667eea" />
+          <Text style={styles.actionButtonText}>View Details</Text>
+        </TouchableOpacity>
+
+        {order.awbNumber && (
+          <TouchableOpacity
+            style={[styles.actionButton, styles.trackButton]}
+            onPress={() => trackOrder(order)}
+            disabled={trackingLoading}
+          >
+            {trackingLoading ? (
+              <ActivityIndicator size="small" color="#667eea" />
+            ) : (
+              <Icon name="track-changes" size={16} color="#667eea" />
+            )}
+            <Text style={styles.actionButtonText}>Track</Text>
+          </TouchableOpacity>
+        )}
+
+        {order.status === 'DELIVERED' && (
+          <TouchableOpacity
+            style={[styles.actionButton, styles.invoiceButton]}
+            onPress={() => navigation.navigate('InvoiceScreen', { orderId: order.id })}
+          >
+            <Icon name="receipt" size={16} color="#667eea" />
+            <Text style={styles.actionButtonText}>Invoice</Text>
+          </TouchableOpacity>
+        )}
+      </View>
+    </Animatable.View>
+  );
+
+  const renderTrackingModal = () => {
+    if (!selectedOrder || !trackingData) return null;
+
+    return (
+      <View style={styles.modalOverlay}>
+        <View style={styles.modalContent}>
+          <View style={styles.modalHeader}>
+            <Text style={styles.modalTitle}>Tracking Details</Text>
+            <TouchableOpacity onPress={() => setSelectedOrder(null)}>
+              <Icon name="close" size={24} color="#666" />
+            </TouchableOpacity>
+          </View>
+
+          <ScrollView style={styles.trackingDetails}>
+            <View style={styles.trackingInfo}>
+              <Text style={styles.trackingLabel}>AWB Number:</Text>
+              <Text style={styles.trackingValue}>{selectedOrder.awbNumber}</Text>
+            </View>
+
+            <View style={styles.trackingInfo}>
+              <Text style={styles.trackingLabel}>Courier:</Text>
+              <Text style={styles.trackingValue}>{selectedOrder.courierName || 'NimbusPost'}</Text>
+            </View>
+
+            {trackingData.status && (
+              <View style={styles.trackingInfo}>
+                <Text style={styles.trackingLabel}>Current Status:</Text>
+                <Text style={[styles.trackingValue, { color: getStatusColor(trackingData.status) }]}>
+                  {trackingData.status}
+                </Text>
+              </View>
+            )}
+
+            {trackingData.tracking_history && trackingData.tracking_history.length > 0 && (
+              <View style={styles.trackingHistory}>
+                <Text style={styles.historyTitle}>Tracking History:</Text>
+                {trackingData.tracking_history.map((entry, index) => (
+                  <View key={index} style={styles.historyItem}>
+                    <View style={styles.historyDot} />
+                    <View style={styles.historyContent}>
+                      <Text style={styles.historyStatus}>{entry.status}</Text>
+                      <Text style={styles.historyLocation}>{entry.location}</Text>
+                      <Text style={styles.historyDate}>{entry.date}</Text>
+                    </View>
+                  </View>
+                ))}
+              </View>
+            )}
+          </ScrollView>
+        </View>
+      </View>
+    );
   };
 
   if (loading) {
     return (
-      <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="#667eea" />
-        <Text style={styles.loadingText}>Loading order details...</Text>
+      <View style={[styles.container, { backgroundColor: theme.background }]}>
+        <LinearGradient colors={['#22194f', '#22194f']} style={styles.headerGradient}>
+          <Heading title="Track Orders" subtitle="Monitor your order status" variant="primary" />
+        </LinearGradient>
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color="#667eea" />
+          <Text style={styles.loadingText}>Loading orders...</Text>
+        </View>
       </View>
     );
   }
-
-  if (error) {
-    return (
-      <View style={styles.errorContainer}>
-        <Icon name="error" size={48} color="#F44336" />
-        <Text style={styles.errorText}>{error}</Text>
-        <TouchableOpacity style={styles.retryButton} onPress={fetchOrderDetails}>
-          <Text style={styles.retryButtonText}>Retry</Text>
-        </TouchableOpacity>
-      </View>
-    );
-  }
-
-  if (!order) {
-    return (
-      <View style={styles.errorContainer}>
-        <Icon name="search-off" size={48} color="#F44336" />
-        <Text style={styles.errorText}>Order not found</Text>
-        <TouchableOpacity style={styles.retryButton} onPress={() => navigation.goBack()}>
-          <Text style={styles.retryButtonText}>Go Back</Text>
-        </TouchableOpacity>
-      </View>
-    );
-  }
-
-  const currentStepIndex = getCurrentStepIndex();
-  const files = order.printJobs ? order.printJobs.map(pj => pj.file) : [];
 
   return (
     <View style={[styles.container, { backgroundColor: theme.background }]}>
-      <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
-        <LinearGradient
-          colors={['#22194f', '#22194f']}
-          style={styles.headerGradient}
-        >
-          <Heading
-            title="Track Order"
-            variant="primary"
-          />
-        </LinearGradient>
+      <LinearGradient colors={['#22194f', '#22194f']} style={styles.headerGradient}>
+        <Heading title="Track Orders" subtitle="Monitor your order status" variant="primary" />
+      </LinearGradient>
 
-        <View style={styles.content}>
-          {/* Order Summary */}
-          <Animatable.View animation="fadeInUp" delay={200} duration={500} style={styles.summaryCard}>
-            <View style={styles.summaryHeader}>
-              <Icon name="receipt" size={24} color="#667eea" />
-              <Text style={styles.summaryTitle}>Order Summary</Text>
-            </View>
-            <View style={styles.summaryRow}>
-              <Text style={styles.summaryLabel}>Status:</Text>
-              <View style={[styles.statusBadge, { backgroundColor: getStatusColor(order.status) }]}>
-                <Text style={styles.statusText}>{order.status.replace('_', ' ')}</Text>
-              </View>
-            </View>
-            <View style={styles.summaryRow}>
-              <Text style={styles.summaryLabel}>Files:</Text>
-              <Text style={styles.summaryValue}>{files.length}</Text>
-            </View>
-            <View style={styles.summaryRow}>
-              <Text style={styles.summaryLabel}>Total Pages:</Text>
-              <Text style={styles.summaryValue}>{files.reduce((total, file) => total + (file.pages || 0), 0)}</Text>
-            </View>
-            {files.map((file, idx) => (
-              <View key={file.id || idx} style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 4 }}>
-                <Icon name="description" size={16} color="#667eea" style={{ marginRight: 6 }} />
-                <Text style={{ color: '#222', fontSize: 14 }}>{file.filename} ({file.pages} pages)</Text>
-              </View>
-            ))}
-            <View style={styles.summaryRow}>
-              <Text style={styles.summaryLabel}>Total Amount:</Text>
-              <Text style={styles.summaryValue}>₹{order.totalAmount || 0}</Text>
-            </View>
-            <View style={styles.summaryRow}>
-              <Text style={styles.summaryLabel}>Order Date:</Text>
-              <Text style={styles.summaryValue}>{formatDate(order.createdAt)}</Text>
-            </View>
-            {order.deliveryType && (
-              <View style={styles.summaryRow}>
-                <Text style={styles.summaryLabel}>Delivery:</Text>
-                <Text style={styles.summaryValue}>{order.deliveryType}</Text>
-              </View>
-            )}
-          </Animatable.View>
-
-          {/* Status Stepper */}
-          <Animatable.View animation="fadeInUp" delay={400} duration={500}>
-            <Text style={styles.sectionTitle}>Order Progress</Text>
-            <View style={styles.stepper}>
-              {orderStatusSteps.map((step, idx) => (
-                <Animatable.View
-                  key={step.key}
-                  animation="fadeInUp"
-                  delay={500 + idx * 100}
-                  duration={400}
-                >
-                  <View style={styles.stepRow}>
-                    <View style={styles.stepIconWrap}>
-                      <View style={[
-                        styles.stepIcon, 
-                        idx <= currentStepIndex && styles.stepIconActive,
-                        order.status === 'CANCELLED' && idx > currentStepIndex && styles.stepIconCancelled
-                      ]}>
-                        {idx <= currentStepIndex ? statusIcons[step.key] : (
-                          <Icon name="radio-button-unchecked" size={24} color="#e0e7ef" />
-                        )}
-                      </View>
-                      {idx < orderStatusSteps.length - 1 && (
-                        <View style={[
-                          styles.stepLine, 
-                          idx < currentStepIndex && styles.stepLineActive,
-                          order.status === 'CANCELLED' && idx >= currentStepIndex && styles.stepLineCancelled
-                        ]} />
-                      )}
-                    </View>
-                    <View style={styles.stepTextWrap}>
-                      <Text style={[
-                        styles.stepLabel, 
-                        idx <= currentStepIndex && styles.stepLabelActive,
-                        order.status === 'CANCELLED' && idx > currentStepIndex && styles.stepLabelCancelled
-                      ]}>
-                        {step.label}
-                      </Text>
-                      <Text style={[
-                        styles.stepDescription,
-                        idx <= currentStepIndex && styles.stepDescriptionActive
-                      ]}>
-                        {step.description}
-                      </Text>
-                    </View>
-                  </View>
-                </Animatable.View>
-              ))}
-            </View>
-          </Animatable.View>
-
-          {/* Action Buttons */}
-          <Animatable.View animation="fadeInUp" delay={800} duration={500}>
-            <View style={styles.buttonContainer}>
-              <TouchableOpacity
-                style={styles.primaryButton}
-                onPress={() => navigation.navigate('InvoiceDetailScreen', { orderId: order.id, navigation })}
-                activeOpacity={0.9}
-              >
-                <LinearGradient colors={['#667eea', '#764ba2']} style={styles.primaryGradient}>
-                  <Icon name="receipt" size={20} color="white" style={{ marginRight: 8 }} />
-                  <Text style={styles.primaryButtonText}>View Invoice</Text>
-                </LinearGradient>
-              </TouchableOpacity>
-              
-              <TouchableOpacity
-                style={styles.secondaryButton}
-                onPress={() => navigation.navigate('MainTabs', { screen: 'Orders' })}
-                activeOpacity={0.8}
-              >
-                <Text style={styles.secondaryButtonText}>View All Orders</Text>
-              </TouchableOpacity>
-            </View>
-          </Animatable.View>
-        </View>
+      <ScrollView
+        style={styles.content}
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+        }
+        showsVerticalScrollIndicator={false}
+      >
+        {orders.length === 0 ? (
+          <View style={styles.emptyState}>
+            <Icon name="shopping-cart" size={80} color="#ccc" />
+            <Text style={styles.emptyTitle}>No Orders Found</Text>
+            <Text style={styles.emptySubtitle}>You haven't placed any orders yet</Text>
+            <TouchableOpacity
+              style={styles.placeOrderButton}
+              onPress={() => navigation.navigate('HomeScreen')}
+            >
+              <Text style={styles.placeOrderButtonText}>Place Your First Order</Text>
+            </TouchableOpacity>
+          </View>
+        ) : (
+          orders.map((order, index) => renderOrderCard(order, index))
+        )}
       </ScrollView>
+
+      {renderTrackingModal()}
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { 
-    flex: 1, 
-    backgroundColor: '#f8f9fa' 
+  container: {
+    flex: 1,
+    backgroundColor: '#f8f9fa',
+  },
+  headerGradient: {
+    paddingTop: 50,
+    paddingBottom: 30,
+    paddingHorizontal: 20,
+  },
+  content: {
+    flex: 1,
+    padding: 20,
   },
   loadingContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#f8f9fa',
   },
   loadingText: {
     marginTop: 16,
     fontSize: 16,
+    color: '#667eea',
+  },
+  orderCard: {
+    backgroundColor: 'white',
+    borderRadius: 16,
+    padding: 20,
+    marginBottom: 16,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 4,
+  },
+  orderHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  orderInfo: {
+    flex: 1,
+  },
+  orderId: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#1a1a1a',
+  },
+  orderDate: {
+    fontSize: 14,
+    color: '#666',
+    marginTop: 2,
+  },
+  statusBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 20,
+  },
+  statusText: {
+    color: 'white',
+    fontSize: 12,
+    fontWeight: '600',
+    marginLeft: 4,
+  },
+  orderDetails: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  amount: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: '#667eea',
+  },
+  deliveryType: {
+    fontSize: 14,
     color: '#666',
   },
-  errorContainer: {
+  trackingInfo: {
+    backgroundColor: '#f8f9fa',
+    borderRadius: 8,
+    padding: 12,
+    marginBottom: 16,
+  },
+  trackingRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 4,
+  },
+  trackingText: {
+    fontSize: 14,
+    color: '#333',
+    marginLeft: 8,
+  },
+  progressContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  stepContainer: {
+    flex: 1,
+    alignItems: 'center',
+    position: 'relative',
+  },
+  stepIcon: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  stepText: {
+    fontSize: 12,
+    textAlign: 'center',
+    fontWeight: '500',
+  },
+  stepLine: {
+    position: 'absolute',
+    top: 16,
+    left: '50%',
+    right: '-50%',
+    height: 2,
+    zIndex: -1,
+  },
+  orderActions: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+  },
+  actionButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+    borderRadius: 8,
+    backgroundColor: '#f0f8ff',
+    flex: 1,
+    marginHorizontal: 4,
+    justifyContent: 'center',
+  },
+  trackButton: {
+    backgroundColor: '#f3e5f5',
+  },
+  invoiceButton: {
+    backgroundColor: '#e8f5e8',
+  },
+  actionButtonText: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#667eea',
+    marginLeft: 4,
+  },
+  emptyState: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#f8f9fa',
-    padding: 20,
+    paddingVertical: 60,
   },
-  errorText: {
+  emptyTitle: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    color: '#333',
     marginTop: 16,
+    marginBottom: 8,
+  },
+  emptySubtitle: {
     fontSize: 16,
     color: '#666',
     textAlign: 'center',
-    marginBottom: 20,
+    marginBottom: 24,
   },
-  retryButton: {
+  placeOrderButton: {
     backgroundColor: '#667eea',
     paddingHorizontal: 24,
     paddingVertical: 12,
     borderRadius: 8,
   },
-  retryButtonText: {
+  placeOrderButtonText: {
     color: 'white',
-    fontWeight: 'bold',
     fontSize: 16,
+    fontWeight: '600',
   },
-  headerGradient: { 
-    paddingTop: 50, 
-    paddingBottom: 30, 
-    paddingHorizontal: 20 
-  },
-  header: { 
-    alignItems: 'center',
-    position: 'relative',
-  },
-  backButton: {
+  modalOverlay: {
     position: 'absolute',
-    left: 0,
     top: 0,
-    padding: 8,
-  },
-  headerTitle: { 
-    fontSize: 28, 
-    fontWeight: 'bold', 
-    color: 'white', 
-    marginBottom: 8 
-  },
-  headerSubtitle: { 
-    fontSize: 16, 
-    color: 'rgba(255,255,255,0.9)', 
-    textAlign: 'center' 
-  },
-  content: { 
-    padding: 20 
-  },
-  summaryCard: { 
-    backgroundColor: 'white', 
-    borderRadius: 16, 
-    padding: 20, 
-    marginBottom: 28, 
-    shadowColor: '#000', 
-    shadowOffset: { width: 0, height: 2 }, 
-    shadowOpacity: 0.07, 
-    shadowRadius: 5, 
-    elevation: 1 
-  },
-  summaryHeader: {
-    flexDirection: 'row',
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: 16,
   },
-  summaryTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: '#1a1a1a',
-    marginLeft: 8,
+  modalContent: {
+    backgroundColor: 'white',
+    borderRadius: 16,
+    padding: 20,
+    margin: 20,
+    maxHeight: '80%',
+    width: width - 40,
   },
-  summaryRow: { 
+  modalHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 8,
+    marginBottom: 16,
   },
-  summaryLabel: { 
-    fontSize: 15, 
-    color: '#333' 
-  },
-  summaryValue: { 
-    fontWeight: 'bold', 
-    color: '#667eea' 
-  },
-  statusBadge: {
-    paddingHorizontal: 12,
-    paddingVertical: 4,
-    borderRadius: 12,
-  },
-  statusText: {
-    color: 'white',
-    fontSize: 12,
+  modalTitle: {
+    fontSize: 20,
     fontWeight: 'bold',
   },
-  sectionTitle: { 
-    fontSize: 22, 
-    fontWeight: 'bold', 
-    color: '#1a1a1a', 
-    marginBottom: 16 
+  trackingDetails: {
+    maxHeight: 400,
   },
-  stepper: { 
-    marginTop: 10, 
-    marginLeft: 10 
+  trackingInfo: {
+    marginBottom: 16,
   },
-  stepRow: { 
-    flexDirection: 'row', 
-    alignItems: 'flex-start', 
-    marginBottom: 30 
+  trackingLabel: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#333',
+    marginBottom: 4,
   },
-  stepIconWrap: { 
-    alignItems: 'center', 
-    width: 40, 
-    position: 'relative' 
+  trackingValue: {
+    fontSize: 16,
+    color: '#666',
   },
-  stepIcon: { 
-    width: 36, 
-    height: 36, 
-    borderRadius: 18, 
-    backgroundColor: '#e0e7ef', 
-    justifyContent: 'center', 
-    alignItems: 'center' 
+  trackingHistory: {
+    marginTop: 16,
   },
-  stepIconActive: { 
-    backgroundColor: '#667eea' 
+  historyTitle: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: '#333',
+    marginBottom: 12,
   },
-  stepIconCancelled: {
-    backgroundColor: '#f5f5f5',
+  historyItem: {
+    flexDirection: 'row',
+    marginBottom: 16,
   },
-  stepLine: { 
-    position: 'absolute', 
-    top: 36, 
-    left: 18, 
-    width: 4, 
-    height: 30, 
-    backgroundColor: '#e0e7ef', 
-    borderRadius: 2 
+  historyDot: {
+    width: 12,
+    height: 12,
+    borderRadius: 6,
+    backgroundColor: '#667eea',
+    marginTop: 4,
+    marginRight: 12,
   },
-  stepLineActive: { 
-    backgroundColor: '#667eea' 
+  historyContent: {
+    flex: 1,
   },
-  stepLineCancelled: {
-    backgroundColor: '#f5f5f5',
+  historyStatus: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#333',
   },
-  stepTextWrap: { 
-    marginLeft: 18, 
-    flex: 1 
+  historyLocation: {
+    fontSize: 14,
+    color: '#666',
+    marginTop: 2,
   },
-  stepLabel: { 
-    fontSize: 16, 
-    color: '#888', 
-    fontWeight: 'bold' 
-  },
-  stepLabelActive: { 
-    color: '#667eea' 
-  },
-  stepLabelCancelled: {
-    color: '#ccc',
-  },
-  stepDescription: {
-    fontSize: 13,
+  historyDate: {
+    fontSize: 12,
     color: '#999',
     marginTop: 2,
   },
-  stepDescriptionActive: {
-    color: '#667eea',
-  },
-  buttonContainer: {
-    marginTop: 20,
-  },
-  primaryButton: {
-    borderRadius: 16,
-    overflow: 'hidden',
-    marginBottom: 12,
-  },
-  primaryGradient: {
-    padding: 16,
-    alignItems: 'center',
-    flexDirection: 'row',
-    justifyContent: 'center',
-  },
-  primaryButtonText: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: 'white',
-  },
-  secondaryButton: {
-    backgroundColor: 'white',
-    borderRadius: 16,
-    padding: 16,
-    alignItems: 'center',
-    borderWidth: 2,
-    borderColor: '#e9ecef',
-  },
-  secondaryButtonText: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#1a1a1a',
-  },
-}); 
+});

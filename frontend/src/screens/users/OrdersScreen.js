@@ -205,11 +205,20 @@ export default function OrdersScreen({ navigation }) {
         colors={['#22194f', '#22194f']}
         style={styles.headerGradient}
       >
-        <Heading
-          title="My Orders"
-          subtitle="Track your print orders & deliveries"
-          variant="primary"
-        />
+        <View style={styles.headerContent}>
+          <Heading
+            title="My Orders"
+            subtitle="Track your print orders & deliveries"
+            variant="primary"
+          />
+          <TouchableOpacity 
+            style={styles.trackButton}
+            onPress={() => navigation.navigate('TrackOrderScreen')}
+          >
+            <Icon name="track-changes" size={20} color="white" />
+            <Text style={styles.trackButtonText}>Track</Text>
+          </TouchableOpacity>
+        </View>
       </LinearGradient>
 
       {/* Search Bar */}
@@ -406,6 +415,27 @@ const styles = StyleSheet.create({
     paddingTop: 50,
     paddingBottom: 30,
     paddingHorizontal: 20,
+  },
+  headerContent: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  trackButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(255,255,255,0.2)',
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.3)',
+  },
+  trackButtonText: {
+    color: 'white',
+    fontSize: 14,
+    fontWeight: '600',
+    marginLeft: 6,
   },
   searchInput: {
     backgroundColor: '#fff',
