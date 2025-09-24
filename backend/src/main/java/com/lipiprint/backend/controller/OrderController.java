@@ -145,6 +145,30 @@ public class OrderController {
                     pj.setStatus(com.lipiprint.backend.entity.PrintJob.Status.QUEUED);
                     pj.setOptions(pjDTO.getOptions());
                     pj.setOrder(order);
+
+                    try {
+                        ObjectMapper mapper = new ObjectMapper();
+                        java.util.Map<String, Object> opts = pj.getOptions() != null ?
+                                mapper.convertValue(mapper.readTree(pj.getOptions()), new TypeReference<Map<String, Object>>() {})
+                                : new java.util.HashMap<>();
+
+                        String color = (String) opts.getOrDefault("color", null);
+                        String paper = (String) opts.getOrDefault("paper", null);
+                        String quality = (String) opts.getOrDefault("quality", null);
+                        String side = (String) opts.getOrDefault("side", null);
+                        String binding = (String) opts.getOrDefault("binding", null);
+                        int pages = file.getPages() != null ? file.getPages() : 1;
+
+                        java.math.BigDecimal printCost = pricingService.calculatePrintCost(color, paper, quality, side, pages);
+                        java.math.BigDecimal bindingCost = (binding != null && !binding.isBlank()) ?
+                                pricingService.calculateBindingCost(binding, pages) : java.math.BigDecimal.ZERO;
+                        double price = printCost.add(bindingCost).doubleValue();
+                        pj.setPrice(price);
+                    } catch (Exception e) {
+                        logger.error("Error calculating price for print job during order creation: {}", e.getMessage());
+                        pj.setPrice(0.0);
+                    }
+
                     printJobs.add(pj);
                 }
                 order.setPrintJobs(printJobs);
@@ -596,27 +620,7 @@ public class OrderController {
                             }
                         }
                         
-                        double price = 0.0;
-                        try {
-                            ObjectMapper mapper = new ObjectMapper();
-                            java.util.Map<String, Object> opts = pj.getOptions() != null ? 
-                                mapper.convertValue(mapper.readTree(pj.getOptions()), 
-                                    new TypeReference<Map<String, Object>>() {}) : new java.util.HashMap<>();
-                            
-                            String color = (String) opts.getOrDefault("color", null);
-                            String paper = (String) opts.getOrDefault("paper", null);
-                            String quality = (String) opts.getOrDefault("quality", null);
-                            String side = (String) opts.getOrDefault("side", null);
-                            String binding = (String) opts.getOrDefault("binding", null);
-                            
-                            java.math.BigDecimal printCost = pricingService.calculatePrintCost(color, paper, quality, side, pages);
-                            java.math.BigDecimal bindingCost = (binding != null && !binding.isBlank()) ? 
-                                pricingService.calculateBindingCost(binding, pages) : java.math.BigDecimal.ZERO;
-                            price = printCost.add(bindingCost).doubleValue();
-                        } catch (Exception e) {
-                            logger.warn("[PDF] Error calculating price for print job: {}", e.getMessage());
-                            price = 0.0;
-                        }
+                        double price = pj.getPrice() != null ? pj.getPrice() : 0.0;
                         
                         orderItemsBlock.append("<tr>")
                             .append("<td style='padding:8px 6px;'>").append(escapeHtml(fileName)).append("</td>")

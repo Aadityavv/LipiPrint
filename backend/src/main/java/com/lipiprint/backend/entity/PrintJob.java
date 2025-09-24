@@ -32,6 +32,8 @@ public class PrintJob {
     @Column(columnDefinition = "TEXT")
     private String options;
 
+    private Double price;
+
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
 
@@ -64,6 +66,9 @@ public class PrintJob {
 
     public Order getOrder() { return order; }
     public void setOrder(Order order) { this.order = order; }
+
+    public Double getPrice() { return price; }
+    public void setPrice(Double price) { this.price = price; }
 
     // Getters and setters
     // ... (omitted for brevity)
