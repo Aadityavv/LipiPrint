@@ -224,9 +224,10 @@ export default function AdminOrderDetailScreen() {
     // 3. If all files printed, update order status to COMPLETED
     const printedCount = printedFiles.length + 1;
     if (printedCount === files.length) {
-      await api.request(`/orders/${orderId}/status?status=COMPLETED`, { method: 'PUT' });
+      const res = await api.request(`/orders/${orderId}/status?status=COMPLETED`, { method: 'PUT' });
       Alert.alert('Order Completed', 'All files printed. Order marked as completed.');
-      fetchOrder();
+      // Update local state instead of refetching
+      setOrder(prevOrder => ({ ...prevOrder, status: 'COMPLETED', ...res }));
     }
     setPrintingFileIdx(null);
   };

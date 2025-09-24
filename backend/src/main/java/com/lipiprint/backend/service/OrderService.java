@@ -422,8 +422,8 @@ public class OrderService {
         order.setStatus(newStatus);
         orderRepository.save(order);
         
-        // Trigger shipment only when transitioning to PROCESSING for delivery orders
-        if (newStatus == Order.Status.PROCESSING && order.canBeShipped()) {
+        // Trigger shipment only when transitioning to COMPLETED for delivery orders
+        if (newStatus == Order.Status.COMPLETED && order.canBeShipped()) {
             processShipment(order);
         }
         

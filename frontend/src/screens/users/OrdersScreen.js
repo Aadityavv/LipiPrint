@@ -164,7 +164,9 @@ export default function OrdersScreen({ navigation }) {
       return (
         <View style={styles.shippingBadge}>
           <Icon name="local-shipping" size={12} color="#667eea" />
-          <Text style={[styles.shippingText, { color: '#667eea' }]}>AWB: {order.awbNumber}</Text>
+          <Text style={[styles.shippingText, { color: '#667eea' }]}>
+            {order.courierName ? `${order.courierName} - ` : ''}AWB: {order.awbNumber}
+          </Text>
         </View>
       );
     }

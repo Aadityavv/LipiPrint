@@ -3,6 +3,7 @@ package com.lipiprint.backend.controller;
 import com.lipiprint.backend.dto.TrackingResponse;
 import com.lipiprint.backend.service.OrderService;
 import com.lipiprint.backend.service.NimbusPostService;
+import com.lipiprint.backend.dto.ShipmentRequest;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -164,6 +165,119 @@ public class ShippingController {
             return ResponseEntity.status(500).body(
                 Map.of("serviceable", false, "error", "Serviceability check failed")
             );
+        }
+    }
+    
+    // *** NEW NIMBUSPOST FEATURES ***
+    
+    @PostMapping("/manifest")
+    public ResponseEntity<?> generateManifest(@RequestBody Map<String, Object> request) {
+        try {
+            logger.info("[ShippingController] Generate manifest requested: {}", request);
+            
+            List<String> awbNumbers = (List<String>) request.get("awb_numbers");
+            if (awbNumbers == null || awbNumbers.isEmpty()) {
+                return ResponseEntity.badRequest().body(Map.of("error", "AWB numbers are required"));
+            }
+            
+            Map<String, Object> manifest = nimbusPostService.generateManifest(awbNumbers);
+            return ResponseEntity.ok(manifest);
+            
+        } catch (Exception e) {
+            logger.error("Failed to generate manifest: {}", e.getMessage());
+            return ResponseEntity.status(500).body(Map.of("error", "Failed to generate manifest: " + e.getMessage()));
+        }
+    }
+    
+    @PostMapping("/ndr")
+    public ResponseEntity<?> getNDRReport(@RequestBody Map<String, Object> request) {
+        try {
+            logger.info("[ShippingController] NDR report requested: {}", request);
+            
+            String startDate = (String) request.get("start_date");
+            String endDate = (String) request.get("end_date");
+            
+            if (startDate == null || endDate == null) {
+                return ResponseEntity.badRequest().body(Map.of("error", "Start date and end date are required"));
+            }
+            
+            Map<String, Object> ndrReport = nimbusPostService.getNDRReport(startDate, endDate);
+            return ResponseEntity.ok(ndrReport);
+            
+        } catch (Exception e) {
+            logger.error("Failed to get NDR report: {}", e.getMessage());
+            return ResponseEntity.status(500).body(Map.of("error", "Failed to get NDR report: " + e.getMessage()));
+        }
+    }
+    
+    @PostMapping("/return")
+    public ResponseEntity<?> initiateReturn(@RequestBody Map<String, Object> request) {
+        try {
+            logger.info("[ShippingController] Return initiation requested: {}", request);
+            
+            String awbNumber = (String) request.get("awb_number");
+            String reason = (String) request.get("return_reason");
+            String returnAddress = (String) request.get("return_address");
+            
+            if (awbNumber == null || reason == null || returnAddress == null) {
+                return ResponseEntity.badRequest().body(Map.of("error", "AWB number, reason, and return address are required"));
+            }
+            
+            Map<String, Object> returnResult = nimbusPostService.initiateReturn(awbNumber, reason, returnAddress);
+            return ResponseEntity.ok(returnResult);
+            
+        } catch (Exception e) {
+            logger.error("Failed to initiate return: {}", e.getMessage());
+            return ResponseEntity.status(500).body(Map.of("error", "Failed to initiate return: " + e.getMessage()));
+        }
+    }
+    
+    @PostMapping("/bulk")
+    public ResponseEntity<?> createBulkShipments(@RequestBody Map<String, Object> request) {
+        try {
+            logger.info("[ShippingController] Bulk shipment creation requested");
+            
+            List<Map<String, Object>> shipments = (List<Map<String, Object>>) request.get("shipments");
+            if (shipments == null || shipments.isEmpty()) {
+                return ResponseEntity.badRequest().body(Map.of("error", "Shipments are required"));
+            }
+            
+            // Convert to ShipmentRequest objects
+            List<ShipmentRequest> shipmentRequests = new ArrayList<>();
+            for (Map<String, Object> shipment : shipments) {
+                // This would need proper conversion logic
+                // For now, return a placeholder response
+            }
+            
+            Map<String, Object> bulkResult = nimbusPostService.createBulkShipments(shipmentRequests);
+            return ResponseEntity.ok(bulkResult);
+            
+        } catch (Exception e) {
+            logger.error("Failed to create bulk shipments: {}", e.getMessage());
+            return ResponseEntity.status(500).body(Map.of("error", "Failed to create bulk shipments: " + e.getMessage()));
+        }
+    }
+    
+    @PostMapping("/rates")
+    public ResponseEntity<?> getDetailedRates(@RequestBody Map<String, Object> request) {
+        try {
+            logger.info("[ShippingController] Detailed rates requested: {}", request);
+            
+            String pickupPincode = (String) request.get("pickup_pincode");
+            String deliveryPincode = (String) request.get("delivery_pincode");
+            Double weight = Double.parseDouble(request.get("weight").toString());
+            String paymentType = (String) request.get("payment_type");
+            
+            if (pickupPincode == null || deliveryPincode == null || weight == null || paymentType == null) {
+                return ResponseEntity.badRequest().body(Map.of("error", "All rate parameters are required"));
+            }
+            
+            Map<String, Object> rates = nimbusPostService.getDetailedRates(pickupPincode, deliveryPincode, weight, paymentType);
+            return ResponseEntity.ok(rates);
+            
+        } catch (Exception e) {
+            logger.error("Failed to get detailed rates: {}", e.getMessage());
+            return ResponseEntity.status(500).body(Map.of("error", "Failed to get detailed rates: " + e.getMessage()));
         }
     }
     

@@ -33,6 +33,11 @@ public class NimbusPostService {
     private static final String SHIPMENT_ENDPOINT = "/shipments";
     private static final String TRACKING_ENDPOINT = "/shipments/track/";
     private static final String CANCEL_ENDPOINT = "/shipments/cancel";
+    private static final String BULK_SHIPMENT_ENDPOINT = "/shipments/bulk";
+    private static final String MANIFEST_ENDPOINT = "/shipments/manifest";
+    private static final String NDR_ENDPOINT = "/shipments/ndr";
+    private static final String RETURN_ENDPOINT = "/shipments/return";
+    private static final String RATES_ENDPOINT = "/courier/rates";
     
     @Autowired
     private NimbusPostConfig config;
@@ -1017,5 +1022,220 @@ if (data != null) {
         }
         
         return health;
+    }
+    
+    // ✅ NEW: Bulk shipment creation for multiple orders
+    public Map<String, Object> createBulkShipments(List<ShipmentRequest> shipmentRequests) {
+        logger.info("[NimbusPostService] Creating bulk shipments for {} orders", shipmentRequests.size());
+        
+        if (!isEnabled()) {
+            throw new RuntimeException("NimbusPost is not enabled");
+        }
+        
+        ensureAuthenticated();
+        
+        try {
+            String bulkUrl = config.getBaseUrl() + BULK_SHIPMENT_ENDPOINT;
+            
+            List<Map<String, Object>> bulkRequest = new ArrayList<>();
+            for (ShipmentRequest request : shipmentRequests) {
+                bulkRequest.add(buildNimbusPostShipmentRequest(request));
+            }
+            
+            Map<String, Object> payload = new HashMap<>();
+            payload.put("shipments", bulkRequest);
+            
+            HttpHeaders headers = new HttpHeaders();
+            headers.setContentType(MediaType.APPLICATION_JSON);
+            headers.setBearerAuth(authToken);
+            headers.set("User-Agent", "LipiPrint-NagpalPrintHouse/1.0");
+            
+            HttpEntity<Map<String, Object>> entity = new HttpEntity<>(payload, headers);
+            
+            logger.info("🚀 Sending bulk shipment request to: {}", bulkUrl);
+            ResponseEntity<String> response = restTemplate.postForEntity(bulkUrl, entity, String.class);
+            
+            logger.info("📡 Bulk Response Status: {}", response.getStatusCode());
+            logger.info("📦 Bulk Response Body: {}", response.getBody());
+            
+            if (response.getStatusCode() == HttpStatus.OK && response.getBody() != null) {
+                return objectMapper.readValue(response.getBody(), new TypeReference<Map<String, Object>>() {});
+            } else {
+                throw new RuntimeException("Failed to create bulk shipments: " + response.getStatusCode());
+            }
+            
+        } catch (Exception e) {
+            logger.error("❌ Bulk shipment creation failed: {}", e.getMessage(), e);
+            throw new RuntimeException("Bulk shipment creation failed: " + e.getMessage(), e);
+        }
+    }
+    
+    // ✅ NEW: Generate manifest for multiple shipments
+    public Map<String, Object> generateManifest(List<String> awbNumbers) {
+        logger.info("[NimbusPostService] Generating manifest for {} shipments", awbNumbers.size());
+        
+        if (!isEnabled()) {
+            throw new RuntimeException("NimbusPost is not enabled");
+        }
+        
+        ensureAuthenticated();
+        
+        try {
+            String manifestUrl = config.getBaseUrl() + MANIFEST_ENDPOINT;
+            
+            Map<String, Object> request = new HashMap<>();
+            request.put("awb_numbers", awbNumbers);
+            request.put("format", "pdf"); // or "excel"
+            
+            HttpHeaders headers = new HttpHeaders();
+            headers.setContentType(MediaType.APPLICATION_JSON);
+            headers.setBearerAuth(authToken);
+            headers.set("User-Agent", "LipiPrint-NagpalPrintHouse/1.0");
+            
+            HttpEntity<Map<String, Object>> entity = new HttpEntity<>(request, headers);
+            
+            logger.info("🚀 Sending manifest request to: {}", manifestUrl);
+            ResponseEntity<String> response = restTemplate.postForEntity(manifestUrl, entity, String.class);
+            
+            logger.info("📡 Manifest Response Status: {}", response.getStatusCode());
+            
+            if (response.getStatusCode() == HttpStatus.OK && response.getBody() != null) {
+                return objectMapper.readValue(response.getBody(), new TypeReference<Map<String, Object>>() {});
+            } else {
+                throw new RuntimeException("Failed to generate manifest: " + response.getStatusCode());
+            }
+            
+        } catch (Exception e) {
+            logger.error("❌ Manifest generation failed: {}", e.getMessage(), e);
+            throw new RuntimeException("Manifest generation failed: " + e.getMessage(), e);
+        }
+    }
+    
+    // ✅ NEW: Get NDR (Non-Delivery Report) for shipments
+    public Map<String, Object> getNDRReport(String startDate, String endDate) {
+        logger.info("[NimbusPostService] Getting NDR report from {} to {}", startDate, endDate);
+        
+        if (!isEnabled()) {
+            throw new RuntimeException("NimbusPost is not enabled");
+        }
+        
+        ensureAuthenticated();
+        
+        try {
+            String ndrUrl = config.getBaseUrl() + NDR_ENDPOINT;
+            
+            Map<String, Object> request = new HashMap<>();
+            request.put("start_date", startDate);
+            request.put("end_date", endDate);
+            request.put("format", "json");
+            
+            HttpHeaders headers = new HttpHeaders();
+            headers.setContentType(MediaType.APPLICATION_JSON);
+            headers.setBearerAuth(authToken);
+            headers.set("User-Agent", "LipiPrint-NagpalPrintHouse/1.0");
+            
+            HttpEntity<Map<String, Object>> entity = new HttpEntity<>(request, headers);
+            
+            logger.info("🚀 Sending NDR request to: {}", ndrUrl);
+            ResponseEntity<String> response = restTemplate.postForEntity(ndrUrl, entity, String.class);
+            
+            logger.info("📡 NDR Response Status: {}", response.getStatusCode());
+            
+            if (response.getStatusCode() == HttpStatus.OK && response.getBody() != null) {
+                return objectMapper.readValue(response.getBody(), new TypeReference<Map<String, Object>>() {});
+            } else {
+                throw new RuntimeException("Failed to get NDR report: " + response.getStatusCode());
+            }
+            
+        } catch (Exception e) {
+            logger.error("❌ NDR report failed: {}", e.getMessage(), e);
+            throw new RuntimeException("NDR report failed: " + e.getMessage(), e);
+        }
+    }
+    
+    // ✅ NEW: Initiate return for a shipment
+    public Map<String, Object> initiateReturn(String awbNumber, String reason, String returnAddress) {
+        logger.info("[NimbusPostService] Initiating return for AWB: {} with reason: {}", awbNumber, reason);
+        
+        if (!isEnabled()) {
+            throw new RuntimeException("NimbusPost is not enabled");
+        }
+        
+        ensureAuthenticated();
+        
+        try {
+            String returnUrl = config.getBaseUrl() + RETURN_ENDPOINT;
+            
+            Map<String, Object> request = new HashMap<>();
+            request.put("awb_number", awbNumber);
+            request.put("return_reason", reason);
+            request.put("return_address", returnAddress);
+            
+            HttpHeaders headers = new HttpHeaders();
+            headers.setContentType(MediaType.APPLICATION_JSON);
+            headers.setBearerAuth(authToken);
+            headers.set("User-Agent", "LipiPrint-NagpalPrintHouse/1.0");
+            
+            HttpEntity<Map<String, Object>> entity = new HttpEntity<>(request, headers);
+            
+            logger.info("🚀 Sending return request to: {}", returnUrl);
+            ResponseEntity<String> response = restTemplate.postForEntity(returnUrl, entity, String.class);
+            
+            logger.info("📡 Return Response Status: {}", response.getStatusCode());
+            
+            if (response.getStatusCode() == HttpStatus.OK && response.getBody() != null) {
+                return objectMapper.readValue(response.getBody(), new TypeReference<Map<String, Object>>() {});
+            } else {
+                throw new RuntimeException("Failed to initiate return: " + response.getStatusCode());
+            }
+            
+        } catch (Exception e) {
+            logger.error("❌ Return initiation failed: {}", e.getMessage(), e);
+            throw new RuntimeException("Return initiation failed: " + e.getMessage(), e);
+        }
+    }
+    
+    // ✅ NEW: Get detailed shipping rates
+    public Map<String, Object> getDetailedRates(String pickupPincode, String deliveryPincode, double weight, String paymentType) {
+        logger.info("[NimbusPostService] Getting detailed rates for {} to {} ({} kg, {})", 
+            pickupPincode, deliveryPincode, weight, paymentType);
+        
+        if (!isEnabled()) {
+            throw new RuntimeException("NimbusPost is not enabled");
+        }
+        
+        ensureAuthenticated();
+        
+        try {
+            String ratesUrl = config.getBaseUrl() + RATES_ENDPOINT;
+            
+            Map<String, Object> request = new HashMap<>();
+            request.put("pickup_pincode", pickupPincode);
+            request.put("delivery_pincode", deliveryPincode);
+            request.put("weight", weight);
+            request.put("payment_type", paymentType);
+            
+            HttpHeaders headers = new HttpHeaders();
+            headers.setContentType(MediaType.APPLICATION_JSON);
+            headers.setBearerAuth(authToken);
+            headers.set("User-Agent", "LipiPrint-NagpalPrintHouse/1.0");
+            
+            HttpEntity<Map<String, Object>> entity = new HttpEntity<>(request, headers);
+            
+            logger.info("🚀 Sending rates request to: {}", ratesUrl);
+            ResponseEntity<String> response = restTemplate.postForEntity(ratesUrl, entity, String.class);
+            
+            logger.info("📡 Rates Response Status: {}", response.getStatusCode());
+            
+            if (response.getStatusCode() == HttpStatus.OK && response.getBody() != null) {
+                return objectMapper.readValue(response.getBody(), new TypeReference<Map<String, Object>>() {});
+            } else {
+                throw new RuntimeException("Failed to get rates: " + response.getStatusCode());
+            }
+            
+        } catch (Exception e) {
+            logger.error("❌ Rates request failed: {}", e.getMessage(), e);
+            throw new RuntimeException("Rates request failed: " + e.getMessage(), e);
+        }
     }
 }

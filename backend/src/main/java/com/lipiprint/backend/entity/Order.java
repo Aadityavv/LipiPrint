@@ -267,7 +267,7 @@ public class Order {
 
     public boolean canBeShipped() {
         return isDeliveryOrder() && 
-               (status == Status.PROCESSING) &&
+               (status == Status.PROCESSING || status == Status.COMPLETED) &&
                !Boolean.TRUE.equals(shippingCreated);
     }
 

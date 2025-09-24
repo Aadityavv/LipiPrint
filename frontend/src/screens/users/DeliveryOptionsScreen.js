@@ -42,8 +42,37 @@ export default function DeliveryOptionsScreen({ navigation, route }) {
   const [pincode, setPincode] = useState('');
   const [city, setCity] = useState('');
   const [state, setState] = useState('');
+  const [pincodeServiceable, setPincodeServiceable] = useState(null);
+  const [checkingServiceability, setCheckingServiceability] = useState(false);
 
   const { theme } = useTheme();
+
+  // Check pincode serviceability
+  const checkPincodeServiceability = async (pincodeValue) => {
+    if (!pincodeValue || pincodeValue.length !== 6) {
+      setPincodeServiceable(null);
+      return;
+    }
+
+    setCheckingServiceability(true);
+    try {
+      const response = await ApiService.request(`/api/shipping/serviceability/${pincodeValue}`);
+      setPincodeServiceable(response);
+      
+      if (response.serviceable) {
+        // Get delivery estimate if serviceable
+        getDeliveryEstimate(pincodeValue);
+      }
+    } catch (error) {
+      console.error('Serviceability check failed:', error);
+      setPincodeServiceable({
+        serviceable: false,
+        message: 'Unable to verify delivery to this pincode'
+      });
+    } finally {
+      setCheckingServiceability(false);
+    }
+  };
 
   // Enhanced delivery options with NimbusPost integration
   useEffect(() => {
@@ -169,6 +198,17 @@ export default function DeliveryOptionsScreen({ navigation, route }) {
       .catch(() => setSavedAddresses([]));
   }, []);
 
+  // Check serviceability when pincode changes (debounced)
+  useEffect(() => {
+    const timeoutId = setTimeout(() => {
+      if (deliveryMethod === 'delivery' && pincode) {
+        checkPincodeServiceability(pincode);
+      }
+    }, 500); // 500ms debounce
+
+    return () => clearTimeout(timeoutId);
+  }, [pincode, deliveryMethod]);
+
   useEffect(() => {
     if (deliveryMethod === 'pickup' && pickupLocations.length > 0) {
       setSelectedLocation(pickupLocations[0].id);
@@ -248,6 +288,16 @@ export default function DeliveryOptionsScreen({ navigation, route }) {
         }
         if (!city || !state || city === 'Enter a Valid Pincode' || state === 'Enter a Valid Pincode') {
           Alert.alert('Invalid Address', 'Please ensure the pincode is valid and city/state are fetched.');
+          return;
+        }
+        if (pincodeServiceable && !pincodeServiceable.serviceable) {
+          Alert.alert(
+            'Delivery Not Available', 
+            `Delivery is not available to pincode ${pincode}. Please choose store pickup or try a different pincode.`,
+            [
+              { text: 'OK', style: 'cancel' }
+            ]
+          );
           return;
         }
       } else {
@@ -715,6 +765,38 @@ export default function DeliveryOptionsScreen({ navigation, route }) {
                     />
                     {pincode && pincode.length !== 6 && (
                       <Text style={styles.errorHint}>Pincode must be 6 digits</Text>
+                    )}
+                    
+                    {/* Serviceability Status */}
+                    {pincode && pincode.length === 6 && (
+                      <View style={styles.serviceabilityContainer}>
+                        {checkingServiceability ? (
+                          <View style={styles.serviceabilityChecking}>
+                            <Icon name="refresh" size={16} color="#667eea" />
+                            <Text style={styles.serviceabilityText}>Checking delivery availability...</Text>
+                          </View>
+                        ) : pincodeServiceable ? (
+                          <View style={[
+                            styles.serviceabilityStatus,
+                            pincodeServiceable.serviceable ? styles.serviceable : styles.notServiceable
+                          ]}>
+                            <Icon 
+                              name={pincodeServiceable.serviceable ? "check-circle" : "error"} 
+                              size={16} 
+                              color={pincodeServiceable.serviceable ? "#4CAF50" : "#F44336"} 
+                            />
+                            <Text style={[
+                              styles.serviceabilityText,
+                              pincodeServiceable.serviceable ? styles.serviceableText : styles.notServiceableText
+                            ]}>
+                              {pincodeServiceable.serviceable 
+                                ? "✅ Delivery available to this pincode" 
+                                : "❌ Delivery not available to this pincode"
+                              }
+                            </Text>
+                          </View>
+                        ) : null}
+                      </View>
                     )}
                   </View>
 
@@ -1198,5 +1280,43 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.07,
     shadowRadius: 5,
     elevation: 1,
+  },
+  serviceabilityContainer: {
+    marginTop: 8,
+  },
+  serviceabilityChecking: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 8,
+    backgroundColor: '#f0f8ff',
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#e3f2fd',
+  },
+  serviceabilityStatus: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 8,
+    borderRadius: 8,
+    borderWidth: 1,
+  },
+  serviceable: {
+    backgroundColor: '#f1f8e9',
+    borderColor: '#c8e6c9',
+  },
+  notServiceable: {
+    backgroundColor: '#ffebee',
+    borderColor: '#ffcdd2',
+  },
+  serviceabilityText: {
+    marginLeft: 8,
+    fontSize: 12,
+    fontWeight: '500',
+  },
+  serviceableText: {
+    color: '#2e7d32',
+  },
+  notServiceableText: {
+    color: '#c62828',
   },
 });

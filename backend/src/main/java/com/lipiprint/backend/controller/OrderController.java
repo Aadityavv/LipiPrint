@@ -442,7 +442,7 @@ public class OrderController {
             }
             order.setStatus(newStatus);
             Order updated = orderService.save(order, null, null);
-            if (newStatus == Order.Status.PROCESSING && updated.canBeShipped()) {
+            if (newStatus == Order.Status.COMPLETED && updated.canBeShipped()) {
                 orderService.updateOrderStatus(updated.getId(), newStatus);
                 updated = orderService.findById(updated.getId()).orElse(updated);
             }
@@ -553,6 +553,8 @@ public class OrderController {
                 throw new IllegalArgumentException("Order cannot be null");
             }
             
+            logger.info("[PDF] Starting invoice generation for order: {}", order.getId());
+            
             ClassPathResource resource;
             try {
                 resource = new ClassPathResource("invoice-template.html");
@@ -560,6 +562,7 @@ public class OrderController {
                     logger.error("[PDF] Invoice template file not found");
                     throw new RuntimeException("Invoice template file not found");
                 }
+                logger.info("[PDF] Template file found, size: {} bytes", resource.contentLength());
             } catch (Exception e) {
                 logger.error("[PDF] Error loading invoice template: {}", e.getMessage(), e);
                 throw new RuntimeException("Error loading invoice template", e);
@@ -568,6 +571,7 @@ public class OrderController {
             byte[] templateBytes;
             try {
                 templateBytes = resource.getInputStream().readAllBytes();
+                logger.info("[PDF] Template loaded successfully, {} bytes", templateBytes.length);
             } catch (Exception e) {
                 logger.error("[PDF] Error reading template file: {}", e.getMessage(), e);
                 throw new RuntimeException("Error reading template file", e);
@@ -655,15 +659,23 @@ public class OrderController {
             html = html.replace("${grandTotal}", String.format("%.2f", grandTotal));
             
             try {
+                logger.info("[PDF] Starting PDF rendering...");
                 ByteArrayOutputStream baos = new ByteArrayOutputStream();
                 PdfRendererBuilder builder = new PdfRendererBuilder();
                 builder.withHtmlContent(html, null);
                 builder.toStream(baos);
                 builder.run();
-                return baos.toByteArray();
+                byte[] pdfBytes = baos.toByteArray();
+                logger.info("[PDF] PDF generated successfully, {} bytes", pdfBytes.length);
+                return pdfBytes;
             } catch (Exception e) {
                 logger.error("[PDF] Error rendering HTML to PDF: {}", e.getMessage(), e);
-                throw new RuntimeException("Error rendering PDF", e);
+                logger.error("[PDF] HTML content length: {}", html.length());
+                logger.error("[PDF] Order details - ID: {}, User: {}, PrintJobs: {}", 
+                    order.getId(), 
+                    order.getUser() != null ? order.getUser().getId() : "null",
+                    order.getPrintJobs() != null ? order.getPrintJobs().size() : "null");
+                throw new RuntimeException("Error rendering PDF: " + e.getMessage(), e);
             }
         } catch (Exception e) {
             logger.error("[PDF] Exception during HTML PDF generation: {}", e.getMessage(), e);

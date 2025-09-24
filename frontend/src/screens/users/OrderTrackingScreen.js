@@ -184,8 +184,17 @@ export default function OrderTrackingScreen({ route, navigation }) {
               <Animatable.View animation="fadeInUp" delay={400} duration={500}>
                 <View style={styles.courierCard}>
                   <Text style={styles.cardTitle}>Courier Information</Text>
-                  <Text style={styles.courierName}>🚚 Courier Partner</Text>
-                  <Text style={styles.courierText}>Via NimbusPost Network</Text>
+                  {trackingData.courierName ? (
+                    <>
+                      <Text style={styles.courierName}>🚚 {trackingData.courierName}</Text>
+                      <Text style={styles.courierText}>Via NimbusPost Network</Text>
+                    </>
+                  ) : (
+                    <>
+                      <Text style={styles.courierName}>🚚 Courier Partner</Text>
+                      <Text style={styles.courierText}>Via NimbusPost Network</Text>
+                    </>
+                  )}
                 </View>
               </Animatable.View>
 

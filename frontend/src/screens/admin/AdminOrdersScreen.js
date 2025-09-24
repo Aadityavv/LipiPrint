@@ -214,7 +214,16 @@ export default function AdminOrdersScreen({ navigation }) {
       const res = await api.request(`/orders/${orderId}/status?status=${newStatus.toUpperCase()}`, { method: 'PUT' });
       console.log('Status update response:', res);
       setLastUpdatedOrderId(orderId);
-      await fetchOrders(true);
+      
+      // Update local state instead of refetching all orders
+      setOrders(prevOrders => 
+        prevOrders.map(order => 
+          order.id === orderId 
+            ? { ...order, status: newStatus.toUpperCase(), ...res }
+            : order
+        )
+      );
+      
       showAlert('Success', `Order status updated to ${newStatus}`, 'success');
     } catch (e) {
       console.error('Status update error:', e);
@@ -353,7 +362,11 @@ export default function AdminOrdersScreen({ navigation }) {
       } else if (e.message && e.message.includes('404')) {
         errorMessage = 'Invoice not found. Please contact support.';
       } else if (e.message && e.message.includes('500')) {
-        errorMessage = 'Server error occurred while generating the invoice. Please try again later.';
+        errorMessage = 'Server error occurred while generating the invoice. This might be due to missing order data or template issues. Please contact support.';
+      } else if (e.message && e.message.includes('Network')) {
+        errorMessage = 'Network error. Please check your connection and try again.';
+      } else {
+        errorMessage = `Invoice preview failed: ${e.message || 'Unknown error'}`;
       }
       
       showAlert('Error', errorMessage, 'error');
