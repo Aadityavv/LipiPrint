@@ -35,7 +35,7 @@ export default function TrackOrderScreen({ navigation }) {
 
   const fetchOrders = async () => {
     try {
-      const response = await api.request('/api/orders');
+      const response = await api.request('/orders');
       setOrders(response.content || response);
     } catch (error) {
       console.error('Failed to fetch orders:', error);
@@ -59,7 +59,7 @@ export default function TrackOrderScreen({ navigation }) {
 
     setTrackingLoading(true);
     try {
-      const response = await api.request(`/api/shipping/track/awb/${order.awbNumber}`);
+      const response = await api.request(`/shipping/track/awb/${order.awbNumber}`);
       setTrackingData(response);
       setSelectedOrder(order);
     } catch (error) {
@@ -144,25 +144,48 @@ export default function TrackOrderScreen({ navigation }) {
         </Text>
       </View>
 
-      {/* Tracking Information */}
-      {order.awbNumber && (
-        <View style={styles.trackingInfo}>
-          <View style={styles.trackingRow}>
-            <Icon name="local-shipping" size={16} color="#667eea" />
-            <Text style={styles.trackingText}>
-              {order.courierName ? `${order.courierName} - ` : ''}AWB: {order.awbNumber}
-            </Text>
-          </View>
-          {order.expectedDeliveryDate && (
+      {/* Enhanced Tracking Information */}
+      <View style={styles.trackingInfo}>
+        {order.awbNumber ? (
+          <>
             <View style={styles.trackingRow}>
-              <Icon name="schedule" size={16} color="#667eea" />
+              <Icon name="local-shipping" size={16} color="#667eea" />
               <Text style={styles.trackingText}>
-                Expected: {new Date(order.expectedDeliveryDate).toLocaleDateString()}
+                <Text style={styles.courierNameText}>{order.courierName || 'NimbusPost'}</Text>
               </Text>
             </View>
-          )}
-        </View>
-      )}
+            <View style={styles.trackingRow}>
+              <Icon name="confirmation-number" size={16} color="#667eea" />
+              <Text style={styles.trackingText}>
+                AWB: <Text style={styles.awbText}>{order.awbNumber}</Text>
+              </Text>
+            </View>
+            {order.expectedDeliveryDate && (
+              <View style={styles.trackingRow}>
+                <Icon name="schedule" size={16} color="#667eea" />
+                <Text style={styles.trackingText}>
+                  Expected: {new Date(order.expectedDeliveryDate).toLocaleDateString()}
+                </Text>
+              </View>
+            )}
+            {order.trackingUrl && (
+              <View style={styles.trackingRow}>
+                <Icon name="link" size={16} color="#667eea" />
+                <Text style={styles.trackingText}>
+                  Tracking URL Available
+                </Text>
+              </View>
+            )}
+          </>
+        ) : (
+          <View style={styles.trackingRow}>
+            <Icon name="info" size={16} color="#FF9800" />
+            <Text style={[styles.trackingText, { color: '#FF9800' }]}>
+              {order.status === 'COMPLETED' ? 'Shipment being prepared' : 'Tracking not available yet'}
+            </Text>
+          </View>
+        )}
+      </View>
 
       {/* Progress Steps */}
       <View style={styles.progressContainer}>
@@ -193,7 +216,7 @@ export default function TrackOrderScreen({ navigation }) {
       <View style={styles.orderActions}>
         <TouchableOpacity
           style={styles.actionButton}
-          onPress={() => navigation.navigate('OrderDetailScreen', { orderId: order.id })}
+          onPress={() => navigation.navigate('InvoiceDetailScreen', { orderId: order.id, navigation })}
         >
           <Icon name="visibility" size={16} color="#667eea" />
           <Text style={styles.actionButtonText}>View Details</Text>
@@ -427,6 +450,17 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#333',
     marginLeft: 8,
+  },
+  courierNameText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#667eea',
+  },
+  awbText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#333',
+    fontFamily: 'monospace',
   },
   progressContainer: {
     flexDirection: 'row',

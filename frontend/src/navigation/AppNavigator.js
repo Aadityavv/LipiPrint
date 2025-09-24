@@ -65,7 +65,6 @@ function TabNavigator() {
         tabBarIcon: ({ color, size }) => {
           let iconName = 'home';
           if (route.name === 'Upload') iconName = 'upload-file';
-          if (route.name === 'Dashboard') iconName = 'dashboard';
           return <Icon name={iconName} size={size} color={color} />;
         },
         tabBarActiveTintColor: '#0058A3',
@@ -75,7 +74,6 @@ function TabNavigator() {
     >
       <Tab.Screen name="Home" component={HomeScreen} />
       <Tab.Screen name="Upload" component={UploadScreen} />
-      <Tab.Screen name="Dashboard" component={DashboardScreen} options={{ tabBarLabel: 'Dashboard' }} />
     </Tab.Navigator>
   );
 }

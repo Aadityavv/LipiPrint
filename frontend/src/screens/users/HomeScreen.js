@@ -63,26 +63,35 @@ export default function HomeScreen({ navigation }) {
       .catch(() => setAcceptingOrders(true));
   }, []);
 
-  // Add Profile back to quickActions
+  // Enhanced quickActions with better organization
 const quickActions = [
   {
-    title: 'Documentation', // Keep it simple
-    subtitle: 'colour & b/w prints of A3 & A4', // Add subtitle property
-    color: ['#4e54c8', '#8f94fb'],
+    title: 'Upload & Print',
+    subtitle: 'A3 & A4 colour & b/w prints',
+    color: ['#667eea', '#764ba2'],
+    icon: <Icon name="upload-file" size={32} color="white" style={{ marginBottom: 8 }} />,
     onPress: () => navigation.navigate('Upload'),
   },
   {
-    title: 'Many more options to come',
-    color: ['#ff512f', '#dd2476'],
-    onPress: () => {
-      setAlertTitle('Coming Soon!');
-      setAlertMessage('We are working on exciting new features. Stay tuned for updates!');
-      setAlertVisible(true);
-      // Auto-hide after 3 seconds
-      setTimeout(() => {
-        setAlertVisible(false);
-      }, 3000);
-    },
+    title: 'Track Orders',
+    subtitle: 'Monitor your shipments',
+    color: ['#4CAF50', '#45a049'],
+    icon: <Icon name="track-changes" size={32} color="white" style={{ marginBottom: 8 }} />,
+    onPress: () => navigation.navigate('TrackOrderScreen'),
+  },
+  {
+    title: 'My Orders',
+    subtitle: 'View order history',
+    color: ['#FF9800', '#F57C00'],
+    icon: <Icon name="assignment" size={32} color="white" style={{ marginBottom: 8 }} />,
+    onPress: () => navigation.navigate('OrdersScreen'),
+  },
+  {
+    title: 'Profile',
+    subtitle: 'Manage your account',
+    color: ['#9C27B0', '#7B1FA2'],
+    icon: <Icon name="person" size={32} color="white" style={{ marginBottom: 8 }} />,
+    onPress: () => navigation.navigate('Profile'),
   },
 ];
 
@@ -110,10 +119,14 @@ const quickActions = [
 
 function getGradientColors(title) {
   switch (title) {
-    case 'Documentation': // Updated to match new title
-      return ['#4e54c8', '#8f94fb'];
-    case 'Many more options to come':
-      return ['#ff512f', '#dd2476'];
+    case 'Upload & Print':
+      return ['#667eea', '#764ba2'];
+    case 'Track Orders':
+      return ['#4CAF50', '#45a049'];
+    case 'My Orders':
+      return ['#FF9800', '#F57C00'];
+    case 'Profile':
+      return ['#9C27B0', '#7B1FA2'];
     default:
       return ['#667eea', '#764ba2'];
   }
@@ -156,20 +169,20 @@ function getGradientColors(title) {
       >
         <View style={{flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', minHeight: 44}}>
           <View style={{flex: 1}}>
-            <Text style={{fontSize: 24, color: '#fff', fontWeight: 'bold', textAlign: 'left', marginBottom: 2}}>
-              {`Hello, ${(user?.name?.split(' ')[0]) || 'User'}! 👋`}
+            <Text style={{fontSize: 26, color: '#fff', fontWeight: 'bold', textAlign: 'left', marginBottom: 4}}>
+              {`Welcome back, ${(user?.name?.split(' ')[0]) || 'User'}! 👋`}
             </Text>
-            <Text style={{fontSize: 15, color: '#e0e0e0', textAlign: 'left'}}>
-              Ready to print something amazing?
+            <Text style={{fontSize: 16, color: '#e0e0e0', textAlign: 'left'}}>
+              Ready to print something amazing today?
             </Text>
           </View>
           <View style={{flexDirection: 'row', alignItems: 'center', gap: 12}}>
             <TouchableOpacity style={styles.notificationButton} onPress={() => navigation.navigate('Notifications')}>
-              <Icon name="notifications" size={20} color="white" />
+              <Icon name="notifications" size={22} color="white" />
               <View style={styles.badge} />
             </TouchableOpacity>
             <TouchableOpacity style={styles.notificationButton} onPress={() => navigation.navigate('Profile')}>
-              <Icon name="person" size={22} color="white" />
+              <Icon name="person" size={24} color="white" />
             </TouchableOpacity>
           </View>
         </View>
@@ -184,19 +197,20 @@ function getGradientColors(title) {
       />
 
       <View style={styles.content}>
-        {/* Quick Actions - now vertical stack */}
+        {/* Quick Actions - 2x2 grid layout */}
         <Animatable.View animation="fadeInUp" delay={200} duration={500}>
           <Text style={styles.sectionTitle}>Quick Actions</Text>
-          <View style={styles.quickActionsColumn}>
+          <View style={styles.quickActionsGrid}>
             {quickActions.map((action, index) => (
               <Animatable.View
                 key={action.title}
                 animation="zoomIn"
                 delay={300 + index * 100}
                 duration={400}
+                style={styles.actionGridItem}
               >
                 <TouchableOpacity
-                  style={[styles.actionCardVertical, { overflow: 'hidden' }]}
+                  style={[styles.actionCardGrid, { overflow: 'hidden' }]}
                   onPress={action.onPress}
                   activeOpacity={0.85}
                 >
@@ -206,14 +220,13 @@ function getGradientColors(title) {
                     end={{ x: 1, y: 0 }}
                     style={StyleSheet.absoluteFill}
                   />
-<View style={{ zIndex: 1, alignItems: 'center', justifyContent: 'center' }}>
-  {action.icon}
-  <Text style={styles.actionTitleVertical}>{action.title}</Text>
-  {action.subtitle && (
-    <Text style={styles.actionSubtitleVertical}>{action.subtitle}</Text>
-  )}
-</View>
-
+                  <View style={{ zIndex: 1, alignItems: 'center', justifyContent: 'center', padding: 16 }}>
+                    {action.icon}
+                    <Text style={styles.actionTitleGrid}>{action.title}</Text>
+                    {action.subtitle && (
+                      <Text style={styles.actionSubtitleGrid}>{action.subtitle}</Text>
+                    )}
+                  </View>
                 </TouchableOpacity>
               </Animatable.View>
             ))}
@@ -224,7 +237,7 @@ function getGradientColors(title) {
         <Animatable.View animation="fadeInUp" delay={400} duration={500} style={styles.recentSection}>
           <View style={styles.sectionHeader}>
             <Text style={styles.sectionTitle}>Recent Orders</Text>
-            <TouchableOpacity onPress={() => navigationRef.current?.dispatch(CommonActions.navigate({ name: 'OrdersScreen' }))}>
+            <TouchableOpacity onPress={() => navigation.navigate('OrdersScreen')}>
               <Text style={styles.viewAllText}>View All</Text>
             </TouchableOpacity>
           </View>
@@ -250,12 +263,27 @@ function getGradientColors(title) {
               >
                 <TouchableOpacity style={styles.orderCard} activeOpacity={0.8} onPress={() => navigation.navigate('InvoiceDetailScreen', { orderId: order.id, navigation })}>
                   <View style={styles.orderInfo}>
-                    <Text style={styles.orderTitle}>{order.title || `Order #${order.id}`}</Text>
-                    <Text style={styles.orderStatus}>{order.status}</Text>
-                    <Text style={styles.orderDate}>{order.createdAt ? new Date(order.createdAt).toLocaleString() : ''}</Text>
+                    <Text style={styles.orderTitle}>Order #{order.id}</Text>
+                    <View style={styles.orderStatusRow}>
+                      <View style={[styles.statusBadge, { backgroundColor: getStatusColor(order.status) }]}>
+                        <Icon name={getStatusIcon(order.status)} size={12} color="white" />
+                        <Text style={styles.statusText}>{order.status}</Text>
+                      </View>
+                      <Text style={styles.deliveryTypeText}>
+                        {order.deliveryType === 'DELIVERY' ? '🚚 Delivery' : '🏪 Pickup'}
+                      </Text>
+                    </View>
+                    <Text style={styles.orderDate}>
+                      {order.createdAt ? new Date(order.createdAt).toLocaleDateString() : ''}
+                    </Text>
+                    {order.awbNumber && (
+                      <Text style={styles.awbText}>
+                        AWB: {order.awbNumber}
+                      </Text>
+                    )}
                   </View>
                   <View style={styles.orderPrice}>
-                    <Text style={styles.priceText}>{order.totalAmount ? `\u20b9${order.totalAmount}` : ''}</Text>
+                    <Text style={styles.priceText}>{order.totalAmount ? `₹${order.totalAmount}` : ''}</Text>
                   </View>
                 </TouchableOpacity>
               </Animatable.View>
@@ -355,6 +383,33 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     marginBottom: 30,
   },
+  actionGridItem: {
+    width: (width - 60) / 2,
+    marginBottom: 16,
+  },
+  actionCardGrid: {
+    height: 120,
+    borderRadius: 16,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 4,
+  },
+  actionTitleGrid: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: 'white',
+    textAlign: 'center',
+    marginTop: 8,
+  },
+  actionSubtitleGrid: {
+    fontSize: 11,
+    color: 'rgba(255,255,255,0.9)',
+    textAlign: 'center',
+    marginTop: 4,
+    lineHeight: 14,
+  },
   actionCard: {
     width: (width - 60) / 2,
     height: 100,
@@ -405,6 +460,35 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.05,
     shadowRadius: 4,
     elevation: 2,
+  },
+  orderStatusRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginVertical: 4,
+  },
+  statusBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 12,
+    marginRight: 8,
+  },
+  statusText: {
+    color: 'white',
+    fontSize: 10,
+    fontWeight: '600',
+    marginLeft: 4,
+  },
+  deliveryTypeText: {
+    fontSize: 12,
+    color: '#666',
+  },
+  awbText: {
+    fontSize: 11,
+    color: '#667eea',
+    fontFamily: 'monospace',
+    marginTop: 2,
   },
   orderInfo: {
     flex: 1,

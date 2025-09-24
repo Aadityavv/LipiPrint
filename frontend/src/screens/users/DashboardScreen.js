@@ -35,8 +35,8 @@ export default function DashboardScreen({ navigation }) {
       
       // Fetch user statistics
       const [ordersResponse, userResponse] = await Promise.all([
-        api.request('/api/orders'),
-        api.request('/api/auth/me')
+        api.request('/orders'),
+        api.request('/auth/me')
       ]);
 
       const orders = ordersResponse.content || ordersResponse;
