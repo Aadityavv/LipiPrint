@@ -260,7 +260,7 @@ public class ShippingController {
         }
     }
     
-    @PostMapping("/rates")
+    @PostMapping("/detailed-rates")
     public ResponseEntity<?> getDetailedRates(@RequestBody Map<String, Object> request) {
         try {
             logger.info("[ShippingController] Detailed rates requested: {}", request);

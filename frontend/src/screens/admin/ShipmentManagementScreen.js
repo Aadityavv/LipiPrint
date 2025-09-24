@@ -233,7 +233,46 @@ export default function ShipmentManagementScreen({ navigation }) {
             'Get detailed shipping rates',
             'attach-money',
             '#9C27B0',
-            () => Alert.alert('Info', 'Detailed rates feature coming soon')
+            () => {
+              Alert.prompt(
+                'Get Detailed Rates',
+                'Enter delivery pincode:',
+                [
+                  { text: 'Cancel', style: 'cancel' },
+                  { text: 'Get Rates', onPress: async (pincode) => {
+                    if (!pincode || pincode.length !== 6) {
+                      Alert.alert('Error', 'Please enter a valid 6-digit pincode');
+                      return;
+                    }
+                    
+                    setLoading(true);
+                    try {
+                      const response = await api.request('/api/shipping/detailed-rates', {
+                        method: 'POST',
+                        body: JSON.stringify({
+                          pickup_pincode: '247001',
+                          delivery_pincode: pincode,
+                          weight: 0.2,
+                          payment_type: 'prepaid'
+                        })
+                      });
+                      
+                      Alert.alert(
+                        'Detailed Rates',
+                        `Rates for ${pincode}:\n${JSON.stringify(response, null, 2)}`,
+                        [{ text: 'OK' }]
+                      );
+                    } catch (error) {
+                      console.error('Failed to get detailed rates:', error);
+                      Alert.alert('Error', 'Failed to get detailed rates');
+                    } finally {
+                      setLoading(false);
+                    }
+                  }}
+                ],
+                'plain-text'
+              );
+            }
           )}
         </View>
 
