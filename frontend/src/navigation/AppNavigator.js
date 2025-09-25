@@ -29,6 +29,7 @@ import ReviewOrderScreen from '../screens/users/ReviewOrderScreen';
 import OnboardingScreen from '../screens/users/OnboardingScreen';
 import TutorialScreen from '../screens/users/TutorialScreen';
 import HelpCenterScreen from '../screens/users/HelpCenterScreen';
+import HelpCentreScreen from '../screens/users/HelpCentreScreen';
 import HelpSupportScreen from '../screens/users/HelpSupportScreen';
 import ProfileCompletionScreen from '../screens/users/ProfileCompletionScreen';
 import SettingsScreen from '../screens/users/SettingsScreen';
@@ -149,6 +150,7 @@ export default function AppNavigator() {
         <Stack.Screen name="Onboarding" component={OnboardingScreen} />
         <Stack.Screen name="Tutorial" component={TutorialScreen} />
         <Stack.Screen name="HelpCenter" component={HelpCenterScreen} />
+        <Stack.Screen name="HelpCentreScreen" component={HelpCentreScreen} />
         <Stack.Screen name="HelpSupport" component={HelpSupportScreen} />
         <Stack.Screen name="Settings" component={SettingsScreen} />
         <Stack.Screen name="PersonalInfo" component={PersonalInfoScreen} />

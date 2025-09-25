@@ -11,6 +11,8 @@ import LoadingAnim from '../../assets/animations/Loading_Paperplane.json';
 import Modal from 'react-native-modal';
 import Pdf from 'react-native-pdf';
 import RNFS from 'react-native-fs';
+import InvoiceGenerator from '../../components/InvoiceGenerator';
+import RNPrint from 'react-native-print';
 
 const { width } = Dimensions.get('window');
 
@@ -233,92 +235,7 @@ export default function AdminOrdersScreen({ navigation }) {
     }
   };
 
-  const downloadInvoiceForPreview = async (orderId) => {
-    try {
-      const url = getAbsoluteUrl(`/orders/${orderId}/invoice`);
-      
-      let path;
-      if (Platform.OS === 'android') {
-        path = `${RNFS.DocumentDirectoryPath}/invoice_${orderId}.pdf`;
-      } else {
-        path = `${RNFS.DocumentDirectoryPath}/invoice_${orderId}.pdf`;
-      }
-      
-      console.log('Downloading invoice to:', path);
-      
-      const authToken = await api.getToken();
-      
-      if (!authToken) {
-        throw new Error('Authentication token not available');
-      }
-      
-      const headers = {
-        'Authorization': `Bearer ${authToken}`,
-        'Content-Type': 'application/json'
-      };
-      
-      const downloadOptions = {
-        fromUrl: url,
-        toFile: path,
-        headers: headers,
-      };
-      
-      const downloadResult = await RNFS.downloadFile(downloadOptions).promise;
-      
-      if (downloadResult.statusCode === 200) {
-        console.log('Invoice downloaded successfully');
-        return path;
-      } else {
-        throw new Error(`Download failed with status code: ${downloadResult.statusCode}`);
-      }
-    } catch (error) {
-      console.error('Error downloading invoice:', error);
-      throw error;
-    }
-  };
 
-  const downloadInvoiceWithFetch = async (orderId) => {
-    try {
-      const url = getAbsoluteUrl(`/orders/${orderId}/invoice`);
-      
-      const authToken = await api.getToken();
-      
-      if (!authToken) {
-        throw new Error('Authentication token not available');
-      }
-      
-      const response = await fetch(url, {
-        method: 'GET',
-        headers: {
-          'Authorization': `Bearer ${authToken}`,
-          'Content-Type': 'application/pdf',
-        },
-      });
-      
-      if (!response.ok) {
-        throw new Error(`Download failed with status code: ${response.status}`);
-      }
-      
-      const blob = await response.blob();
-      const base64 = await blobToBase64(blob);
-      
-      let path;
-      if (Platform.OS === 'android') {
-        path = `${RNFS.DocumentDirectoryPath}/invoice_${orderId}.pdf`;
-      } else {
-        path = `${RNFS.DocumentDirectoryPath}/invoice_${orderId}.pdf`;
-      }
-      
-      await RNFS.writeFile(path, base64, 'base64');
-      
-      console.log('Invoice downloaded successfully using fetch');
-      return path;
-    } catch (error) {
-      console.error('Error downloading invoice with fetch:', error);
-      throw error;
-    }
-  };
-  
   const blobToBase64 = (blob) => {
     return new Promise((resolve, reject) => {
       const reader = new FileReader();
@@ -339,30 +256,46 @@ export default function AdminOrdersScreen({ navigation }) {
     });
     
     try {
-      let filePath;
+      // First, get the order data
+      const orderData = await api.request(`/orders/${orderId}/invoice`);
       
-      try {
-        filePath = await downloadInvoiceForPreview(orderId);
-      } catch (error) {
-        console.log('RNFS download failed, trying fetch method:', error);
-        filePath = await downloadInvoiceWithFetch(orderId);
-      }
+      // Generate PDF using the new frontend system
+      await InvoiceGenerator.generateInvoice(
+        orderData,
+        (pdf) => {
+          setInvoiceModal(prev => ({
+            ...prev,
+            filePath: pdf.filePath,
+            loading: false
+          }));
+        },
+        (error) => {
+          console.error('Invoice generation error:', error);
+          let errorMessage = 'Failed to generate invoice preview.';
+          
+          if (error.message && error.message.includes('permission')) {
+            errorMessage = 'Storage permission denied. Please allow storage access.';
+          } else if (error.message && error.message.includes('template')) {
+            errorMessage = 'Invoice template error. Please contact support.';
+          } else {
+            errorMessage = `Invoice generation failed: ${error.message || 'Unknown error'}`;
+          }
+          
+          showAlert('Error', errorMessage, 'error');
+          setInvoiceModal(prev => ({ ...prev, loading: false }));
+        }
+      );
       
-      setInvoiceModal(prev => ({
-        ...prev,
-        filePath: filePath,
-        loading: false
-      }));
     } catch (e) {
       console.error('Invoice preview error:', e);
-      let errorMessage = 'Failed to load invoice preview.';
+      let errorMessage = 'Failed to load invoice data.';
       
       if (e.message && e.message.includes('403')) {
         errorMessage = 'You are not authorized to view this invoice.';
       } else if (e.message && e.message.includes('404')) {
         errorMessage = 'Invoice not found. Please contact support.';
       } else if (e.message && e.message.includes('500')) {
-        errorMessage = 'Server error occurred while generating the invoice. This might be due to missing order data or template issues. Please contact support.';
+        errorMessage = 'Server error occurred while fetching invoice data. Please contact support.';
       } else if (e.message && e.message.includes('Network')) {
         errorMessage = 'Network error. Please check your connection and try again.';
       } else {
@@ -379,17 +312,100 @@ export default function AdminOrdersScreen({ navigation }) {
   const handlePrintInvoice = async (orderId) => {
     try {
       if (invoiceModal.filePath) {
-        if (Platform.OS === 'android') {
-          await Linking.openURL(`file://${invoiceModal.filePath}`);
-        } else {
-          showAlert('Info', 'Print functionality is not fully implemented on iOS', 'info');
+        console.log('[PRINT] Starting print process for invoice:', invoiceModal.filePath);
+        
+        // Check if the file exists
+        const fileExists = await RNFS.exists(invoiceModal.filePath);
+        if (!fileExists) {
+          throw new Error('Invoice file not found');
         }
+
+        // Use react-native-print to print the PDF
+        try {
+          const printOptions = {
+            html: '', // We're printing a PDF file, not HTML
+            filePath: invoiceModal.filePath,
+            fileName: `Invoice_LP${orderId}`,
+            jobName: `Invoice LP${orderId}`,
+            printerURL: '', // Let user select printer
+            orientation: 'portrait',
+            paperSize: 'A4',
+            base64: false,
+            width: 595, // A4 width in points
+            height: 842, // A4 height in points
+            padding: {
+              top: 10,
+              right: 10,
+              bottom: 10,
+              left: 10
+            }
+          };
+
+          console.log('[PRINT] Printing with options:', printOptions);
+          
+          // Print the PDF file
+          await RNPrint.print(printOptions);
+          
+          console.log('[PRINT] Print job sent successfully');
+          showAlert('Success', 'Print job sent to printer successfully!', 'success');
+          
+        } catch (printError) {
+          console.error('[PRINT] Print error:', printError);
+          
+          // Fallback: Try printing as HTML content
+          try {
+            console.log('[PRINT] Trying fallback HTML print method');
+            
+            // Get the invoice data and generate HTML for printing
+            const orderData = await api.request(`/orders/${orderId}/invoice`);
+            const htmlContent = InvoiceGenerator.generateInvoiceHTML(orderData);
+            
+            const htmlPrintOptions = {
+              html: htmlContent,
+              fileName: `Invoice_LP${orderId}`,
+              jobName: `Invoice LP${orderId}`,
+              printerURL: '',
+              orientation: 'portrait',
+              paperSize: 'A4',
+              base64: false,
+              width: 595,
+              height: 842,
+              padding: {
+                top: 10,
+                right: 10,
+                bottom: 10,
+                left: 10
+              }
+            };
+            
+            await RNPrint.print(htmlPrintOptions);
+            console.log('[PRINT] HTML print job sent successfully');
+            showAlert('Success', 'Print job sent to printer successfully!', 'success');
+            
+          } catch (htmlPrintError) {
+            console.error('[PRINT] HTML print also failed:', htmlPrintError);
+            throw htmlPrintError;
+          }
+        }
+        
       } else {
         showAlert('Error', 'Please preview the invoice first before printing', 'error');
       }
     } catch (error) {
-      console.error('Print error:', error);
-      showAlert('Error', 'Failed to print invoice', 'error');
+      console.error('[PRINT] Final print error:', error);
+      
+      // Last resort: Share with print instructions
+      try {
+        const Share = require('react-native').Share;
+        await Share.share({
+          url: `file://${invoiceModal.filePath}`,
+          title: `🖨️ PRINT Invoice LP${orderId}`,
+          message: `📄 Invoice for order LP${orderId}\n\n🖨️ TO PRINT:\n1. Select "Print" from share options\n2. Or open with PDF viewer and print\n3. Or save to Google Drive and print`
+        });
+      } catch (shareError) {
+        console.error('[PRINT] Share fallback also failed:', shareError);
+        showAlert('Error', 'Failed to print invoice. Please try sharing and select print option.', 'error');
+      }
     }
   };
 
@@ -829,9 +845,19 @@ export default function AdminOrdersScreen({ navigation }) {
             
             <TouchableOpacity 
               style={styles.modalButton}
-              onPress={() => {
+              onPress={async () => {
                 if (invoiceModal.filePath) {
-                  Linking.openURL(`file://${invoiceModal.filePath}`);
+                  try {
+                    const Share = require('react-native').Share;
+                    await Share.share({
+                      url: `file://${invoiceModal.filePath}`,
+                      title: `📤 SHARE Invoice LP${invoiceModal.orderId}`,
+                      message: `📄 Invoice for order LP${invoiceModal.orderId}\n\n📤 Share this invoice via email, messaging, or cloud storage`
+                    });
+                  } catch (error) {
+                    console.error('Share error:', error);
+                    showAlert('Error', 'Failed to share invoice', 'error');
+                  }
                 }
               }}
             >

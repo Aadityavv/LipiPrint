@@ -154,7 +154,7 @@ export const PRODUCTION_CONFIG = {
   // Support Configuration
   SUPPORT: {
     PHONE: '+91-XXXXXXXXXX',
-    EMAIL: 'support@lipiprint.com',
+    EMAIL: 'dev.lipiprint@gmail.com',
     WHATSAPP: '+91-XXXXXXXXXX',
     WORKING_HOURS: '9:00 AM - 6:00 PM (IST)',
     RESPONSE_TIME: '2 hours',

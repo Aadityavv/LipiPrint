@@ -103,7 +103,7 @@ ERROR_REPORTING: {
 
 SUPPORT: {
   PHONE: '+91-XXXXXXXXXX',
-  EMAIL: 'support@lipiprint.com',
+  EMAIL: 'dev.lipiprint@gmail.com',
   WHATSAPP: '+91-XXXXXXXXXX',
 },
 
@@ -300,7 +300,7 @@ npx react-native run-ios --configuration Release
 ## 📞 Support & Maintenance
 
 ### 1. Support Channels
-- Email: support@lipiprint.com
+- Email: dev.lipiprint@gmail.com
 - Phone: +91-XXXXXXXXXX
 - WhatsApp: +91-XXXXXXXXXX
 - In-app chat support

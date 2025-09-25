@@ -16,6 +16,8 @@ import RNHTMLtoPDF from 'react-native-html-to-pdf';
 import { Platform, PermissionsAndroid } from 'react-native';
 import ApiService from '../../services/api';
 import InvoiceGenerator from '../../components/InvoiceGenerator';
+import RNPrint from 'react-native-print';
+import * as Animatable from 'react-native-animatable';
 
 export default function InvoiceDetailScreen() {
   const route = useRoute();
@@ -34,6 +36,7 @@ export default function InvoiceDetailScreen() {
   const [pdfLoading, setPdfLoading] = useState(true);
   const [pdfLoadStart, setPdfLoadStart] = useState(Date.now());
   const [downloading, setDownloading] = useState(false);
+  const [printing, setPrinting] = useState(false);
   const [combinations, setCombinations] = useState([]);
   const [bindingOptions, setBindingOptions] = useState([]);
   const [discountRules, setDiscountRules] = useState([]);
@@ -365,6 +368,103 @@ export default function InvoiceDetailScreen() {
     }
   };
 
+  const handlePrint = async () => {
+    try {
+      setPrinting(true);
+      console.log('[USER PRINT] Starting print process for invoice:', orderId);
+      
+      // First generate the PDF
+      let pdfPath = null;
+      
+      await InvoiceGenerator.generateInvoice(
+        order,
+        (pdf) => {
+          pdfPath = pdf.filePath;
+        },
+        (error) => {
+          throw error;
+        }
+      );
+      
+      if (!pdfPath) {
+        throw new Error('Failed to generate PDF for printing');
+      }
+      
+      // Check if the file exists
+      const RNFS = require('react-native-fs');
+      const fileExists = await RNFS.exists(pdfPath);
+      if (!fileExists) {
+        throw new Error('Generated PDF file not found');
+      }
+
+      // Use react-native-print to print the PDF
+      const printOptions = {
+        html: '', // We're printing a PDF file, not HTML
+        filePath: pdfPath,
+        fileName: `Invoice_LP${orderId}`,
+        jobName: `Invoice LP${orderId}`,
+        printerURL: '', // Let user select printer
+        orientation: 'portrait',
+        paperSize: 'A4',
+        base64: false,
+        width: 595, // A4 width in points
+        height: 842, // A4 height in points
+        padding: {
+          top: 10,
+          right: 10,
+          bottom: 10,
+          left: 10
+        }
+      };
+
+      console.log('[USER PRINT] Printing with options:', printOptions);
+      
+      // Print the PDF file
+      await RNPrint.print(printOptions);
+      
+      console.log('[USER PRINT] Print job sent successfully');
+      showAlert('Success', 'Print job sent to printer successfully!', 'success');
+      
+    } catch (error) {
+      console.error('[USER PRINT] Print error:', error);
+      
+      // Fallback: Try printing as HTML content
+      try {
+        console.log('[USER PRINT] Trying fallback HTML print method');
+        
+        const htmlContent = InvoiceGenerator.generateInvoiceHTML(order);
+        
+        const htmlPrintOptions = {
+          html: htmlContent,
+          fileName: `Invoice_LP${orderId}`,
+          jobName: `Invoice LP${orderId}`,
+          printerURL: '',
+          orientation: 'portrait',
+          paperSize: 'A4',
+          base64: false,
+          width: 595,
+          height: 842,
+          padding: {
+            top: 10,
+            right: 10,
+            bottom: 10,
+            left: 10
+          }
+        };
+        
+        await RNPrint.print(htmlPrintOptions);
+        console.log('[USER PRINT] HTML print job sent successfully');
+        showAlert('Success', 'Print job sent to printer successfully!', 'success');
+        
+      } catch (htmlPrintError) {
+        console.error('[USER PRINT] HTML print also failed:', htmlPrintError);
+        showAlert('Print Failed', 'Failed to print invoice. Please try downloading and printing manually.', 'error');
+      }
+    } finally {
+      setPrinting(false);
+    }
+  };
+
   const handleShare = async () => {
     try {
       await Share.share({
@@ -483,43 +583,107 @@ export default function InvoiceDetailScreen() {
   }
 
   return (
-    <ScrollView style={[styles.container, { backgroundColor: theme.background }]} contentContainerStyle={{ padding: 0 }}>
+    <View style={[styles.container, { backgroundColor: theme.background }]}>
       <LinearGradient
-        colors={['#22194f', '#22194f']}
+        colors={['#667eea', '#764ba2']}
         style={styles.gradientHeader}
       >
-        <Heading
-          title="Invoice Details"
-          variant="primary"
-        />
-      </LinearGradient>
-      {/* <View style={styles.logoContainer}>
-        <Image source={LipiPrintLogo} style={styles.logo} resizeMode="contain" />
-      </View> */}
-      <View style={styles.invoiceBox}>
-        <Text style={styles.invoiceTitle}>LipiPrint Invoice</Text>
-        <View style={styles.divider} />
-        <View style={styles.infoRow}>
-          <Icon name="receipt" size={18} color="#764ba2" style={styles.infoIcon} />
-          <Text style={styles.invoiceInfo}>Order ID: LP{order.id}</Text>
-        </View>
-        <View style={styles.infoRow}>
-          <Icon name="event" size={18} color="#764ba2" style={styles.infoIcon} />
-          <Text style={styles.invoiceInfo}>Date: {order.createdAt?.split('T')[0] || '-'}</Text>
-        </View>
-        <View style={styles.section}>
-          <View style={styles.sectionHeader}>
-            <Icon name="person" size={18} color="#667eea" style={styles.sectionIcon} />
-            <Text style={styles.sectionTitle}>Customer Info</Text>
+        <View style={styles.headerContent}>
+          <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
+            <Icon name="arrow-back" size={24} color="white" />
+          </TouchableOpacity>
+          <View style={styles.headerTitleContainer}>
+            <Text style={styles.headerTitle}>Invoice Details</Text>
+            <Text style={styles.headerSubtitle}>Order LP{order.id}</Text>
           </View>
-          <Text>Name: {order.user?.name || '-'}</Text>
-          <Text>Phone: {order.user?.phone || '-'}</Text>
-          <Text>Email: {order.user?.email || '-'}</Text>
+          <TouchableOpacity style={styles.shareButton} onPress={handleShare}>
+            <Icon name="share" size={20} color="white" />
+          </TouchableOpacity>
         </View>
-        <View style={[styles.section, styles.sectionHighlight]}>
-          <View style={styles.sectionHeader}>
-            <Icon name="description" size={18} color="#667eea" style={styles.sectionIcon} />
-            <Text style={styles.sectionTitle}>Print Jobs</Text>
+      </LinearGradient>
+
+      <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
+        {/* Invoice Header Card */}
+        <Animatable.View animation="fadeInDown" duration={500} style={styles.invoiceHeaderCard}>
+          <View style={styles.invoiceHeaderContent}>
+            <View style={styles.invoiceIconContainer}>
+              <Icon name="receipt" size={32} color="#667eea" />
+            </View>
+            <View style={styles.invoiceHeaderText}>
+              <Text style={styles.invoiceHeaderTitle}>LipiPrint Invoice</Text>
+              <Text style={styles.invoiceHeaderSubtitle}>Professional Printing Services</Text>
+            </View>
+            <View style={styles.invoiceStatusBadge}>
+              <Text style={styles.invoiceStatusText}>{order.status}</Text>
+            </View>
+          </View>
+        </Animatable.View>
+
+        {/* Order Info Card */}
+        <Animatable.View animation="fadeInUp" delay={200} duration={500} style={styles.orderInfoCard}>
+          <View style={styles.cardHeader}>
+            <Icon name="info" size={20} color="#667eea" />
+            <Text style={styles.cardTitle}>Order Information</Text>
+          </View>
+          <View style={styles.infoGrid}>
+            <View style={styles.infoItem}>
+              <Icon name="receipt" size={16} color="#999" />
+              <Text style={styles.infoLabel}>Order ID</Text>
+              <Text style={styles.infoValue}>LP{order.id}</Text>
+            </View>
+            <View style={styles.infoItem}>
+              <Icon name="event" size={16} color="#999" />
+              <Text style={styles.infoLabel}>Order Date</Text>
+              <Text style={styles.infoValue}>{order.createdAt?.split('T')[0] || '-'}</Text>
+            </View>
+            <View style={styles.infoItem}>
+              <Icon name="local-shipping" size={16} color="#999" />
+              <Text style={styles.infoLabel}>Delivery Type</Text>
+              <Text style={styles.infoValue}>{order.deliveryType === 'DELIVERY' ? 'Home Delivery' : 'Store Pickup'}</Text>
+            </View>
+            <View style={styles.infoItem}>
+              <Icon name="payment" size={16} color="#999" />
+              <Text style={styles.infoLabel}>Payment Status</Text>
+              <Text style={[styles.infoValue, { color: '#4CAF50' }]}>Paid</Text>
+            </View>
+          </View>
+        </Animatable.View>
+
+        {/* Customer Info Card */}
+        <Animatable.View animation="fadeInUp" delay={300} duration={500} style={styles.customerCard}>
+          <View style={styles.cardHeader}>
+            <Icon name="person" size={20} color="#667eea" />
+            <Text style={styles.cardTitle}>Customer Information</Text>
+          </View>
+          <View style={styles.customerInfo}>
+            <View style={styles.customerAvatar}>
+              <Text style={styles.customerInitial}>{order.user?.name?.charAt(0) || 'U'}</Text>
+            </View>
+            <View style={styles.customerDetails}>
+              <Text style={styles.customerName}>{order.user?.name || 'Customer'}</Text>
+              <View style={styles.customerContact}>
+                <Icon name="phone" size={14} color="#666" />
+                <Text style={styles.customerContactText}>{order.user?.phone || 'No phone'}</Text>
+              </View>
+              <View style={styles.customerContact}>
+                <Icon name="email" size={14} color="#666" />
+                <Text style={styles.customerContactText}>{order.user?.email || 'No email'}</Text>
+              </View>
+              {order.deliveryAddress && (
+                <View style={styles.customerContact}>
+                  <Icon name="location-on" size={14} color="#666" />
+                  <Text style={styles.customerContactText}>{order.deliveryAddress}</Text>
+                </View>
+              )}
+            </View>
+          </View>
+        </Animatable.View>
+
+        {/* Print Jobs Card */}
+        <Animatable.View animation="fadeInUp" delay={400} duration={500} style={styles.printJobsCard}>
+          <View style={styles.cardHeader}>
+            <Icon name="description" size={20} color="#667eea" />
+            <Text style={styles.cardTitle}>Print Jobs ({printJobGroups.length})</Text>
           </View>
           {printJobGroups.length > 0 ? (
             printJobGroups.map((group, idx) => {
@@ -530,109 +694,137 @@ export default function InvoiceDetailScreen() {
                 specs = {};
               }
               return (
-                <View key={idx} style={{ marginBottom: 18, backgroundColor: '#f8f9fa', borderRadius: 12, padding: 12, borderWidth: 1, borderColor: '#e0e0e0' }}>
-                  <Text style={{ fontWeight: 'bold', color: '#764ba2', fontSize: 16, marginBottom: 4 }}>Print Options:</Text>
-                  <View style={{ marginBottom: 8, marginLeft: 8 }}>
-                    {Object.entries(specs).map(([key, value]) => (
-                      <Text key={key} style={{ color: '#333', fontSize: 14 }}>
-                        {key.replace(/_/g, ' ').replace(/^./, c => c.toUpperCase())}: {String(value)}
-                      </Text>
+                <View key={idx} style={styles.printJobGroup}>
+                  <View style={styles.printJobHeader}>
+                    <Icon name="print" size={16} color="#667eea" />
+                    <Text style={styles.printJobTitle}>Print Group {idx + 1}</Text>
+                  </View>
+                  
+                  <View style={styles.printOptionsContainer}>
+                    <Text style={styles.printOptionsTitle}>Print Options:</Text>
+                    <View style={styles.printOptionsGrid}>
+                      {Object.entries(specs).map(([key, value]) => (
+                        <View key={key} style={styles.printOptionItem}>
+                          <Text style={styles.printOptionLabel}>
+                            {key.replace(/_/g, ' ').replace(/^./, c => c.toUpperCase())}:
+                          </Text>
+                          <Text style={styles.printOptionValue}>{String(value)}</Text>
+                        </View>
+                      ))}
+                    </View>
+                  </View>
+
+                  <View style={styles.filesContainer}>
+                    <Text style={styles.filesTitle}>Files ({group.files.length}):</Text>
+                    {group.files.map((file, fidx) => (
+                      <View key={fidx} style={styles.fileItem}>
+                        <Icon name="insert-drive-file" size={16} color="#999" />
+                        <View style={styles.fileDetails}>
+                          <Text style={styles.fileName}>{getDisplayFileName(file)}</Text>
+                          <View style={styles.fileMeta}>
+                            <Text style={styles.fileMetaText}>{file?.pages || 0} pages</Text>
+                            <Text style={styles.fileMetaText}>•</Text>
+                            <Text style={styles.fileMetaText}>
+                              {file?.createdAt?.split('T')[0] || 'Unknown date'}
+                            </Text>
+                          </View>
+                        </View>
+                      </View>
                     ))}
                   </View>
-                  <Text style={{ fontWeight: 'bold', color: '#667eea', fontSize: 15, marginBottom: 2 }}>Files:</Text>
-                  {group.files.map((file, fidx) => (
-                    <View key={fidx} style={{ marginLeft: 12, marginBottom: 2 }}>
-                      <Text style={{ color: '#22194f', fontWeight: 'bold', fontSize: 14 }}>{getDisplayFileName(file)}</Text>
-                      <Text style={{ color: '#888', fontSize: 13 }}>Pages: {file?.pages || '-'}</Text>
-                      <Text style={{ color: '#888', fontSize: 13 }}>Ordered On: {file?.createdAt?.split('T')[0] || '-'}</Text>
-                    </View>
-                  ))}
                 </View>
               );
             })
           ) : (
-            <Text style={{ color: '#888', marginTop: 8 }}>No print jobs found.</Text>
+            <View style={styles.noJobsContainer}>
+              <Icon name="description" size={48} color="#ccc" />
+              <Text style={styles.noJobsText}>No print jobs found</Text>
+            </View>
           )}
-        </View>
-        <View style={styles.section}>
-          <View style={styles.sectionHeader}>
-            <Icon name="table-chart" size={18} color="#667eea" style={styles.sectionIcon} />
-            <Text style={styles.sectionTitle}>Order Summary</Text>
+        </Animatable.View>
+
+        {/* Pricing Summary Card */}
+        <Animatable.View animation="fadeInUp" delay={500} duration={500} style={styles.pricingCard}>
+          <View style={styles.cardHeader}>
+            <Icon name="account-balance-wallet" size={20} color="#667eea" />
+            <Text style={styles.cardTitle}>Pricing Summary</Text>
           </View>
-          <View style={styles.tableRow}>
-            <Text style={[styles.tableCell, styles.tableHeader]}>File</Text>
-            <Text style={[styles.tableCell, styles.tableHeader]}>Pages</Text>
-          </View>
-          {order.printJobs && order.printJobs.length > 0 ? (
-            order.printJobs.map((pj, idx) => (
-              <View key={pj.id || idx} style={styles.tableRow}>
-                <Text style={styles.tableCell}>{getDisplayFileName(pj.file)}</Text>
-                <Text style={styles.tableCell}>{pj.file?.pages || '-'}</Text>
+          
+          <View style={styles.pricingBreakdown}>
+            <View style={styles.pricingRow}>
+              <Text style={styles.pricingLabel}>Subtotal</Text>
+              <Text style={styles.pricingValue}>₹{order.subtotal?.toFixed(2) || '0.00'}</Text>
+            </View>
+            
+            {order.discount > 0 && (
+              <View style={styles.pricingRow}>
+                <Text style={styles.pricingLabel}>Discount</Text>
+                <Text style={[styles.pricingValue, { color: '#4CAF50' }]}>-₹{order.discount?.toFixed(2) || '0.00'}</Text>
               </View>
-            ))
-          ) : (
-            <View style={styles.tableRow}>
-              <Text style={styles.tableCell}>-</Text>
-              <Text style={styles.tableCell}>-</Text>
+            )}
+            
+            <View style={styles.pricingRow}>
+              <Text style={styles.pricingLabel}>GST (18%)</Text>
+              <Text style={styles.pricingValue}>₹{order.gst?.toFixed(2) || '0.00'}</Text>
             </View>
-          )}
-          <View style={styles.priceCard}>
-            <View style={styles.priceRow}>
-              <Text style={styles.priceLabel}>Subtotal (Before Discount)</Text>
-              <Text style={styles.priceValue}>INR {order.subtotal?.toFixed(2) || '0.00'}</Text>
+            
+            <View style={styles.pricingRow}>
+              <Text style={styles.pricingLabel}>Delivery</Text>
+              <Text style={styles.pricingValue}>₹{order.delivery?.toFixed(2) || '0.00'}</Text>
             </View>
-            <View style={styles.priceRow}>
-              <Text style={styles.priceLabel}>Discount </Text>
-              <Text style={styles.priceValue}>INR {order.discount?.toFixed(2) || '0.00'}</Text>
-            </View>
-            <View style={styles.priceRow}>
-              <Text style={styles.priceLabel}>Subtotal (After Discount)</Text>
-              <Text style={styles.priceValue}>INR {order.discountedSubtotal?.toFixed(2) || '0.00'}</Text>
-            </View>
-            <View style={styles.priceRow}>
-              <Text style={styles.priceLabel}>GST (18%)</Text>
-              <Text style={styles.priceValue}>INR {order.gst?.toFixed(2) || '0.00'}</Text>
-            </View>
-            <View style={styles.priceRow}>
-              <Text style={styles.priceLabel}>Delivery</Text>
-              <Text style={styles.priceValue}>INR {order.delivery?.toFixed(2) || '0.00'}</Text>
-            </View>
-            <View style={styles.priceRowDivider} />
-            <View style={styles.priceRow}>
-              <Text style={[styles.priceLabel, styles.grandTotal]}>Grand Total</Text>
-              <Text style={[styles.priceValue, styles.grandTotal]}>INR {order.grandTotal?.toFixed(2) || '0.00'}</Text>
+            
+            <View style={styles.pricingDivider} />
+            
+            <View style={[styles.pricingRow, styles.grandTotalRow]}>
+              <Text style={styles.grandTotalLabel}>Grand Total</Text>
+              <Text style={styles.grandTotalValue}>₹{order.grandTotal?.toFixed(2) || '0.00'}</Text>
             </View>
           </View>
-        </View>
-        <View style={styles.section}>
-          <View style={styles.sectionHeader}>
-            <Icon name="info" size={18} color="#667eea" style={styles.sectionIcon} />
-            <Text style={styles.sectionTitle}>Order Status</Text>
-          </View>
-          <Text>{order.status}</Text>
-        </View>
-        <View style={styles.thankYouBox}>
+        </Animatable.View>
+
+        {/* Action Buttons */}
+        <Animatable.View animation="fadeInUp" delay={600} duration={500} style={styles.actionButtonsContainer}>
+          <TouchableOpacity style={styles.actionButton} onPress={handleDownload} disabled={downloading}>
+            <LinearGradient colors={['#667eea', '#764ba2']} style={styles.actionButtonGradient}>
+              <Icon name="file-download" size={20} color="white" />
+              <Text style={styles.actionButtonText}>
+                {downloading ? 'Downloading...' : 'Download PDF'}
+              </Text>
+            </LinearGradient>
+          </TouchableOpacity>
+          
+          <TouchableOpacity style={styles.actionButton} onPress={handlePrint} disabled={printing}>
+            <LinearGradient colors={['#4CAF50', '#45a049']} style={styles.actionButtonGradient}>
+              <Icon name="print" size={20} color="white" />
+              <Text style={styles.actionButtonText}>
+                {printing ? 'Printing...' : 'Print Invoice'}
+              </Text>
+            </LinearGradient>
+          </TouchableOpacity>
+        </Animatable.View>
+
+        {/* Thank You Card */}
+        <Animatable.View animation="fadeInUp" delay={700} duration={500} style={styles.thankYouCard}>
+          <Icon name="favorite" size={24} color="#FF5722" />
           <Text style={styles.thankYouText}>Thank you for choosing LipiPrint!</Text>
-        </View>
-      </View>
-      <TouchableOpacity style={styles.downloadBtn} onPress={handleDownload} activeOpacity={0.85} disabled={downloading}>
-        <LinearGradient colors={['#667eea', '#764ba2']} style={styles.downloadGradient}>
-          <Icon name="file-download" size={22} color="#fff" style={{ marginRight: 8 }} />
-          <Text style={styles.downloadText}>{downloading ? 'Downloading...' : 'Download PDF'}</Text>
-        </LinearGradient>
-      </TouchableOpacity>
+          <Text style={styles.thankYouSubtext}>We appreciate your business and look forward to serving you again.</Text>
+        </Animatable.View>
+      </ScrollView>
+
+      {/* Download Overlay */}
       {downloading && (
         <View style={styles.downloadOverlay}>
           <LottieView
             source={searchForInvoiceAnim}
             autoPlay
             loop
-            style={{ width: 120, height: 120, alignSelf: 'center' }}
+            style={styles.downloadAnimation}
           />
-          <Text style={{ marginTop: 14, color: '#667eea', fontWeight: 'bold', fontSize: 16 }}>Downloading PDF...</Text>
-          <Text style={{ marginTop: 8, color: '#888', fontSize: 13 }}>If this takes more than a minute, check your internet or try again later.</Text>
+          <Text style={styles.downloadText}>Generating PDF...</Text>
+          <Text style={styles.downloadSubtext}>This may take a moment</Text>
         </View>
       )}
+
       <CustomAlert
         visible={alertVisible}
         title={alertTitle}
@@ -642,71 +834,429 @@ export default function InvoiceDetailScreen() {
         onConfirm={alertOnConfirm}
         showCancel={alertShowCancel}
       />
-    </ScrollView>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  center: { 
-    flex: 1, 
-    justifyContent: 'center',
-    alignItems: 'center' 
+  container: {
+    flex: 1,
+    backgroundColor: '#f8f9fa',
   },
   gradientHeader: {
     paddingTop: 50,
     paddingBottom: 20,
     paddingHorizontal: 20,
-   },
-
-  header: {     flexDirection: 'row',
-    justifyContent: 'space-between',
+  },
+  headerContent: {
+    flexDirection: 'row',
     alignItems: 'center',
-    marginTop:-30
- },
-  backBtn: {
+    justifyContent: 'space-between',
+  },
+  backButton: {
     width: 44,
     height: 44,
     borderRadius: 22,
-    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    backgroundColor: 'rgba(255,255,255,0.2)',
     justifyContent: 'center',
     alignItems: 'center',
-    marginRight:10
   },
-  headerTitle: { fontSize: 24, fontWeight: 'bold', color: '#fff', flex: 1, textAlign: 'left' },
-  shareBtn: { padding: 8 },
-  logoContainer: { alignItems: 'center', marginBottom: 8 },
-  logo: { width: 120, height: 60, marginBottom: 8 },
-  divider: { height: 1, backgroundColor: '#764ba2', marginVertical: 8, opacity: 0.2 },
-  invoiceBox: { backgroundColor: '#fff', borderRadius: 16, padding: 20, marginHorizontal: 8, marginBottom: 24, elevation: 4, shadowColor: '#764ba2', shadowOpacity: 0.1, shadowRadius: 8, shadowOffset: { width: 0, height: 2 } },
-  invoiceTitle: { fontSize: 22, fontWeight: 'bold', color: '#764ba2', marginBottom: 8, textAlign: 'center' },
-  invoiceInfo: { fontSize: 14, color: '#333', marginBottom: 2, textAlign: 'left' },
-  infoRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 2 },
-  infoIcon: { marginRight: 6 },
-  section: { marginTop: 16 },
-  sectionHeader: { flexDirection: 'row', alignItems: 'center', marginBottom: 4 },
-  sectionIcon: { marginRight: 6 },
-  sectionTitle: { fontWeight: 'bold', color: '#667eea', fontSize: 16 },
-  sectionHighlight: { backgroundColor: '#f0f4ff', borderRadius: 8, padding: 10 },
-  tableRow: { flexDirection: 'row', marginBottom: 2 },
-  tableCell: { flex: 1, fontSize: 14, color: '#333', padding: 2 },
-  tableHeader: { fontWeight: 'bold', color: '#764ba2' },
-  downloadBtn: { marginTop: 8, borderRadius: 8, overflow: 'hidden', marginHorizontal: 8, marginBottom:50 },
-  downloadGradient: { flexDirection: 'row', alignItems: 'center', padding: 14, borderRadius: 8, justifyContent: 'center' },
-  downloadText: { color: '#fff', fontWeight: 'bold', fontSize: 16 },
-  priceRow: { flexDirection: 'row', justifyContent: 'space-between', marginTop: 4 },
-  priceLabel: { fontWeight: 'bold', color: '#667eea' },
-  priceValue: { fontWeight: 'bold', color: '#333' },
-  grandTotal: { color: '#764ba2', fontSize: 16 },
-  thankYouBox: { backgroundColor: '#f0f4ff', borderRadius: 8, padding: 10, marginTop: 16 },
-  thankYouText: { color: '#667eea', fontWeight: 'bold', textAlign: 'center' },
-  container: { flex: 1 },
+  headerTitleContainer: {
+    flex: 1,
+    alignItems: 'center',
+  },
+  headerTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: 'white',
+  },
+  headerSubtitle: {
+    fontSize: 14,
+    color: 'rgba(255,255,255,0.8)',
+    marginTop: 2,
+  },
+  shareButton: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: 'rgba(255,255,255,0.2)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  content: {
+    flex: 1,
+    padding: 20,
+  },
+  invoiceHeaderCard: {
+    backgroundColor: 'white',
+    borderRadius: 16,
+    padding: 20,
+    marginBottom: 20,
+    shadowColor: '#667eea',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.15,
+    shadowRadius: 8,
+    elevation: 5,
+  },
+  invoiceHeaderContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  invoiceIconContainer: {
+    width: 60,
+    height: 60,
+    borderRadius: 30,
+    backgroundColor: '#f0f4ff',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 16,
+  },
+  invoiceHeaderText: {
+    flex: 1,
+  },
+  invoiceHeaderTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: '#333',
+    marginBottom: 4,
+  },
+  invoiceHeaderSubtitle: {
+    fontSize: 14,
+    color: '#666',
+  },
+  invoiceStatusBadge: {
+    backgroundColor: '#4CAF50',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 12,
+  },
+  invoiceStatusText: {
+    color: 'white',
+    fontSize: 12,
+    fontWeight: '600',
+  },
+  orderInfoCard: {
+    backgroundColor: 'white',
+    borderRadius: 16,
+    padding: 20,
+    marginBottom: 20,
+    shadowColor: '#667eea',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  cardHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  cardTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#333',
+    marginLeft: 8,
+  },
+  infoGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'space-between',
+  },
+  infoItem: {
+    width: '48%',
+    backgroundColor: '#f8f9fa',
+    borderRadius: 12,
+    padding: 12,
+    marginBottom: 12,
+    alignItems: 'center',
+  },
+  infoLabel: {
+    fontSize: 12,
+    color: '#666',
+    marginTop: 4,
+    marginBottom: 2,
+  },
+  infoValue: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#333',
+  },
+  customerCard: {
+    backgroundColor: 'white',
+    borderRadius: 16,
+    padding: 20,
+    marginBottom: 20,
+    shadowColor: '#667eea',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  customerInfo: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  customerAvatar: {
+    width: 60,
+    height: 60,
+    borderRadius: 30,
+    backgroundColor: '#667eea',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 16,
+  },
+  customerInitial: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    color: 'white',
+  },
+  customerDetails: {
+    flex: 1,
+  },
+  customerName: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#333',
+    marginBottom: 8,
+  },
+  customerContact: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 4,
+  },
+  customerContactText: {
+    fontSize: 14,
+    color: '#666',
+    marginLeft: 6,
+    flex: 1,
+  },
+  printJobsCard: {
+    backgroundColor: 'white',
+    borderRadius: 16,
+    padding: 20,
+    marginBottom: 20,
+    shadowColor: '#667eea',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  printJobGroup: {
+    backgroundColor: '#f8f9fa',
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 16,
+    borderWidth: 1,
+    borderColor: '#e0e0e0',
+  },
+  printJobHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  printJobTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#333',
+    marginLeft: 8,
+  },
+  printOptionsContainer: {
+    marginBottom: 12,
+  },
+  printOptionsTitle: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#333',
+    marginBottom: 8,
+  },
+  printOptionsGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+  },
+  printOptionItem: {
+    backgroundColor: 'white',
+    borderRadius: 8,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderWidth: 1,
+    borderColor: '#e0e0e0',
+  },
+  printOptionLabel: {
+    fontSize: 12,
+    color: '#666',
+  },
+  printOptionValue: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#333',
+  },
+  filesContainer: {
+    marginTop: 8,
+  },
+  filesTitle: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#333',
+    marginBottom: 8,
+  },
+  fileItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'white',
+    borderRadius: 8,
+    padding: 8,
+    marginBottom: 6,
+    borderWidth: 1,
+    borderColor: '#e0e0e0',
+  },
+  fileDetails: {
+    flex: 1,
+    marginLeft: 8,
+  },
+  fileName: {
+    fontSize: 14,
+    fontWeight: '500',
+    color: '#333',
+    marginBottom: 2,
+  },
+  fileMeta: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  fileMetaText: {
+    fontSize: 12,
+    color: '#666',
+    marginRight: 6,
+  },
+  noJobsContainer: {
+    alignItems: 'center',
+    padding: 40,
+  },
+  noJobsText: {
+    fontSize: 16,
+    color: '#999',
+    marginTop: 12,
+  },
+  pricingCard: {
+    backgroundColor: 'white',
+    borderRadius: 16,
+    padding: 20,
+    marginBottom: 20,
+    shadowColor: '#667eea',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  pricingBreakdown: {
+    backgroundColor: '#f8f9fa',
+    borderRadius: 12,
+    padding: 16,
+  },
+  pricingRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingVertical: 8,
+  },
+  pricingLabel: {
+    fontSize: 14,
+    color: '#666',
+  },
+  pricingValue: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#333',
+  },
+  pricingDivider: {
+    height: 1,
+    backgroundColor: '#e0e0e0',
+    marginVertical: 12,
+  },
+  grandTotalRow: {
+    backgroundColor: '#667eea',
+    borderRadius: 8,
+    padding: 12,
+    marginTop: 8,
+  },
+  grandTotalLabel: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: 'white',
+  },
+  grandTotalValue: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: 'white',
+  },
+  actionButtonsContainer: {
+    marginBottom: 20,
+  },
+  actionButton: {
+    marginBottom: 12,
+    borderRadius: 12,
+    overflow: 'hidden',
+  },
+  actionButtonGradient: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 16,
+    paddingHorizontal: 20,
+  },
+  actionButtonText: {
+    color: 'white',
+    fontSize: 16,
+    fontWeight: '600',
+    marginLeft: 8,
+  },
+  thankYouCard: {
+    backgroundColor: '#fff3e0',
+    borderRadius: 16,
+    padding: 20,
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: '#ffe0b2',
+  },
+  thankYouText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#E65100',
+    marginTop: 8,
+    marginBottom: 4,
+  },
+  thankYouSubtext: {
+    fontSize: 14,
+    color: '#E65100',
+    textAlign: 'center',
+    lineHeight: 20,
+  },
   downloadOverlay: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(255,255,255,0.7)',
+    backgroundColor: 'rgba(255,255,255,0.9)',
     justifyContent: 'center',
     alignItems: 'center',
     zIndex: 100,
   },
-  priceCard: { backgroundColor: '#f0f4ff', borderRadius: 10, padding: 14, marginTop: 10, marginBottom: 4, elevation: 2 },
-  priceRowDivider: { height: 1, backgroundColor: '#d1d5db', marginVertical: 8, opacity: 0.5 },
+  downloadAnimation: {
+    width: 120,
+    height: 120,
+  },
+  downloadText: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#667eea',
+    marginTop: 16,
+  },
+  downloadSubtext: {
+    fontSize: 14,
+    color: '#666',
+    marginTop: 8,
+  },
+  center: { 
+    flex: 1, 
+    justifyContent: 'center',
+    alignItems: 'center' 
+  },
 }); 

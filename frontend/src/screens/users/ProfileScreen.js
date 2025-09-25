@@ -313,19 +313,19 @@ export default function ProfileScreen({ navigation }) {
               if (item.id === 'logout') {
                 handleLogout();
               } else if (item.id === 'settings') {
-                Alert.alert('Coming Soon', 'Settings screen is under development');
+                navigation.navigate('Settings');
               } else if (item.id === 'helpCenter') {
-                Alert.alert('Coming Soon', 'Help Center is under development');
+                navigation.navigate('HelpCentreScreen');
               } else if (item.id === 'personal') {
                 navigation.navigate('PersonalInfo');
               } else if (item.id === 'addresses') {
-                Alert.alert('Coming Soon', 'Saved Addresses is under development');
+                navigation.navigate('SavedAddresses');
               } else if (item.id === 'tutorial') {
                 navigation.navigate('Tutorial');
               } else if (item.id === 'support') {
-                Alert.alert('Coming Soon', 'Customer Support is under development');
+                navigation.navigate('CustomerSupport');
               } else if (item.id === 'about') {
-                Alert.alert('Coming Soon', 'About screen is under development');
+                navigation.navigate('About');
               } else if (item.id === 'files') {
                 navigation.navigate('FilesScreen');
               } else {

@@ -131,7 +131,7 @@ export default function HelpSupportScreen({ navigation }) {
       title: 'Email Support',
       icon: 'email',
       description: 'Send us an email for detailed assistance',
-      action: () => showAlert('Email Support', 'Email: support@lipiprint.com\n\nWe\'ll respond within 24 hours.', 'info')
+      action: () => showAlert('Email Support', 'Email: dev.lipiprint@gmail.com\n\nWe\'ll respond within 24 hours.', 'info')
     },
     {
       id: 3,

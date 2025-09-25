@@ -4,6 +4,7 @@ import Icon from 'react-native-vector-icons/MaterialIcons';
 import * as Animatable from 'react-native-animatable';
 import LinearGradient from 'react-native-linear-gradient';
 import api from '../../services/api';
+import ApiService from '../../services/api';
 import { useTheme } from '../../theme/ThemeContext';
 import Heading from '../../components/Heading';
 
@@ -54,6 +55,35 @@ export default function AdminSettingsScreen({ navigation }) {
     }
   };
 
+  const handleLogout = () => {
+    Alert.alert(
+      'Logout',
+      'Are you sure you want to logout? You will need to sign in again to access your account.',
+      [
+        {
+          text: 'Cancel',
+          style: 'cancel',
+        },
+        {
+          text: 'Logout',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              await ApiService.logout();
+              navigation.reset({
+                index: 0,
+                routes: [{ name: 'Splash' }],
+              });
+            } catch (error) {
+              console.error('Logout error:', error);
+              Alert.alert('Logout Failed', 'Failed to logout. Please try again.');
+            }
+          },
+        },
+      ]
+    );
+  };
+
   if (loading) return <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}><Text>Loading options...</Text></View>;
   if (error) return <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}><Text>{error}</Text></View>;
 
@@ -87,7 +117,7 @@ export default function AdminSettingsScreen({ navigation }) {
           <Icon name="lock" size={24} color={theme.icon} style={{ marginRight: 12 }} />
           <Text style={[styles.settingLabel, { color: theme.text }]}>Change Password</Text>
         </TouchableOpacity>
-        <TouchableOpacity style={[styles.settingRow, { backgroundColor: theme.card }]} onPress={() => navigation.navigate('Login')}>
+        <TouchableOpacity style={[styles.settingRow, { backgroundColor: theme.card }]} onPress={handleLogout}>
           <Icon name="logout" size={24} color="#FF6B6B" style={{ marginRight: 12 }} />
           <Text style={[styles.settingLabel, { color: theme.text }]}>Logout</Text>
         </TouchableOpacity>

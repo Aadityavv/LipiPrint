@@ -22,7 +22,7 @@ const faqs = [
   },
   { 
     q: 'How do I contact support?', 
-    a: 'You can contact our support team through the contact form below, call our helpline at +91-XXXX-XXXX, or email us at support@lipiprint.com. We typically respond within 24 hours.' 
+    a: 'You can contact our support team through the contact form below, call our helpline at +91-XXXX-XXXX, or email us at dev.lipiprint@gmail.com. We typically respond within 24 hours.' 
   },
   { 
     q: 'What are the delivery options?', 

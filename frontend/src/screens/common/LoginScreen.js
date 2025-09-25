@@ -93,8 +93,12 @@ export default function LoginScreen({ navigation }) {
     } catch (error) {
       console.error('❌ Login Error:', error);
       
-      if (error.message === 'Unauthorized') {
+      if (error.message === 'Unauthorized' || error.message.includes('Invalid credentials') || error.message.includes('Wrong password')) {
         setPasswordError('Invalid phone number or password');
+      } else if (error.message.includes('User not found')) {
+        setPhoneError('No account found with this phone number');
+      } else if (error.message.includes('Account blocked')) {
+        showAlert('Account Blocked', 'Your account has been temporarily blocked. Please contact support.');
       } else {
         showAlert('Login Failed', error.message || 'Login failed. Please try again.');
       }

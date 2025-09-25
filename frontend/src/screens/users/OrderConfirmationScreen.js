@@ -195,7 +195,7 @@ export default function OrderConfirmationScreen({ navigation, route }) {
               <Text style={styles.supportIcon}>💬</Text>
               <Text style={styles.supportTitle}>Need Help?</Text>
               <Text style={styles.supportText}>
-                Contact us at support@lipiprint.com or call +91 98765 43210
+                Contact us at dev.lipiprint@gmail.com or call +91 98765 43210
               </Text>
             </View>
           </Animatable.View>

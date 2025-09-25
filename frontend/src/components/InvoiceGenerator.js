@@ -8,7 +8,15 @@ const InvoiceGenerator = {
   // Generate PDF invoice from order data
   async generateInvoice(orderData, onSuccess, onError) {
     try {
-      console.log('[InvoiceGenerator] Starting PDF generation for order:', orderData.id);
+      console.log('[InvoiceGenerator] Starting PDF generation for order:', orderData?.id);
+      console.log('[InvoiceGenerator] Order data structure:', {
+        id: orderData?.id,
+        hasUser: !!orderData?.user,
+        printJobsType: Array.isArray(orderData?.printJobs) ? 'array' : typeof orderData?.printJobs,
+        printJobsLength: orderData?.printJobs?.length || 0,
+        hasBreakdown: !!orderData?.breakdown,
+        breakdownType: Array.isArray(orderData?.breakdown) ? 'array' : typeof orderData?.breakdown
+      });
       
       // Request storage permission for Android
       if (Platform.OS === 'android') {
@@ -35,7 +43,7 @@ const InvoiceGenerator = {
       const options = {
         html: htmlContent,
         fileName: `invoice_${orderData.id}_${new Date().getTime()}`,
-        directory: Platform.OS === 'android' ? 'Downloads' : 'Documents',
+        directory: Platform.OS === 'android' ? 'Documents' : 'Documents',
         width: 612,
         height: 792,
         padding: 24,
@@ -66,6 +74,11 @@ const InvoiceGenerator = {
 
   // Generate HTML content for the invoice
   generateInvoiceHTML(orderData) {
+    // Ensure we have valid order data
+    if (!orderData) {
+      throw new Error('Order data is required');
+    }
+
     const {
       id,
       user,
@@ -86,6 +99,10 @@ const InvoiceGenerator = {
       expectedDeliveryDate
     } = orderData;
 
+    // Ensure arrays are not null
+    const safePrintJobs = Array.isArray(printJobs) ? printJobs : [];
+    const safeBreakdown = Array.isArray(breakdown) ? breakdown : [];
+
     const currentDate = new Date().toLocaleDateString();
     const orderDate = createdAt ? new Date(createdAt).toLocaleDateString() : currentDate;
     
@@ -96,341 +113,132 @@ const InvoiceGenerator = {
     const finalDelivery = delivery || 0;
     const finalTotal = grandTotal || totalAmount || 0;
 
+    // Generate order items HTML
+    const orderItemsHTML = safePrintJobs.map(printJob => {
+      const printOptions = printJob.options ? this.formatPrintOptions(printJob.options) : 'Standard';
+      return `
+        <tr style="border-bottom:1px solid #eee;">
+          <td style="padding:8px 6px;">${printJob.file?.originalFilename || printJob.file?.filename || 'Unknown File'}</td>
+          <td style="padding:8px 6px;">${printOptions}</td>
+          <td style="padding:8px 6px;">${printJob.file?.pages || 0}</td>
+          <td style="padding:8px 6px;">₹${((printJob.file?.pages || 0) * 6).toFixed(2)}</td>
+        </tr>
+      `;
+    }).join('');
+
+    // Generate shipping info if available
+    const shippingInfoHTML = (deliveryType === 'DELIVERY' && (awbNumber || courierName)) ? `
+      <div class="section">
+        <div class="section-title">Shipping Information</div>
+        <div class="highlight">
+          ${awbNumber ? `<div><b>AWB Number:</b> ${awbNumber}</div>` : ''}
+          ${courierName ? `<div><b>Courier:</b> ${courierName}</div>` : ''}
+          ${expectedDeliveryDate ? `<div><b>Expected Delivery:</b> ${new Date(expectedDeliveryDate).toLocaleDateString()}</div>` : ''}
+        </div>
+      </div>
+    ` : '';
+
     const html = `
     <!DOCTYPE html>
-    <html>
+    <html lang="en">
     <head>
-        <meta charset="utf-8">
-        <title>Invoice #${id}</title>
+        <meta charset="UTF-8" />
+        <title>Invoice - LipiPrint</title>
         <style>
-            * {
-                margin: 0;
-                padding: 0;
-                box-sizing: border-box;
-            }
-            
-            body {
-                font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-                line-height: 1.6;
-                color: #333;
-                background: #fff;
-                padding: 20px;
-            }
-            
-            .invoice-container {
-                max-width: 800px;
-                margin: 0 auto;
-                background: #fff;
-                border-radius: 8px;
-                overflow: hidden;
-                box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-            }
-            
-            .header {
-                background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-                color: white;
-                padding: 30px;
-                text-align: center;
-            }
-            
-            .header h1 {
-                font-size: 32px;
-                font-weight: bold;
-                margin-bottom: 10px;
-            }
-            
-            .header p {
-                font-size: 16px;
-                opacity: 0.9;
-            }
-            
-            .invoice-info {
-                display: flex;
-                justify-content: space-between;
-                padding: 30px;
-                background: #f8f9fa;
-                border-bottom: 1px solid #e9ecef;
-            }
-            
-            .invoice-details {
-                flex: 1;
-            }
-            
-            .customer-details {
-                flex: 1;
-                text-align: right;
-            }
-            
-            .invoice-details h2, .customer-details h2 {
-                font-size: 18px;
-                color: #495057;
-                margin-bottom: 15px;
-                font-weight: 600;
-            }
-            
-            .invoice-details p, .customer-details p {
-                margin-bottom: 5px;
-                color: #6c757d;
-            }
-            
-            .items-section {
-                padding: 30px;
-            }
-            
-            .items-section h2 {
-                font-size: 20px;
-                color: #495057;
-                margin-bottom: 20px;
-                border-bottom: 2px solid #667eea;
-                padding-bottom: 10px;
-            }
-            
-            .file-item {
-                background: #f8f9fa;
-                padding: 15px;
-                margin-bottom: 10px;
-                border-radius: 6px;
-                border-left: 4px solid #667eea;
-            }
-            
-            .file-name {
-                font-weight: 600;
-                color: #495057;
-                margin-bottom: 5px;
-            }
-            
-            .file-details {
-                color: #6c757d;
-                font-size: 14px;
-            }
-            
-            .breakdown-table {
-                width: 100%;
-                border-collapse: collapse;
-                margin-top: 20px;
-                background: #fff;
-                border-radius: 6px;
-                overflow: hidden;
-                box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-            }
-            
-            .breakdown-table th {
-                background: #667eea;
-                color: white;
-                padding: 15px;
-                text-align: left;
-                font-weight: 600;
-            }
-            
-            .breakdown-table td {
-                padding: 12px 15px;
-                border-bottom: 1px solid #e9ecef;
-            }
-            
-            .breakdown-table tr:last-child td {
-                border-bottom: none;
-            }
-            
-            .totals-section {
-                padding: 30px;
-                background: #f8f9fa;
-            }
-            
-            .totals-table {
-                width: 100%;
-                max-width: 400px;
-                margin-left: auto;
-            }
-            
-            .totals-table td {
-                padding: 8px 0;
-                border-bottom: 1px solid #dee2e6;
-            }
-            
-            .totals-table .label {
-                color: #6c757d;
-                font-weight: 500;
-            }
-            
-            .totals-table .amount {
-                text-align: right;
-                font-weight: 600;
-                color: #495057;
-            }
-            
-            .totals-table .total-row {
-                border-top: 2px solid #667eea;
-                border-bottom: none;
-                font-size: 18px;
-                font-weight: bold;
-                color: #667eea;
-            }
-            
-            .shipping-info {
-                padding: 20px 30px;
-                background: #e3f2fd;
-                border-left: 4px solid #2196f3;
-            }
-            
-            .shipping-info h3 {
-                color: #1976d2;
-                margin-bottom: 10px;
-                font-size: 16px;
-            }
-            
-            .shipping-info p {
-                color: #424242;
-                margin-bottom: 5px;
-            }
-            
-            .footer {
-                padding: 30px;
-                text-align: center;
-                background: #f8f9fa;
-                color: #6c757d;
-                border-top: 1px solid #e9ecef;
-            }
-            
-            .footer p {
-                margin-bottom: 10px;
-            }
-            
-            .status-badge {
-                display: inline-block;
-                padding: 6px 12px;
-                border-radius: 20px;
-                font-size: 12px;
-                font-weight: 600;
-                text-transform: uppercase;
-                letter-spacing: 0.5px;
-            }
-            
-            .status-${status?.toLowerCase() || 'pending'} {
-                background: ${this.getStatusColor(status)};
-                color: white;
-            }
-            
-            @media print {
-                body { padding: 0; }
-                .invoice-container { box-shadow: none; }
-            }
+            body { font-family: 'Segoe UI', Arial, sans-serif; margin: 0; padding: 0; background: #f7f9fb; color: #222; }
+            .container { max-width: 700px; margin: 40px auto; background: #fff; border-radius: 14px; box-shadow: 0 4px 24px #0001; padding: 32px 28px; }
+            .header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 32px; }
+            .logo { height: 60px; }
+            .company-info { font-size: 15px; line-height: 1.5; margin-top: 8px; color: #555; }
+            .invoice-meta { text-align: right; font-size: 15px; }
+            .invoice-title { font-size: 28px; font-weight: bold; color: #2d6cdf; margin-bottom: 8px; letter-spacing: 1px; }
+            .section { margin-top: 36px; }
+            .section-title { font-size: 19px; font-weight: bold; color: #4a4a4a; margin-bottom: 14px; letter-spacing: 0.5px; }
+            .info-table { width: 100%; border-collapse: collapse; }
+            .info-table td { padding: 3px 0; font-size: 15px; }
+            .group-block { background: #f0f4ff; border-radius: 10px; padding: 18px 14px; margin-bottom: 18px; border: 1px solid #e0e7ef; }
+            .group-title { font-size: 16px; font-weight: bold; color: #764ba2; margin-bottom: 6px; }
+            .options-list { margin-bottom: 8px; margin-left: 8px; }
+            .options-list span { display: block; color: #333; font-size: 14px; }
+            .files-list { margin-left: 8px; }
+            .file-row { margin-bottom: 2px; }
+            .file-name { color: #22194f; font-weight: bold; font-size: 14px; }
+            .file-meta { color: #888; font-size: 13px; }
+            .order-note-block { background: #fffbe6; border-left: 4px solid #ffe066; border-radius: 8px; padding: 12px 14px; margin-top: 18px; color: #7a5d00; font-size: 15px; }
+            .totals { margin-top: 18px; width: 100%; border-collapse: collapse; }
+            .totals td { font-size: 15px; padding: 6px 0; }
+            .totals .label { text-align: right; color: #666; }
+            .totals .value { text-align: right; font-weight: bold; }
+            .grand-total { font-size: 20px; color: #2d6cdf; font-weight: bold; border-top: 2px solid #eee; padding-top: 10px; }
+            .footer { margin-top: 40px; text-align: center; color: #888; font-size: 14px; border-top: 1px solid #eee; padding-top: 16px; }
+            .highlight { background: #eaf6ff; border-radius: 8px; padding: 12px 10px; margin-bottom: 10px; }
         </style>
     </head>
     <body>
-        <div class="invoice-container">
-            <!-- Header -->
-            <div class="header">
-                <h1>LipiPrint</h1>
-                <p>Your Trusted Printing Partner</p>
-            </div>
-            
-            <!-- Invoice Info -->
-            <div class="invoice-info">
-                <div class="invoice-details">
-                    <h2>Invoice Details</h2>
-                    <p><strong>Invoice #:</strong> ${id}</p>
-                    <p><strong>Date:</strong> ${orderDate}</p>
-                    <p><strong>Status:</strong> <span class="status-badge status-${status?.toLowerCase() || 'pending'}">${status || 'PENDING'}</span></p>
-                    <p><strong>Delivery:</strong> ${deliveryType === 'DELIVERY' ? 'Home Delivery' : 'Store Pickup'}</p>
-                </div>
-                
-                <div class="customer-details">
-                    <h2>Bill To</h2>
-                    <p><strong>${user?.name || 'Customer'}</strong></p>
-                    <p>${user?.email || ''}</p>
-                    <p>${user?.phone || ''}</p>
-                    ${deliveryAddress ? `<p><strong>Delivery Address:</strong><br>${deliveryAddress}</p>` : ''}
-                </div>
-            </div>
-            
-            <!-- Items Section -->
-            <div class="items-section">
-                <h2>Order Items</h2>
-                ${printJobs.map(printJob => `
-                    <div class="file-item">
-                        <div class="file-name">${printJob.file?.originalFilename || printJob.file?.filename || 'Unknown File'}</div>
-                        <div class="file-details">
-                            ${printJob.file?.pages || 0} pages • ${printJob.status || 'QUEUED'}
-                            ${printJob.options ? `<br><small>${this.formatPrintOptions(printJob.options)}</small>` : ''}
-                        </div>
+    <div class="container">
+        <div class="header">
+            <div>
+                    <div class="company-info">
+                        LipiPrint<br />
+                        123 Printing Street, Saharanpur, Uttar Pradesh, India<br />
+                        support@lipiprint.in | +91 12345 67890<br />
+                        <b>GSTIN:</b> 09AJ0PN3715E1Z3
                     </div>
-                `).join('')}
-                
-                ${breakdown.length > 0 ? `
-                    <table class="breakdown-table">
-                        <thead>
-                            <tr>
-                                <th>Description</th>
-                                <th>Quantity</th>
-                                <th>Rate</th>
-                                <th>Amount</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            ${breakdown.map(item => `
-                                <tr>
-                                    <td>${item.description || 'Print Service'}</td>
-                                    <td>${item.quantity || 1}</td>
-                                    <td>₹${(item.rate || 0).toFixed(2)}</td>
-                                    <td>₹${(item.total || 0).toFixed(2)}</td>
-                                </tr>
-                            `).join('')}
-                        </tbody>
-                    </table>
-                ` : ''}
             </div>
-            
-            <!-- Shipping Information -->
-            ${deliveryType === 'DELIVERY' && (awbNumber || courierName) ? `
-                <div class="shipping-info">
-                    <h3>🚚 Shipping Information</h3>
-                    ${awbNumber ? `<p><strong>AWB Number:</strong> ${awbNumber}</p>` : ''}
-                    ${courierName ? `<p><strong>Courier:</strong> ${courierName}</p>` : ''}
-                    ${expectedDeliveryDate ? `<p><strong>Expected Delivery:</strong> ${new Date(expectedDeliveryDate).toLocaleDateString()}</p>` : ''}
-                </div>
-            ` : ''}
-            
-            <!-- Totals -->
-            <div class="totals-section">
-                <table class="totals-table">
-                    <tbody>
-                        <tr>
-                            <td class="label">Subtotal:</td>
-                            <td class="amount">₹${finalSubtotal.toFixed(2)}</td>
-                        </tr>
-                        ${finalDiscount > 0 ? `
-                            <tr>
-                                <td class="label">Discount:</td>
-                                <td class="amount">-₹${finalDiscount.toFixed(2)}</td>
-                            </tr>
-                        ` : ''}
-                        ${finalGst > 0 ? `
-                            <tr>
-                                <td class="label">GST (18%):</td>
-                                <td class="amount">₹${finalGst.toFixed(2)}</td>
-                            </tr>
-                        ` : ''}
-                        ${finalDelivery > 0 ? `
-                            <tr>
-                                <td class="label">Delivery:</td>
-                                <td class="amount">₹${finalDelivery.toFixed(2)}</td>
-                            </tr>
-                        ` : ''}
-                        <tr class="total-row">
-                            <td class="label">Total Amount:</td>
-                            <td class="amount">₹${finalTotal.toFixed(2)}</td>
-                        </tr>
-                    </tbody>
-                </table>
-            </div>
-            
-            <!-- Footer -->
-            <div class="footer">
-                <p><strong>Thank you for choosing LipiPrint!</strong></p>
-                <p>For support, contact us at support@lipiprint.in</p>
-                <p>Generated on ${currentDate}</p>
-            </div>
+            <div class="invoice-meta">
+                    <div class="invoice-title">INVOICE</div>
+                        <div>Invoice #: LP${id}</div>
+                        <div>Date: ${orderDate}</div>
+                        <div>Status: ${status || 'PENDING'}</div>
+                    </div>
         </div>
+        <div class="section">
+            <div class="section-title">Bill To</div>
+            <table class="info-table">
+                <tr><td><b>Name:</b></td><td>${user?.name || 'Customer'}</td></tr>
+                <tr><td><b>Email:</b></td><td>${user?.email || ''}</td></tr>
+                <tr><td><b>Phone:</b></td><td>${user?.phone || ''}</td></tr>
+                <tr><td><b>Address:</b></td><td>${deliveryAddress || ''}</td></tr>
+                <tr><td><b>GSTIN:</b></td><td>${user?.gstin || 'Not Provided'}</td></tr>
+            </table>
+        </div>
+        <div class="section">
+            <div class="section-title">Order Summary</div>
+            <table class="info-table">
+                <tr><td><b>Order ID:</b></td><td>LP${id}</td></tr>
+                <tr><td><b>Order Date:</b></td><td>${orderDate}</td></tr>
+                <tr><td><b>Status:</b></td><td>${status || 'PENDING'}</td></tr>
+                <tr><td><b>Delivery Type:</b></td><td>${deliveryType === 'DELIVERY' ? 'Home Delivery' : 'Store Pickup'}</td></tr>
+            </table>
+        </div>
+        <div class="section">
+            <div class="section-title">Order Items</div>
+            <table class="info-table" style="border-collapse:collapse;width:100%;margin-bottom:10px;">
+                <tr style="background:#f0f4ff;color:#22194f;font-weight:bold;">
+                    <td style="padding:8px 6px;">File Name</td>
+                    <td style="padding:8px 6px;">Print Options</td>
+                    <td style="padding:8px 6px;">Pages</td>
+                    <td style="padding:8px 6px;">Price</td>
+                </tr>
+                ${orderItemsHTML}
+            </table>
+        </div>
+        ${shippingInfoHTML}
+        <div class="section">
+            <div class="section-title">Pricing</div>
+            <table class="totals" style="background:#f8f9fa;border-radius:10px;padding:10px;">
+                <tr><td class="label">Subtotal</td><td class="value">INR ${finalSubtotal.toFixed(2)}</td></tr>
+                ${finalDiscount > 0 ? `<tr><td class="label">Discount</td><td class="value">INR -${finalDiscount.toFixed(2)}</td></tr>` : ''}
+                <tr><td class="label">GST (18%)</td><td class="value">INR ${finalGst.toFixed(2)}</td></tr>
+                <tr><td class="label">Delivery</td><td class="value">INR ${finalDelivery.toFixed(2)}</td></tr>
+                <tr><td class="label grand-total">Grand Total</td><td class="value grand-total">INR ${finalTotal.toFixed(2)}</td></tr>
+            </table>
+        </div>
+        <div class="footer" style="margin-top:40px;text-align:center;color:#888;font-size:14px;border-top:1px solid #eee;padding-top:16px;background:#fff;">
+            Thank you for choosing LipiPrint! For support, contact support@lipiprint.in<br/>
+            <span style="font-size:13px;color:#bbb;">This is a computer-generated invoice and does not require a signature.</span>
+        </div>
+    </div>
     </body>
     </html>
     `;
