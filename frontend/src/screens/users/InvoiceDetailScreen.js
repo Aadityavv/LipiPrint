@@ -15,6 +15,7 @@ import searchForInvoiceAnim from '../../assets/animations/search for invoice.jso
 import RNHTMLtoPDF from 'react-native-html-to-pdf';
 import { Platform, PermissionsAndroid } from 'react-native';
 import ApiService from '../../services/api';
+import InvoiceGenerator from '../../components/InvoiceGenerator';
 
 export default function InvoiceDetailScreen() {
   const route = useRoute();
@@ -49,7 +50,7 @@ export default function InvoiceDetailScreen() {
       try {
         setLoading(true);
         console.log('[InvoiceDetailScreen] orderId:', orderId);
-        const apiUrl = `${process.env.EXPO_PUBLIC_API_URL || 'https://lipiprint-freelance.onrender.com/'}api/orders/${orderId}`;
+        const apiUrl = `${process.env.EXPO_PUBLIC_API_URL || 'https://lipiprint-freelance.onrender.com/'}api/orders/${orderId}/invoice`;
         console.log('[InvoiceDetailScreen] API URL:', apiUrl);
         const token = await AsyncStorage.getItem('authToken');
         console.log('[InvoiceDetailScreen] token:', token);
@@ -344,35 +345,20 @@ export default function InvoiceDetailScreen() {
   const handleDownload = async () => {
     try {
       setDownloading(true);
-      const granted = await requestStoragePermissionIfNeeded();
-      if (!granted) {
-        setDownloading(false);
-        showAlert('Permission Denied', 'Cannot save PDF without storage permission.', 'error');
-        return;
-      }
-      // Build invoice HTML
-      const html = buildInvoiceHtml(order, printJobGroups);
-      const file = await RNHTMLtoPDF.convert({
-        html,
-        fileName: `invoice-${order.id}`,
-        directory: 'Download',
-        base64: false,
-      });
-
-      // Move/copy to public Downloads folder (Android only)
-      let publicPath = file.filePath;
-      if (Platform.OS === 'android') {
-        publicPath = `/storage/emulated/0/Download/invoice-${order.id}.pdf`;
-        try {
-          await RNBlobUtil.fs.cp(file.filePath, publicPath);
-        } catch (copyErr) {
-          // If copy fails, fallback to original path
-          publicPath = file.filePath;
+      
+      // Use the new InvoiceGenerator
+      await InvoiceGenerator.generateInvoice(
+        order,
+        (pdf) => {
+          setDownloading(false);
+          InvoiceGenerator.showDownloadSuccess(pdf.filePath);
+        },
+        (error) => {
+          setDownloading(false);
+          InvoiceGenerator.showDownloadError(error);
         }
-      }
-
-      setDownloading(false);
-      showAlert('Download Complete', `Invoice saved at:\n${publicPath}`, 'success');
+      );
+      
     } catch (e) {
       setDownloading(false);
       showAlert('Download Failed', 'Could not generate invoice PDF.', 'error');

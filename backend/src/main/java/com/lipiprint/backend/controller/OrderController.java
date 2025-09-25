@@ -515,7 +515,7 @@ public class OrderController {
     }
 
     @GetMapping("/{id}/invoice")
-    public ResponseEntity<ByteArrayResource> downloadInvoice(@PathVariable Long id, Authentication authentication) {
+    public ResponseEntity<OrderDTO> getInvoiceData(@PathVariable Long id, Authentication authentication) {
         try {
             Order order = orderService.findById(id).orElseThrow(() -> 
                 new RuntimeException("Order not found with id: " + id));
@@ -540,21 +540,21 @@ public class OrderController {
                 return ResponseEntity.status(403).body(null);
             }
             
-            byte[] pdfBytes = generateInvoicePdfHtml(order);
-            ByteArrayResource resource = new ByteArrayResource(pdfBytes);
+            // Convert order to DTO and return as JSON
+            OrderDTO orderDTO = convertToDTO(order);
+            logger.info("[INVOICE] Returning invoice data for order: {}", id);
             
-            return ResponseEntity.ok()
-                    .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=invoice-" + order.getId() + ".pdf")
-                    .contentType(MediaType.APPLICATION_PDF)
-                    .contentLength(pdfBytes.length)
-                    .body(resource);
+            return ResponseEntity.ok(orderDTO);
                 
         } catch (Exception e) {
-            logger.error("[INVOICE] Error generating invoice for order {}: {}", id, e.getMessage(), e);
+            logger.error("[INVOICE] Error getting invoice data for order {}: {}", id, e.getMessage(), e);
             return ResponseEntity.status(500).body(null);
         }
     }
 
+    // OLD PDF GENERATION METHOD - REMOVED
+    // Frontend now handles PDF generation
+    /*
     private byte[] generateInvoicePdfHtml(Order order) {
         try {
             if (order == null) {
@@ -690,6 +690,7 @@ public class OrderController {
             throw new RuntimeException("Failed to generate invoice PDF: " + e.getMessage(), e);
         }
     }
+    */
 
     private String escapeHtml(String s) {
         return s == null ? "" : s.replace("&", "&amp;")
