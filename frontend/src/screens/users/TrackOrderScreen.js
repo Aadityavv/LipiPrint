@@ -38,9 +38,39 @@ export default function TrackOrderScreen({ navigation }) {
   const fetchOrders = async () => {
     try {
       const response = await api.request('/orders');
-      setOrders(response.content || response);
+      console.log('[TrackOrderScreen] fetchOrders - Raw API response:', response);
+      
+      const orders = response.content || response;
+      console.log('[TrackOrderScreen] fetchOrders - Processing orders:', {
+        ordersCount: orders.length,
+        ordersWithShipping: orders.filter(order => {
+          const { awbNumber, courierName } = getShipmentInfo(order);
+          return !!awbNumber || !!courierName;
+        }).length,
+        ordersData: orders
+      });
+
+      orders.forEach((order, index) => {
+        // Log the complete raw order object to see all available fields
+        console.log(`[TrackOrderScreen] fetchOrders - Complete order ${index + 1} raw data:`, JSON.stringify(order, null, 2));
+        
+        const { awbNumber, courierName, expectedDeliveryDate, trackingUrl } = getShipmentInfo(order);
+        console.log(`[TrackOrderScreen] fetchOrders - Order ${index + 1} shipping details:`, {
+          orderId: order.id,
+          status: order.status,
+          deliveryType: order.deliveryType,
+          shippingInfo: {
+            awbNumber,
+            courierName,
+            expectedDeliveryDate,
+            trackingUrl
+          }
+        });
+      });
+
+      setOrders(orders);
     } catch (error) {
-      console.error('Failed to fetch orders:', error);
+      console.error('[TrackOrderScreen] fetchOrders - Error fetching orders:', error);
       Alert.alert('Error', 'Failed to load orders');
     } finally {
       setLoading(false);
@@ -54,18 +84,38 @@ export default function TrackOrderScreen({ navigation }) {
   };
 
   const trackOrder = async (order) => {
-    if (!order.awbNumber) {
+    console.log('[TrackOrderScreen] trackOrder - Starting tracking for order:', {
+      orderId: order.id,
+      orderData: order
+    });
+
+    const { awbNumber, courierName, expectedDeliveryDate, trackingUrl } = getShipmentInfo(order);
+    
+    console.log('[TrackOrderScreen] trackOrder - Shipment info resolved:', {
+      orderId: order.id,
+      awbNumber,
+      courierName,
+      expectedDeliveryDate,
+      trackingUrl,
+      hasAwbNumber: !!awbNumber
+    });
+
+    if (!awbNumber) {
+      console.log('[TrackOrderScreen] trackOrder - No AWB number found, showing alert');
       Alert.alert('No Tracking Available', 'This order does not have a tracking number yet.');
       return;
     }
 
     setTrackingLoading(true);
     try {
-      const response = await api.request(`/shipping/track/awb/${order.awbNumber}`);
+      console.log('[TrackOrderScreen] trackOrder - Making API request for AWB:', awbNumber);
+      const response = await api.request(`/shipping/track/awb/${awbNumber}`);
+      console.log('[TrackOrderScreen] trackOrder - Tracking API response:', response);
+      
       setTrackingData(response);
       setSelectedOrder(order);
     } catch (error) {
-      console.error('Failed to track order:', error);
+      console.error('[TrackOrderScreen] trackOrder - Error tracking order:', error);
       Alert.alert('Tracking Error', 'Failed to get tracking information');
     } finally {
       setTrackingLoading(false);
@@ -73,8 +123,101 @@ export default function TrackOrderScreen({ navigation }) {
   };
 
   const showOrderDetails = (order) => {
+    console.log('[TrackOrderScreen] showOrderDetails - Opening details modal for order:', {
+      orderId: order.id,
+      orderData: order
+    });
+
+    const { awbNumber, courierName, expectedDeliveryDate, trackingUrl } = getShipmentInfo(order);
+    console.log('[TrackOrderScreen] showOrderDetails - Shipping info for modal display:', {
+      orderId: order.id,
+      shippingInfo: {
+        awbNumber,
+        courierName,
+        expectedDeliveryDate,
+        trackingUrl,
+        hasAWB: !!awbNumber,
+        hasCourier: !!courierName,
+        hasDeliveryDate: !!expectedDeliveryDate,
+        hasTrackingUrl: !!trackingUrl
+      }
+    });
+
     setDetailsOrder(order);
     setShowDetailsModal(true);
+  };
+
+  // Helper function to get shipment data from different possible field names
+  const getShipmentInfo = (order) => {
+    // Log all properties in the order object to discover any shipping-related fields
+    const allOrderKeys = Object.keys(order);
+    const shippingRelatedKeys = allOrderKeys.filter(key => 
+      key.toLowerCase().includes('awb') || 
+      key.toLowerCase().includes('courier') || 
+      key.toLowerCase().includes('tracking') || 
+      key.toLowerCase().includes('delivery') ||
+      key.toLowerCase().includes('shipping') ||
+      key.toLowerCase().includes('shipment') ||
+      key.toLowerCase().includes('shadowfax')
+    );
+    
+    console.log('[TrackOrderScreen] getShipmentInfo - Processing order data:', {
+      orderId: order.id,
+      allOrderKeys: allOrderKeys,
+      shippingRelatedKeys: shippingRelatedKeys,
+      shippingFields: {
+        awb_number: order.awb_number,
+        awbNumber: order.awbNumber,
+        AwbNumber: order.AwbNumber,
+        AWB: order.AWB,
+        AWBNumber: order.AWBNumber,
+        awb: order.awb,
+        courier_name: order.courier_name,
+        courierName: order.courierName,
+        CourierName: order.CourierName,
+        courier: order.courier,
+        expected_delivery_date: order.expected_delivery_date,
+        expectedDeliveryDate: order.expectedDeliveryDate,
+        ExpectedDeliveryDate: order.ExpectedDeliveryDate,
+        tracking_url: order.tracking_url,
+        trackingUrl: order.trackingUrl,
+        TrackingUrl: order.TrackingUrl,
+        // Check for any Static fields that might be used
+        static_courier: order.static_courier,
+        static_awb: order.static_awb
+      },
+      orderValues: order
+    });
+
+    // Try even more field name variations that might be used
+    const awbNumber = order.awb_number || order.awbNumber || order.AwbNumber || order.AWB || order.AWBNumber || order.awb || order.static_awb;
+    const courierName = order.courier_name || order.courierName || order.CourierName || order.courier || order.static_courier;
+    const expectedDeliveryDate = order.expected_delivery_date || order.expectedDeliveryDate || order.ExpectedDeliveryDate;
+    const trackingUrl = order.tracking_url || order.trackingUrl || order.TrackingUrl;
+    
+    const result = {
+      awbNumber,
+      courierName,
+      expectedDeliveryDate,
+      trackingUrl
+    };
+
+    console.log('[TrackOrderScreen] getShipmentInfo - Resolved shipping info:', {
+      orderId: order.id,
+      resolvedData: result,
+      hasAWB: !!awbNumber,
+      hasCourier: !!courierName,
+      hasDeliveryDate: !!expectedDeliveryDate,
+      hasTrackingUrl: !!trackingUrl,
+      missingFields: {
+        noAWB: !awbNumber,
+        noCourier: !courierName,
+        noDeliveryDate: !expectedDeliveryDate,
+        noTrackingUrl: !trackingUrl
+      }
+    });
+    
+    return result;
   };
 
   const getStatusColor = (status) => {
@@ -125,140 +268,176 @@ export default function TrackOrderScreen({ navigation }) {
     return steps;
   };
 
-  const renderOrderCard = (order, index) => (
-    <Animatable.View
-      key={order.id}
-      animation="fadeInUp"
-      delay={index * 100}
-      duration={500}
-      style={styles.orderCard}
-    >
-      <View style={styles.orderHeader}>
-        <View style={styles.orderInfo}>
-          <Text style={styles.orderId}>Order #{order.id}</Text>
-          <Text style={styles.orderDate}>{new Date(order.createdAt).toLocaleDateString()}</Text>
-            </View>
-              <View style={[styles.statusBadge, { backgroundColor: getStatusColor(order.status) }]}>
-          <Icon name={getStatusIcon(order.status)} size={16} color="white" />
-                <Text style={styles.statusText}>{order.status.replace('_', ' ')}</Text>
+  const renderOrderCard = (order, index) => {
+    // Log the raw order data being processed to find the issue
+    console.log(`[TrackOrderScreen] renderOrderCard - Raw order data for card ${index + 1}:`, {
+      orderId: order.id,
+      completeOrder: JSON.stringify(order, null, 2)
+    });
+    
+    const { awbNumber, courierName, expectedDeliveryDate, trackingUrl } = getShipmentInfo(order);
+    
+    console.log(`[TrackOrderScreen] renderOrderCard - Rendering order card ${index + 1}:`, {
+      orderId: order.id,
+      status: order.status,
+      deliveryType: order.deliveryType,
+      shippingInfo: {
+        awbNumber,
+        courierName,
+        expectedDeliveryDate,
+        trackingUrl,
+        hasAWB: !!awbNumber,
+        hasCourier: !!courierName,
+        hasDeliveryDate: !!expectedDeliveryDate,
+        hasTrackingUrl: !!trackingUrl
+      },
+      // Additional debug for the user's issue
+      DEBUGGING: {
+        willShowShipment: !!(awbNumber || courierName),
+        willShowAWB: !!awbNumber,
+        willShowCourier: !!courierName,
+        awbText: awbNumber || 'MISSING',
+        courierText: courierName || 'MISSING'
+      }
+    });
+    
+    return (
+      <Animatable.View
+        key={order.id}
+        animation="fadeInUp"
+        delay={index * 100}
+        duration={500}
+        style={styles.orderCard}
+      >
+        <View style={styles.orderHeader}>
+          <View style={styles.orderInfo}>
+            <Text style={styles.orderId}>Order #{order.id}</Text>
+            <Text style={styles.orderDate}>{new Date(order.createdAt).toLocaleDateString()}</Text>
               </View>
-            </View>
-
-      <View style={styles.orderDetails}>
-        <Text style={styles.amount}>₹{order.totalAmount}</Text>
-        <Text style={styles.deliveryType}>
-          {order.deliveryType === 'DELIVERY' ? '🚚 Home Delivery' : '🏪 Store Pickup'}
-        </Text>
-            </View>
-
-      {/* Enhanced Tracking Information */}
-      <View style={styles.trackingInfo}>
-        {order.awbNumber ? (
-          <>
-            <View style={styles.trackingRow}>
-              <Icon name="local-shipping" size={16} color="#667eea" />
-              <Text style={styles.trackingText}>
-                <Text style={styles.courierNameText}>{order.courierName || 'NimbusPost'}</Text>
-              </Text>
-            </View>
-            <View style={styles.trackingRow}>
-              <Icon name="confirmation-number" size={16} color="#667eea" />
-              <Text style={styles.trackingText}>
-                AWB: <Text style={styles.awbText}>{order.awbNumber}</Text>
-              </Text>
+                <View style={[styles.statusBadge, { backgroundColor: getStatusColor(order.status) }]}>
+            <Icon name={getStatusIcon(order.status)} size={16} color="white" />
+                  <Text style={styles.statusText}>{order.status.replace('_', ' ')}</Text>
+                </View>
               </View>
-            {order.expectedDeliveryDate && (
+
+        <View style={styles.orderDetails}>
+          <Text style={styles.amount}>₹{order.totalAmount}</Text>
+          <Text style={styles.deliveryType}>
+            {order.deliveryType === 'DELIVERY' ? '🚚 Home Delivery' : '🏪 Store Pickup'}
+          </Text>
+              </View>
+
+        {/* Enhanced Tracking Information */}
+        <View style={styles.trackingInfo}>
+          {awbNumber ? (
+            <>
               <View style={styles.trackingRow}>
-                <Icon name="schedule" size={16} color="#667eea" />
+                <Icon name="local-shipping" size={16} color="#667eea" />
                 <Text style={styles.trackingText}>
-                  Expected: {new Date(order.expectedDeliveryDate).toLocaleDateString()}
+                  <Text style={styles.courierNameText}>{courierName || 'NimbusPost'}</Text>
                 </Text>
-            </View>
-            )}
-            {order.trackingUrl && (
-              <View style={styles.trackingRow}>
-                <Icon name="link" size={16} color="#667eea" />
-                <Text style={styles.trackingText}>
-                  Tracking URL Available
-                </Text>
-            </View>
-            )}
-          </>
-        ) : (
-          <View style={styles.trackingRow}>
-            <Icon name="info" size={16} color="#FF9800" />
-            <Text style={[styles.trackingText, { color: '#FF9800' }]}>
-              {order.status === 'COMPLETED' ? 'Shipment being prepared' : 'Tracking not available yet'}
-            </Text>
               </View>
-            )}
-      </View>
+              <View style={styles.trackingRow}>
+                <Icon name="confirmation-number" size={16} color="#667eea" />
+                <Text style={styles.trackingText}>
+                  AWB: <Text style={styles.awbText}>{awbNumber}</Text>
+                </Text>
+                </View>
+              {expectedDeliveryDate && (
+                <View style={styles.trackingRow}>
+                  <Icon name="schedule" size={16} color="#667eea" />
+                  <Text style={styles.trackingText}>
+                    Expected: {new Date(expectedDeliveryDate).toLocaleDateString()}
+                  </Text>
+              </View>
+              )}
+              {trackingUrl && (
+                <View style={styles.trackingRow}>
+                  <Icon name="link" size={16} color="#667eea" />
+                  <Text style={styles.trackingText}>
+                    Tracking URL Available
+                  </Text>
+              </View>
+              )}
+            </>
+          ) : (
+            <View style={styles.trackingRow}>
+              <Icon name="info" size={16} color="#FF9800" />
+              <Text style={[styles.trackingText, { color: '#FF9800' }]}>
+                {order.status === 'COMPLETED' ? 'Shipment being prepared' : 'Tracking not available yet'}
+              </Text>
+                </View>
+              )}
+        </View>
 
-      {/* Progress Steps */}
-      <View style={styles.progressContainer}>
-        {getTrackingSteps(order).map((step, stepIndex) => (
-          <View key={step.key} style={styles.stepContainer}>
-                      <View style={[
-                        styles.stepIcon, 
-              { backgroundColor: step.completed ? '#4CAF50' : '#E0E0E0' }
-                      ]}>
-              <Icon name={step.icon} size={16} color={step.completed ? 'white' : '#9E9E9E'} />
-                      </View>
-            <Text style={[
-              styles.stepText,
-              { color: step.completed ? '#4CAF50' : '#9E9E9E' }
-            ]}>
-              {step.title}
-            </Text>
-            {stepIndex < getTrackingSteps(order).length - 1 && (
+        {/* Progress Steps */}
+        <View style={styles.progressContainer}>
+          {getTrackingSteps(order).map((step, stepIndex) => (
+            <View key={step.key} style={styles.stepContainer}>
                         <View style={[
-                          styles.stepLine, 
+                          styles.stepIcon, 
                 { backgroundColor: step.completed ? '#4CAF50' : '#E0E0E0' }
-                        ]} />
-                      )}
-                    </View>
-        ))}
-      </View>
+                        ]}>
+                <Icon name={step.icon} size={16} color={step.completed ? 'white' : '#9E9E9E'} />
+                        </View>
+              <Text style={[
+                styles.stepText,
+                { color: step.completed ? '#4CAF50' : '#9E9E9E' }
+              ]}>
+                {step.title}
+              </Text>
+              {stepIndex < getTrackingSteps(order).length - 1 && (
+                          <View style={[
+                            styles.stepLine, 
+                  { backgroundColor: step.completed ? '#4CAF50' : '#E0E0E0' }
+                          ]} />
+                        )}
+                      </View>
+          ))}
+        </View>
 
-      <View style={styles.orderActions}>
-        <TouchableOpacity
-          style={styles.actionButton}
-          onPress={() => showOrderDetails(order)}
-        >
-          <Icon name="visibility" size={16} color="#667eea" />
-          <Text style={styles.actionButtonText}>View Details</Text>
-        </TouchableOpacity>
-
-        {order.awbNumber && (
+        <View style={styles.orderActions}>
           <TouchableOpacity
-            style={[styles.actionButton, styles.trackButton]}
-            onPress={() => trackOrder(order)}
-            disabled={trackingLoading}
+            style={styles.actionButton}
+            onPress={() => showOrderDetails(order)}
           >
-            {trackingLoading ? (
-              <ActivityIndicator size="small" color="#667eea" />
-            ) : (
-              <Icon name="track-changes" size={16} color="#667eea" />
-            )}
-            <Text style={styles.actionButtonText}>Track</Text>
+            <Icon name="visibility" size={16} color="#667eea" />
+            <Text style={styles.actionButtonText}>View Details</Text>
           </TouchableOpacity>
-        )}
 
-        {order.status === 'DELIVERED' && (
-          <TouchableOpacity
-            style={[styles.actionButton, styles.invoiceButton]}
-            onPress={() => navigation.navigate('InvoiceDetailScreen', { orderId: order.id, navigation })}
-          >
-            <Icon name="receipt" size={16} color="#667eea" />
-            <Text style={styles.actionButtonText}>Invoice</Text>
-          </TouchableOpacity>
-        )}
-      </View>
-    </Animatable.View>
-  );
+          {awbNumber && (
+            <TouchableOpacity
+              style={[styles.actionButton, styles.trackButton]}
+              onPress={() => trackOrder(order)}
+              disabled={trackingLoading}
+            >
+              {trackingLoading ? (
+                <ActivityIndicator size="small" color="#667eea" />
+              ) : (
+                <Icon name="track-changes" size={16} color="#667eea" />
+              )}
+              <Text style={styles.actionButtonText}>Track</Text>
+            </TouchableOpacity>
+          )}
+
+          {order.status === 'DELIVERED' && (
+            <TouchableOpacity
+              style={[styles.actionButton, styles.invoiceButton]}
+              onPress={() => navigation.navigate('InvoiceDetailScreen', { orderId: order.id, navigation })}
+            >
+              <Icon name="receipt" size={16} color="#667eea" />
+              <Text style={styles.actionButtonText}>Invoice</Text>
+            </TouchableOpacity>
+          )}
+        </View>
+      </Animatable.View>
+    );
+  };
 
   const renderTrackingModal = () => {
     if (!selectedOrder || !trackingData) return null;
+
+    const { awbNumber, courierName } = getShipmentInfo(selectedOrder);
 
     return (
       <View style={styles.modalOverlay}>
@@ -271,15 +450,19 @@ export default function TrackOrderScreen({ navigation }) {
           </View>
 
           <ScrollView style={styles.trackingDetails}>
-            <View style={styles.trackingInfo}>
-              <Text style={styles.trackingLabel}>AWB Number:</Text>
-              <Text style={styles.trackingValue}>{selectedOrder.awbNumber}</Text>
-            </View>
+            {awbNumber && (
+              <View style={styles.trackingInfo}>
+                <Text style={styles.trackingLabel}>AWB Number:</Text>
+                <Text style={styles.trackingValue}>{awbNumber}</Text>
+              </View>
+            )}
 
-            <View style={styles.trackingInfo}>
-              <Text style={styles.trackingLabel}>Courier:</Text>
-              <Text style={styles.trackingValue}>{selectedOrder.courierName || 'NimbusPost'}</Text>
-            </View>
+            {courierName && (
+              <View style={styles.trackingInfo}>
+                <Text style={styles.trackingLabel}>Courier:</Text>
+                <Text style={styles.trackingValue}>{courierName}</Text>
+              </View>
+            )}
 
             {trackingData.status && (
               <View style={styles.trackingInfo}>
@@ -357,45 +540,48 @@ export default function TrackOrderScreen({ navigation }) {
                   </View>
 
             {/* Shipping Information */}
-            {detailsOrder.deliveryType === 'DELIVERY' && (
-              <View style={styles.detailsSection}>
-                <Text style={styles.sectionTitle}>Shipping Information</Text>
-                {detailsOrder.awbNumber ? (
-                  <>
+            {detailsOrder.deliveryType === 'DELIVERY' && (() => {
+              const { awbNumber, courierName, expectedDeliveryDate, trackingUrl } = getShipmentInfo(detailsOrder);
+              return (
+                <View style={styles.detailsSection}>
+                  <Text style={styles.sectionTitle}>Shipping Information</Text>
+                  {awbNumber ? (
+                    <>
+                      <View style={styles.detailRow}>
+                        <Text style={styles.detailLabel}>AWB Number:</Text>
+                        <Text style={[styles.detailValue, styles.awbValue]}>{awbNumber}</Text>
+                      </View>
+                      {courierName && (
+                        <View style={styles.detailRow}>
+                          <Text style={styles.detailLabel}>Courier:</Text>
+                          <Text style={[styles.detailValue, { color: '#667eea' }]}>{courierName}</Text>
+                        </View>
+                      )}
+                      {expectedDeliveryDate && (
+                        <View style={styles.detailRow}>
+                          <Text style={styles.detailLabel}>Expected Delivery:</Text>
+                          <Text style={styles.detailValue}>
+                            {new Date(expectedDeliveryDate).toLocaleDateString()}
+                          </Text>
+                        </View>
+                      )}
+                      {trackingUrl && (
+                        <View style={styles.detailRow}>
+                          <Text style={styles.detailLabel}>Tracking URL:</Text>
+                          <Text style={[styles.detailValue, { color: '#667eea' }]}>Available</Text>
+                        </View>
+                      )}
+                    </>
+                  ) : (
                     <View style={styles.detailRow}>
-                      <Text style={styles.detailLabel}>AWB Number:</Text>
-                      <Text style={[styles.detailValue, styles.awbValue]}>{detailsOrder.awbNumber}</Text>
+                      <Text style={[styles.detailValue, { color: '#FF9800' }]}>
+                        Shipment not created yet
+                      </Text>
                     </View>
-                    {detailsOrder.courierName && (
-                      <View style={styles.detailRow}>
-                        <Text style={styles.detailLabel}>Courier:</Text>
-                        <Text style={[styles.detailValue, { color: '#667eea' }]}>{detailsOrder.courierName}</Text>
-                      </View>
-                    )}
-                    {detailsOrder.expectedDeliveryDate && (
-                      <View style={styles.detailRow}>
-                        <Text style={styles.detailLabel}>Expected Delivery:</Text>
-                        <Text style={styles.detailValue}>
-                          {new Date(detailsOrder.expectedDeliveryDate).toLocaleDateString()}
-                        </Text>
-                      </View>
-                    )}
-                    {detailsOrder.trackingUrl && (
-                      <View style={styles.detailRow}>
-                        <Text style={styles.detailLabel}>Tracking URL:</Text>
-                        <Text style={[styles.detailValue, { color: '#667eea' }]}>Available</Text>
-                      </View>
-                    )}
-                  </>
-                ) : (
-                  <View style={styles.detailRow}>
-                    <Text style={[styles.detailValue, { color: '#FF9800' }]}>
-                      Shipment not created yet
-                    </Text>
-                  </View>
-                )}
-              </View>
-            )}
+                  )}
+                </View>
+              );
+            })()}
 
             {/* Files Information */}
             <View style={styles.detailsSection}>
@@ -427,7 +613,7 @@ export default function TrackOrderScreen({ navigation }) {
                 <Text style={styles.modalButtonText}>View Invoice</Text>
               </TouchableOpacity>
               
-              {detailsOrder.awbNumber && (
+              {getShipmentInfo(detailsOrder).awbNumber && (
               <TouchableOpacity
                   style={[styles.modalButton, styles.secondaryButton]}
                   onPress={() => {

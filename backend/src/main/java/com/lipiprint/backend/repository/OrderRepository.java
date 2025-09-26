@@ -26,15 +26,15 @@ public interface OrderRepository extends JpaRepository<Order, Long> {
     @Query(value = "SELECT DATE(o.created_at) as day, COALESCE(SUM(o.total_amount),0) as revenue FROM orders o WHERE o.created_at >= CURRENT_DATE - INTERVAL '7 days' AND o.status IN (:statuses) GROUP BY day ORDER BY day", nativeQuery = true)
     List<Object[]> getRevenueByDayLast7Days(@Param("statuses") List<String> statuses);
 
-    @Query("SELECT new com.lipiprint.backend.dto.OrderListDTO(o.id, u.name, CAST(o.status AS string), o.totalAmount, o.createdAt, o.deliveryType) FROM Order o JOIN o.user u ORDER BY o.createdAt DESC")
+    @Query("SELECT new com.lipiprint.backend.dto.OrderListDTO(o.id, u.name, CAST(o.status AS string), o.totalAmount, o.createdAt, o.deliveryType, o.awbNumber, o.courierName, o.trackingUrl, o.expectedDeliveryDate) FROM Order o JOIN o.user u ORDER BY o.createdAt DESC")
     Page<OrderListDTO> findAllForList(Pageable pageable);
 
-    @Query("SELECT new com.lipiprint.backend.dto.OrderListDTO(o.id, u.name, CAST(o.status AS string), o.totalAmount, o.createdAt, o.deliveryType) FROM Order o JOIN o.user u WHERE u.id = :userId ORDER BY o.createdAt DESC")
+    @Query("SELECT new com.lipiprint.backend.dto.OrderListDTO(o.id, u.name, CAST(o.status AS string), o.totalAmount, o.createdAt, o.deliveryType, o.awbNumber, o.courierName, o.trackingUrl, o.expectedDeliveryDate) FROM Order o JOIN o.user u WHERE u.id = :userId ORDER BY o.createdAt DESC")
     Page<OrderListDTO> findAllForListByUser(@Param("userId") Long userId, Pageable pageable);
 
-    @Query("SELECT new com.lipiprint.backend.dto.OrderListDTO(o.id, u.name, CAST(o.status AS string), o.totalAmount, o.createdAt, o.deliveryType) FROM Order o JOIN o.user u WHERE o.status = :status ORDER BY o.createdAt DESC")
+    @Query("SELECT new com.lipiprint.backend.dto.OrderListDTO(o.id, u.name, CAST(o.status AS string), o.totalAmount, o.createdAt, o.deliveryType, o.awbNumber, o.courierName, o.trackingUrl, o.expectedDeliveryDate) FROM Order o JOIN o.user u WHERE o.status = :status ORDER BY o.createdAt DESC")
     Page<OrderListDTO> findAllForListByStatus(@Param("status") String status, Pageable pageable);
 
-    @Query("SELECT new com.lipiprint.backend.dto.OrderListDTO(o.id, u.name, CAST(o.status AS string), o.totalAmount, o.createdAt, o.deliveryType) FROM Order o JOIN o.user u WHERE u.id = :userId AND o.status = :status ORDER BY o.createdAt DESC")
+    @Query("SELECT new com.lipiprint.backend.dto.OrderListDTO(o.id, u.name, CAST(o.status AS string), o.totalAmount, o.createdAt, o.deliveryType, o.awbNumber, o.courierName, o.trackingUrl, o.expectedDeliveryDate) FROM Order o JOIN o.user u WHERE u.id = :userId AND o.status = :status ORDER BY o.createdAt DESC")
     Page<OrderListDTO> findAllForListByUserAndStatus(@Param("userId") Long userId, @Param("status") String status, Pageable pageable);
 } 
