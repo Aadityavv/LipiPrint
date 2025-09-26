@@ -483,21 +483,23 @@ public class OrderService {
         String nimbusLower = nimbusStatus.toLowerCase();
         String activityLower = activity != null ? activity.toLowerCase() : "";
         
-        // Handle "Out for delivery" specifically based on status/activity
+        // Handle "Out for delivery" specifically - this takes priority
         if (nimbusLower.contains("out") || nimbusLower.contains("delivery") || 
             activityLower.contains("out for delivery") || activityLower.contains("dispatched")) {
             return Order.Status.OUT_FOR_DELIVERY;
         }
         
-        // Handle other statuses
+        // Handle delivered orders
         if (nimbusLower.contains("delivered") || nimbusLower.contains("completed")) {
             return Order.Status.DELIVERED;
         }
         
+        // Handle shipped/dispatched orders - this is between processing and out for delivery
         if (nimbusLower.contains("shipped") || nimbusLower.contains("dispatched")) {
-            return Order.Status.SHIPPED;
+            return Order.Status.COMPLETED;  // Use COMPLETED as equivalent to shipped
         }
         
+        // Handle pending/processing orders
         if (nimbusLower.contains("pending") || nimbusLower.contains("picked up")) {
             return Order.Status.PROCESSING;
         }
