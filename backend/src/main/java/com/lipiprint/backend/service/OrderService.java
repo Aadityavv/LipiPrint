@@ -23,6 +23,8 @@ import org.slf4j.LoggerFactory;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import com.lipiprint.backend.entity.User;
+import java.util.ArrayList;
+import com.lipiprint.backend.service.ScheduledStatusUpdateService;
 import com.lipiprint.backend.dto.OrderListDTO;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
@@ -428,6 +430,177 @@ public class OrderService {
         }
         
         logger.info("[OrderService] Order {} status updated: {} -> {}", orderId, oldStatus, newStatus);
+    }
+    
+    // ✅ NEW: Update order status from NimbusPost webhook/API
+    public boolean updateOrderStatusFromNimbusPost(String awbNumber, String nimbusStatus, String activity, 
+                                                   String currentLocation, String eventTime) {
+        try {
+            logger.info("[OrderService] Updating order status from NimbusPost - AWB: {}, Status: {}", awbNumber, nimbusStatus);
+            
+            // Find order by AWB number
+            List<Order> orders = orderRepository.findAll().stream()
+                .filter(order -> awbNumber.equals(order.getAwbNumber()))
+                .toList();
+            
+            if (orders.isEmpty()) {
+                logger.warn("[OrderService] No order found for AWB: {}", awbNumber);
+                return false;
+            }
+            
+            Order order = orders.get(0); // Take first one (should be unique)
+            Order.Status oldStatus = order.getStatus();
+            
+            // Map NimbusPost status to order status
+            Order.Status newStatus = mapNimbusPostStatusToOrderStatus(nimbusStatus, activity);
+            
+            if (newStatus == null) {
+                logger.warn("[OrderService] Unable to map NimbusPost status '{}' with activity '{}' to Order status", 
+                    nimbusStatus, activity);
+                return false;
+            }
+            
+            // Update order status
+            order.setStatus(newStatus);
+            orderRepository.save(order);
+            
+            logger.info("[OrderService] Order {} (AWB: {}) status updated from NimbusPost: {} -> {} (NimbusPost: {})", 
+                order.getId(), awbNumber, oldStatus, newStatus, nimbusStatus);
+            
+            return true;
+            
+        } catch (Exception e) {
+            logger.error("[OrderService] Failed to update order status from NimbusPost - AWB: {}, Error: {}", 
+                awbNumber, e.getMessage());
+            return false;
+        }
+    }
+    
+    // ✅ NEW: Map NimbusPost status to Order status
+    private Order.Status mapNimbusPostStatusToOrderStatus(String nimbusStatus, String activity) {
+        if (nimbusStatus == null) return null;
+        
+        String nimbusLower = nimbusStatus.toLowerCase();
+        String activityLower = activity != null ? activity.toLowerCase() : "";
+        
+        // Handle "Out for delivery" specifically based on status/activity
+        if (nimbusLower.contains("out") || nimbusLower.contains("delivery") || 
+            activityLower.contains("out for delivery") || activityLower.contains("dispatched")) {
+            return Order.Status.OUT_FOR_DELIVERY;
+        }
+        
+        // Handle other statuses
+        if (nimbusLower.contains("delivered") || nimbusLower.contains("completed")) {
+            return Order.Status.DELIVERED;
+        }
+        
+        if (nimbusLower.contains("shipped") || nimbusLower.contains("dispatched")) {
+            return Order.Status.SHIPPED;
+        }
+        
+        if (nimbusLower.contains("pending") || nimbusLower.contains("picked up")) {
+            return Order.Status.PROCESSING;
+        }
+        
+        return null; // Unknown status, no update
+    }
+    
+    // ✅ NEW: Update all order statuses from NimbusPost (for scheduled task integration)
+    public List<Order> updateOrderStatusesFromNimbusPost() {
+        try {
+            logger.info("[OrderService] Triggering manual update for all shipped order statuses via NimbusPost");
+            
+            // Get all orders with shipping info
+            List<Order> shippedOrders = orderRepository.findAll().stream()
+                .filter(Order::hasShippingInfo)
+                .filter(o -> Boolean.TRUE.equals(o.getShippingCreated()))
+                .toList();
+                
+            int updatedCount = 0;
+            for (Order order : shippedOrders) {
+                try {
+                    if (updateOrderStatusIfChanged(order)) {
+                        updatedCount++;
+                        logger.info("[OrderService] Updated order {} from manual NimbusPost check", order.getId());
+                    }
+                } catch (Exception e) {
+                    logger.error("[OrderService] Error updating order {}: {}", order.getId(), e.getMessage());
+                }
+            }
+            
+            logger.info("[OrderService] Completed manual status update: {} orders updated out of {}", 
+                updatedCount, shippedOrders.size());
+            return shippedOrders;
+            
+        } catch (Exception e) {
+            logger.error("[OrderService] Failed to trigger order status updates: {}", e.getMessage());
+            return new ArrayList<>();
+        }
+    }
+    
+    // ✅ NEW: Update single order status manually
+    public boolean updateSingleOrderStatus(Long orderId) {
+        try {
+            logger.info("[OrderService] Triggering manual update for order {} status", orderId);
+            
+            return orderRepository.findById(orderId)
+                .map(order -> {
+                    if (!order.hasShippingInfo() || !Boolean.TRUE.equals(order.getShippingCreated())) {
+                        logger.warn("[OrderService] Order {} has no shipping info or not shipped yet", orderId);
+                        return false;
+                    }
+                    return updateOrderStatusIfChanged(order);
+                })
+                .orElse(false);
+                
+        } catch (Exception e) {
+            logger.error("[OrderService] Failed to trigger update for order {}: {}", orderId, e.getMessage());
+            return false;
+        }
+    }
+    
+    // ✅ HELPER: Update order status if changed in NimbusPost API
+    private boolean updateOrderStatusIfChanged(Order order) {
+        try {
+            logger.debug("[OrderService] Checking status for order {} with AWB: {}", 
+                order.getId(), order.getAwbNumber());
+            
+            // Get latest status from NimbusPost API
+            TrackingResponse trackingResponse = nimbusPostService.trackShipment(order.getAwbNumber());
+            
+            if (trackingResponse == null || !Boolean.TRUE.equals(trackingResponse.isStatus())) {
+                logger.warn("[OrderService] Failed to get tracking info for order {} AWB: {}", 
+                    order.getId(), order.getAwbNumber());
+                return false;
+            }
+            
+            String nimbusStatus = trackingResponse.getCurrentStatus();
+            String activity = trackingResponse.getTrackingData() != null && !trackingResponse.getTrackingData().isEmpty() 
+                ? trackingResponse.getTrackingData().get(0).getActivity()
+                : null;
+            
+            if (nimbusStatus == null) {
+                logger.debug("[OrderService] No status returned from NimbusPost for order {} AWB: {}", 
+                    order.getId(), order.getAwbNumber());
+                return false;
+            }
+            
+            // Update using the service method (reuses existing logic)
+            return updateOrderStatusFromNimbusPost(
+                order.getAwbNumber(), 
+                nimbusStatus, 
+                activity, 
+                trackingResponse.getLastLocation(), 
+                trackingResponse.getTrackingData() != null && !trackingResponse.getTrackingData().isEmpty()
+                    ? trackingResponse.getTrackingData().get(0).getDate()
+                    : null
+            );
+            
+        } catch (Exception e) {
+            logger.error("[OrderService] Error tracking order {} AWB: {} - Error: {}", 
+                order.getId(), order.getAwbNumber(), e.getMessage());
+            return false;
+        }
     }
 
     public JSONObject createRazorpayOrder(int amount, String currency, String receipt, Long userId) throws RazorpayException {

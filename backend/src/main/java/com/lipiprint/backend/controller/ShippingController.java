@@ -123,6 +123,52 @@ public class ShippingController {
         }
     }
     
+    // ✅ NEW: NimbusPost webhook for automatic status updates
+    @PostMapping("/webhook")
+    public ResponseEntity<?> handleNimbusPostWebhook(@RequestBody Map<String, Object> webhookData) {
+        try {
+            logger.info("[ShippingController] NimbusPost webhook received: {}", webhookData);
+            
+            // Extract essential data from webhook
+            String awbNumber = (String) webhookData.get("awb");
+            String status = (String) webhookData.get("status");
+            String activity = (String) webhookData.get("activity");
+            String currentLocation = (String) webhookData.get("current_location");
+            String eventTime = (String) webhookData.get("event_time");
+            
+            if (awbNumber == null || status == null) {
+                logger.warn("[ShippingController] NimbusPost webhook missing AWB or status");
+                return ResponseEntity.badRequest().body(Map.of("error", "Missing AWB or status"));
+            }
+            
+            // Update order status automatically
+            boolean updated = orderService.updateOrderStatusFromNimbusPost(awbNumber, status, activity, currentLocation, eventTime);
+            
+            if (updated) {
+                logger.info("[ShippingController] Order status updated for AWB: {} to status: {}", awbNumber, status);
+                return ResponseEntity.ok(Map.of(
+                    "success", true,
+                    "message", "Order status updated successfully",
+                    "awb", awbNumber,
+                    "status", status
+                ));
+            } else {
+                logger.warn("[ShippingController] No order found for AWB: {}", awbNumber);
+                return ResponseEntity.badRequest().body(Map.of(
+                    "error", "Order not found for AWB",
+                    "awb", awbNumber
+                ));
+            }
+            
+        } catch (Exception e) {
+            logger.error("[ShippingController] NimbusPost webhook error: {}", e.getMessage());
+            return ResponseEntity.status(500).body(Map.of(
+                "error", "Webhook processing failed",
+                "message", e.getMessage()
+            ));
+        }
+    }
+    
     @GetMapping("/track/{orderId}")
     public ResponseEntity<?> trackOrder(@PathVariable Long orderId) {
         try {
@@ -167,6 +213,62 @@ public class ShippingController {
             return ResponseEntity.status(500).body(
                 Map.of("serviceable", false, "error", "Serviceability check failed")
             );
+        }
+    }
+    
+    // ✅ NEW: Manual trigger for order status updates (for testing/admin use)
+    @PostMapping("/update-status/all")
+    public ResponseEntity<?> updateAllOrderStatuses() {
+        try {
+            logger.info("[ShippingController] Manual trigger: updating all order statuses via NimbusPost");
+            
+            // Use the leaf service to maintain architecture
+            if (orderService.updateOrderStatusesFromNimbusPost() != null) {
+                return ResponseEntity.ok(Map.of(
+                    "success", true,
+                    "message", "All order statuses updated from NimbusPost successfully"
+                ));
+            } else {
+                return ResponseEntity.status(500).body(Map.of(
+                    "error", "Failed to update order statuses"
+                ));
+            }
+            
+        } catch (Exception e) {
+            logger.error("[ShippingController] Manual status update failed: {}", e.getMessage());
+            return ResponseEntity.status(500).body(Map.of(
+                "error", "Manual status update failed",
+                "message", e.getMessage()
+            ));
+        }
+    }
+    
+    // ✅ NEW: Trigger single order status update
+    @PostMapping("/update-status/{orderId}")
+    public ResponseEntity<?> updateOrderStatus(@PathVariable Long orderId) {
+        try {
+            logger.info("[ShippingController] Manual trigger: updating order {} status via NimbusPost", orderId);
+            
+            if (orderService.updateSingleOrderStatus(orderId)) {
+                return ResponseEntity.ok(Map.of(
+                    "success", true,
+                    "message", "Order status updated from NimbusPost",
+                    "orderId", orderId
+                ));
+            } else {
+                return ResponseEntity.badRequest().body(Map.of(
+                    "error", "Failed to update order or order not found",
+                    "orderId", orderId
+                ));
+            }
+            
+        } catch (Exception e) {
+            logger.error("[ShippingController] Update order {} status failed: {}", orderId, e.getMessage());
+            return ResponseEntity.status(500).body(Map.of(
+                "error", "Order status update failed",
+                "message", e.getMessage(),
+                "orderId", orderId
+            ));
         }
     }
     

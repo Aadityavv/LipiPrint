@@ -351,14 +351,14 @@ export default function TrackOrderScreen({ navigation }) {
                   </Text>
               </View>
               )}
-              {trackingUrl && (
+              {/* {trackingUrl && (
                 <View style={styles.trackingRow}>
                   <Icon name="link" size={16} color="#667eea" />
                   <Text style={styles.trackingText}>
                     Tracking URL Available
                   </Text>
               </View>
-              )}
+              )} */}
             </>
           ) : (
             <View style={styles.trackingRow}>
