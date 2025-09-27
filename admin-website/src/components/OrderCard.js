@@ -20,7 +20,8 @@ const OrderCard = ({
   canEdit, 
   selected = false, 
   onSelect, 
-  viewMode = 'grid' 
+  viewMode = 'grid',
+  onStatusUpdate
 }) => {
   const getStatusColor = (status) => {
     switch (status) {
@@ -95,6 +96,7 @@ const OrderCard = ({
     <div 
       className={`order-card ${viewMode} ${selected ? 'selected' : ''}`} 
       onClick={handleCardClick}
+      data-order-id={order.id}
     >
       {onSelect && (
         <div className="order-checkbox" onClick={handleSelect}>
@@ -153,6 +155,50 @@ const OrderCard = ({
       </div>
 
       {/* Admin tracking information - not available in OrderListDTO */}
+
+      {/* Status update buttons */}
+      {canEdit && onStatusUpdate && (
+        <div className="status-actions">
+          {order.status === 'PENDING' && (
+            <button
+              className="status-btn processing"
+              onClick={(e) => {
+                e.stopPropagation();
+                onStatusUpdate('PROCESSING');
+              }}
+            >
+              <Settings size={14} />
+              Start Processing
+            </button>
+          )}
+          
+          {order.status === 'PROCESSING' && (
+            <button
+              className="status-btn completed"
+              onClick={(e) => {
+                e.stopPropagation();
+                onStatusUpdate('COMPLETED');
+              }}
+            >
+              <CheckCircle size={14} />
+              Mark Complete
+            </button>
+          )}
+          
+          {order.status === 'COMPLETED' && (
+            <button
+              className="status-btn delivered"
+              onClick={(e) => {
+                e.stopPropagation();
+                onStatusUpdate('DELIVERED');
+              }}
+            >
+              <Truck size={14} />
+              Mark Delivered
+            </button>
+          )}
+        </div>
+      )}
 
       <div className="order-footer">
         <div className="order-amount">

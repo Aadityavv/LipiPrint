@@ -70,7 +70,8 @@ public class AuthController {
                 user.getPhone(), 
                 user.getEmail(),
                 user.getRole().name(), 
-                user.isBlocked(), 
+                user.isBlocked(),
+                user.isCanEdit(),
                 user.getCreatedAt(), 
                 user.getUpdatedAt(),
                 false
@@ -130,7 +131,8 @@ public class AuthController {
                 user.getPhone(), 
                 user.getEmail(),
                 user.getRole().name(), 
-                user.isBlocked(), 
+                user.isBlocked(),
+                user.isCanEdit(),
                 user.getCreatedAt(), 
                 user.getUpdatedAt(),
                 false
@@ -208,7 +210,8 @@ public class AuthController {
                 user.getPhone(), 
                 user.getEmail(),
                 user.getRole().name(), 
-                user.isBlocked(), 
+                user.isBlocked(),
+                user.isCanEdit(),
                 user.getCreatedAt(), 
                 user.getUpdatedAt(),
                 false

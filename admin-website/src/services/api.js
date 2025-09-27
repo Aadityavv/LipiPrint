@@ -263,6 +263,54 @@ class ApiService {
     }
   }
 
+  // Print Job methods
+  async getPrintJobs() {
+    try {
+      const response = await this.request('/print-jobs', {}, true);
+      return response;
+    } catch (error) {
+      console.error('Error fetching print jobs:', error);
+      throw new Error(`Failed to fetch print jobs: ${error.response?.data?.message || error.message}`);
+    }
+  }
+
+  async getPrintJobById(printJobId) {
+    try {
+      const response = await this.request(`/print-jobs/${printJobId}`, {}, true);
+      return response;
+    } catch (error) {
+      console.error('Error fetching print job:', error);
+      throw new Error(`Failed to fetch print job: ${error.response?.data?.message || error.message}`);
+    }
+  }
+
+  async updatePrintJobStatus(printJobId, status) {
+    try {
+      const response = await this.request(`/print-jobs/${printJobId}/status`, {
+        method: 'PUT',
+        params: { status }
+      });
+      
+      // Clear cache for print jobs
+      this.cache.delete(this.getCacheKey('/print-jobs'));
+      
+      return response;
+    } catch (error) {
+      console.error('Error updating print job status:', error);
+      throw new Error(`Failed to update print job status: ${error.response?.data?.message || error.message}`);
+    }
+  }
+
+  async markPrintJobAsCompleted(printJobId) {
+    try {
+      const response = await this.updatePrintJobStatus(printJobId, 'COMPLETED');
+      return response;
+    } catch (error) {
+      console.error('Error marking print job as completed:', error);
+      throw new Error(`Failed to mark print job as completed: ${error.response?.data?.message || error.message}`);
+    }
+  }
+
   // User profile methods
   async getProfile() {
     try {

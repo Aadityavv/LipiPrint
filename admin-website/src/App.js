@@ -4,6 +4,7 @@ import { Toaster } from 'react-hot-toast';
 import Login from './components/Login';
 import Dashboard from './components/Dashboard';
 import OrderDetail from './components/OrderDetail';
+import PrintTest from './components/PrintTest';
 import api from './services/api';
 import './App.css';
 
@@ -114,6 +115,14 @@ function App() {
             element={
               isAuthenticated ? 
                 <OrderDetail user={user} onLogout={handleLogout} /> : 
+                <Navigate to="/login" replace />
+            } 
+          />
+          <Route 
+            path="/print-test" 
+            element={
+              isAuthenticated ? 
+                <PrintTest /> : 
                 <Navigate to="/login" replace />
             } 
           />

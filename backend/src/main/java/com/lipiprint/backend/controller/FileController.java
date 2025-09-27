@@ -89,7 +89,7 @@ public class FileController {
         
         List<FileDTO> files = fileService.findAll().stream()
                 .map(f -> new FileDTO(f.getId(), f.getFilename(), f.getOriginalFilename(), f.getContentType(), f.getSize(), f.getUrl(), 
-                    f.getUploadedBy() != null ? new UserDTO(f.getUploadedBy().getId(), f.getUploadedBy().getName(), f.getUploadedBy().getPhone(), f.getUploadedBy().getEmail(), f.getUploadedBy().getRole() != null ? f.getUploadedBy().getRole().name() : null, f.getUploadedBy().isBlocked(), f.getUploadedBy().getCreatedAt(), f.getUploadedBy().getUpdatedAt(), false) : null, 
+                    f.getUploadedBy() != null ? new UserDTO(f.getUploadedBy().getId(), f.getUploadedBy().getName(), f.getUploadedBy().getPhone(), f.getUploadedBy().getEmail(), f.getUploadedBy().getRole() != null ? f.getUploadedBy().getRole().name() : null, f.getUploadedBy().isBlocked(), f.getUploadedBy().isCanEdit(), f.getUploadedBy().getCreatedAt(), f.getUploadedBy().getUpdatedAt(), false) : null, 
                     f.getCreatedAt(), f.getUpdatedAt(), f.getPages()))
                 .collect(Collectors.toList());
         return ResponseEntity.ok(files);
@@ -103,7 +103,7 @@ public class FileController {
         }
         List<FileDTO> files = fileService.findDeliveredFiles().stream()
                 .map(f -> new FileDTO(f.getId(), f.getFilename(), f.getOriginalFilename(), f.getContentType(), f.getSize(), f.getUrl(),
-                    f.getUploadedBy() != null ? new UserDTO(f.getUploadedBy().getId(), f.getUploadedBy().getName(), f.getUploadedBy().getPhone(), f.getUploadedBy().getEmail(), f.getUploadedBy().getRole() != null ? f.getUploadedBy().getRole().name() : null, f.getUploadedBy().isBlocked(), f.getUploadedBy().getCreatedAt(), f.getUploadedBy().getUpdatedAt(), false) : null,
+                    f.getUploadedBy() != null ? new UserDTO(f.getUploadedBy().getId(), f.getUploadedBy().getName(), f.getUploadedBy().getPhone(), f.getUploadedBy().getEmail(), f.getUploadedBy().getRole() != null ? f.getUploadedBy().getRole().name() : null, f.getUploadedBy().isBlocked(), f.getUploadedBy().isCanEdit(), f.getUploadedBy().getCreatedAt(), f.getUploadedBy().getUpdatedAt(), false) : null,
                     f.getCreatedAt(), f.getUpdatedAt(), f.getPages()))
                 .collect(Collectors.toList());
         return ResponseEntity.ok(files);

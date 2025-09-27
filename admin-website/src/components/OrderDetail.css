@@ -136,6 +136,43 @@
   margin-bottom: 20px;
 }
 
+.card-title h2 {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 0;
+}
+
+.print-progress {
+  margin-left: auto;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 8px;
+  min-width: 200px;
+}
+
+.progress-bar {
+  width: 100%;
+  height: 8px;
+  background: #e1e5e9;
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #10b981, #059669);
+  border-radius: 4px;
+  transition: width 0.3s ease;
+}
+
+.progress-text {
+  font-size: 0.85rem;
+  color: #6b7280;
+  font-weight: 500;
+}
+
 .info-grid {
   display: grid;
   gap: 15px;
@@ -237,6 +274,16 @@
   border-radius: 20px;
   font-size: 0.85rem;
   font-weight: 500;
+}
+
+.print-options {
+  margin: 8px 0;
+  padding: 8px 12px;
+  background: #f8fafc;
+  border-radius: 6px;
+  border-left: 3px solid #667eea;
+  font-size: 0.85rem;
+  color: #4b5563;
 }
 
 .file-actions {
@@ -371,6 +418,47 @@
   color: #666;
   margin-bottom: 25px;
   line-height: 1.5;
+}
+
+.print-file-info {
+  margin: 16px 0;
+  padding: 12px;
+  background: #f8fafc;
+  border-radius: 8px;
+  border: 1px solid #e1e5e9;
+}
+
+.print-options-preview {
+  margin-top: 8px;
+  padding: 6px 8px;
+  background: #e0f2fe;
+  border-radius: 4px;
+  color: #0369a1;
+}
+
+.print-instructions {
+  margin: 16px 0;
+  padding: 12px;
+  background: #fef3c7;
+  border-radius: 8px;
+  border: 1px solid #f59e0b;
+}
+
+.print-instructions p {
+  margin: 0 0 8px 0;
+  font-weight: 600;
+  color: #92400e;
+}
+
+.print-instructions ul {
+  margin: 0;
+  padding-left: 20px;
+  color: #92400e;
+}
+
+.print-instructions li {
+  margin-bottom: 4px;
+  font-size: 0.9rem;
 }
 
 .modal-actions {

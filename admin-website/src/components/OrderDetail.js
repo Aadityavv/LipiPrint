@@ -31,6 +31,7 @@ const OrderDetail = ({ user, onLogout }) => {
   const [canEdit, setCanEdit] = useState(false);
   const [showPrintConfirm, setShowPrintConfirm] = useState(false);
   const [printingFile, setPrintingFile] = useState(null);
+  const [isPrinting, setIsPrinting] = useState(false);
 
   useEffect(() => {
     loadOrder();
@@ -78,18 +79,129 @@ const OrderDetail = ({ user, onLogout }) => {
     }
   };
 
-  const handlePrintFile = (file) => {
-    setPrintingFile(file);
-    setShowPrintConfirm(true);
+  const printFileWithIframe = (fileUrl, filename) => {
+    return new Promise((resolve, reject) => {
+      const iframe = document.createElement('iframe');
+      iframe.style.position = 'absolute';
+      iframe.style.left = '-9999px';
+      iframe.style.top = '-9999px';
+      iframe.style.width = '0';
+      iframe.style.height = '0';
+      
+      iframe.onload = () => {
+        try {
+          iframe.contentWindow.print();
+          setTimeout(() => {
+            document.body.removeChild(iframe);
+            resolve();
+          }, 1000);
+        } catch (error) {
+          document.body.removeChild(iframe);
+          reject(error);
+        }
+      };
+      
+      iframe.onerror = () => {
+        document.body.removeChild(iframe);
+        reject(new Error('Failed to load file'));
+      };
+      
+      iframe.src = fileUrl;
+      document.body.appendChild(iframe);
+    });
+  };
+
+  const handlePrintFile = async (printJob) => {
+    try {
+      if (!printJob.file?.url) {
+        toast.error('File URL not available for printing');
+        return;
+      }
+
+      setIsPrinting(true);
+      const fileUrl = printJob.file.url;
+      const fileType = printJob.file.contentType || printJob.file.mimeType || '';
+      const filename = printJob.file.filename || printJob.file.originalFilename || 'file';
+      
+      console.log('Printing file:', { fileUrl, fileType, filename });
+      
+      // Try multiple approaches for better compatibility
+      try {
+        // Method 1: Direct window.open with print
+        const printWindow = window.open(fileUrl, '_blank', 'width=800,height=600');
+        if (printWindow) {
+          printWindow.onload = () => {
+            setTimeout(() => {
+              printWindow.print();
+              // Close window after a delay
+              setTimeout(() => {
+                printWindow.close();
+              }, 2000);
+            }, 1500);
+          };
+        } else {
+          throw new Error('Popup blocked');
+        }
+      } catch (error) {
+        console.log('Window method failed, trying iframe method:', error);
+        
+        // Method 2: Iframe fallback
+        try {
+          await printFileWithIframe(fileUrl, filename);
+        } catch (iframeError) {
+          console.log('Iframe method failed, trying direct print:', iframeError);
+          
+          // Method 3: Create a temporary link and trigger download/view
+          const link = document.createElement('a');
+          link.href = fileUrl;
+          link.target = '_blank';
+          link.click();
+          
+          toast.info('File opened in new tab. Please use Ctrl+P to print.');
+        }
+      }
+      
+      // Show confirmation modal after a short delay
+      setTimeout(() => {
+        setPrintingFile(printJob);
+        setShowPrintConfirm(true);
+        setIsPrinting(false);
+      }, 2000);
+      
+    } catch (error) {
+      console.error('Error opening print window:', error);
+      toast.error('Failed to open print dialog. Please try downloading the file and printing manually.');
+      setIsPrinting(false);
+    }
   };
 
   const confirmPrint = async () => {
     try {
-      await api.markOrderAsPrinted(orderId);
+      if (!printingFile?.id) {
+        toast.error('Print job ID not found');
+        return;
+      }
+      
+      await api.markPrintJobAsCompleted(printingFile.id);
       toast.success('File marked as printed successfully!');
       setShowPrintConfirm(false);
       setPrintingFile(null);
-      loadOrder(); // Reload to get updated data
+      
+      // Reload order to get updated data
+      await loadOrder();
+      
+      // Check if all print jobs are completed and update order status
+      if (order?.printJobs) {
+        const allCompleted = order.printJobs.every(pj => pj.status === 'COMPLETED');
+        if (allCompleted && order.status !== 'COMPLETED') {
+          try {
+            await api.updateOrderStatus(orderId, 'COMPLETED');
+            toast.success('All files printed! Order marked as completed.');
+          } catch (error) {
+            console.error('Error updating order status:', error);
+          }
+        }
+      }
     } catch (error) {
       console.error('Error marking as printed:', error);
       toast.error('Failed to mark file as printed');
@@ -308,20 +420,37 @@ const OrderDetail = ({ user, onLogout }) => {
 
           {/* Files Section */}
           <div className="card">
-            <h2 className="card-title">
-              <FileText size={20} />
-              Files ({order.printJobs?.length || 0})
-            </h2>
+            <div className="card-title">
+              <h2>
+                <FileText size={20} />
+                Files ({order.printJobs?.length || 0})
+              </h2>
+              {order.printJobs && order.printJobs.length > 0 && (
+                <div className="print-progress">
+                  <div className="progress-bar">
+                    <div 
+                      className="progress-fill"
+                      style={{ 
+                        width: `${(order.printJobs.filter(pj => pj.status === 'COMPLETED').length / order.printJobs.length) * 100}%` 
+                      }}
+                    ></div>
+                  </div>
+                  <span className="progress-text">
+                    {order.printJobs.filter(pj => pj.status === 'COMPLETED').length} of {order.printJobs.length} files printed
+                  </span>
+                </div>
+              )}
+            </div>
             <div className="files-list">
               {order.printJobs?.map((printJob, index) => (
-                <div key={index} className="file-item">
+                <div key={printJob.id || index} className="file-item">
                   <div className="file-header">
                     <div className="file-name">
                       <FileText size={16} />
-                      <span>{printJob.file?.filename || 'Unknown file'}</span>
+                      <span>{printJob.file?.filename || printJob.file?.originalFilename || 'Unknown file'}</span>
                     </div>
                     <div className="file-status">
-                      {printJob.file?.printed ? (
+                      {printJob.status === 'COMPLETED' ? (
                         <span className="status-printed">
                           <CheckCircle size={14} />
                           Printed
@@ -329,15 +458,28 @@ const OrderDetail = ({ user, onLogout }) => {
                       ) : (
                         <span className="status-not-printed">
                           <Clock size={14} />
-                          Not Printed
+                          {printJob.status === 'PRINTING' ? 'Printing...' : 'Not Printed'}
                         </span>
                       )}
                     </div>
                   </div>
+                  
+                  {/* Print Job Options */}
+                  {printJob.options && (
+                    <div className="print-options">
+                      <small>
+                        Options: {JSON.parse(printJob.options).color || 'B&W'}, 
+                        {JSON.parse(printJob.options).paper || 'A4'}, 
+                        {JSON.parse(printJob.options).quality || 'Standard'}
+                      </small>
+                    </div>
+                  )}
+                  
                   <div className="file-actions">
                     <button 
                       className="btn btn-primary"
                       onClick={() => handleViewFile(printJob.file?.url)}
+                      disabled={!printJob.file?.url}
                     >
                       <Eye size={16} />
                       View
@@ -345,16 +487,19 @@ const OrderDetail = ({ user, onLogout }) => {
                     <button 
                       className="btn btn-success"
                       onClick={() => handleDownloadFile(printJob.file?.url, printJob.file?.filename)}
+                      disabled={!printJob.file?.url}
                     >
                       <Download size={16} />
                       Download
                     </button>
                     <button 
                       className="btn btn-warning"
-                      onClick={() => handlePrintFile(printJob.file)}
+                      onClick={() => handlePrintFile(printJob)}
+                      disabled={printJob.status === 'COMPLETED' || isPrinting}
                     >
                       <Printer size={16} />
-                      Print
+                      {isPrinting ? 'Opening Print...' : 
+                       printJob.status === 'COMPLETED' ? 'Printed' : 'Print'}
                     </button>
                   </div>
                 </div>
@@ -412,6 +557,28 @@ const OrderDetail = ({ user, onLogout }) => {
             </div>
             <div className="modal-content">
               <p>Did the file print successfully?</p>
+              {printingFile && (
+                <div className="print-file-info">
+                  <strong>File:</strong> {printingFile.file?.filename || printingFile.file?.originalFilename || 'Unknown file'}
+                  {printingFile.options && (
+                    <div className="print-options-preview">
+                      <small>
+                        Options: {JSON.parse(printingFile.options).color || 'B&W'}, 
+                        {JSON.parse(printingFile.options).paper || 'A4'}, 
+                        {JSON.parse(printingFile.options).quality || 'Standard'}
+                      </small>
+                    </div>
+                  )}
+                </div>
+              )}
+              <div className="print-instructions">
+                <p><strong>Instructions:</strong></p>
+                <ul>
+                  <li>If the print dialog didn't open automatically, check your browser's popup blocker</li>
+                  <li>You can also use Ctrl+P (or Cmd+P on Mac) to print the file</li>
+                  <li>Make sure to select the correct printer and settings</li>
+                </ul>
+              </div>
               <div className="modal-actions">
                 <button 
                   className="btn btn-success"
@@ -419,6 +586,16 @@ const OrderDetail = ({ user, onLogout }) => {
                 >
                   <CheckCircle size={16} />
                   Yes, Printed Successfully
+                </button>
+                <button 
+                  className="btn btn-warning"
+                  onClick={() => {
+                    setShowPrintConfirm(false);
+                    handlePrintFile(printingFile);
+                  }}
+                >
+                  <Printer size={16} />
+                  Try Print Again
                 </button>
                 <button 
                   className="btn btn-secondary"

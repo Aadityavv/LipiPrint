@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
+import usePullToRefresh from '../hooks/usePullToRefresh';
 import { 
   LogOut, 
   FileText, 
@@ -26,7 +27,8 @@ import {
   Grid,
   List,
   SortAsc,
-  SortDesc
+  SortDesc,
+  Printer
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import api from '../services/api';
@@ -127,7 +129,12 @@ const Dashboard = ({ user, onLogout }) => {
       
       if (response.orders && Array.isArray(response.orders)) {
         if (append) {
-          setOrders(prev => [...prev, ...response.orders]);
+          // Merge with existing orders, avoiding duplicates
+          setOrders(prev => {
+            const existingIds = new Set(prev.map(o => o.id));
+            const newOrders = response.orders.filter(o => !existingIds.has(o.id));
+            return [...prev, ...newOrders];
+          });
         } else {
           setOrders(response.orders);
         }
@@ -160,6 +167,33 @@ const Dashboard = ({ user, onLogout }) => {
       setIsRefreshing(false);
     }
   }, [filters, pagination.size, onLogout]);
+
+  // Real-time update function for individual orders
+  const updateOrderInList = useCallback((orderId, updates) => {
+    setOrders(prev => 
+      prev.map(order => 
+        order.id === orderId 
+          ? { ...order, ...updates, updatedAt: new Date().toISOString() }
+          : order
+      )
+    );
+  }, []);
+
+  // Add order to list (for new orders)
+  const addOrderToList = useCallback((newOrder) => {
+    setOrders(prev => {
+      const existingIds = new Set(prev.map(o => o.id));
+      if (!existingIds.has(newOrder.id)) {
+        return [newOrder, ...prev];
+      }
+      return prev;
+    });
+  }, []);
+
+  // Remove order from list
+  const removeOrderFromList = useCallback((orderId) => {
+    setOrders(prev => prev.filter(order => order.id !== orderId));
+  }, []);
 
   // Load analytics data
   const loadAnalytics = useCallback(async () => {
@@ -296,14 +330,94 @@ const Dashboard = ({ user, onLogout }) => {
     setFilteredOrders(filtered);
   }, [orders, filters]);
 
+  // Live status update function
+  const updateOrderStatus = useCallback(async (orderId, newStatus) => {
+    try {
+      console.log('Updating order status:', orderId, newStatus);
+      
+      // Add visual feedback - highlight the updated order
+      const orderElement = document.querySelector(`[data-order-id="${orderId}"]`);
+      if (orderElement) {
+        orderElement.classList.add('status-updated');
+        setTimeout(() => {
+          orderElement.classList.remove('status-updated');
+        }, 600);
+      }
+      
+      // Optimistically update the UI
+      updateOrderInList(orderId, { 
+        status: newStatus, 
+        updatedAt: new Date().toISOString() 
+      });
+      
+      // Make API call
+      await api.updateOrderStatus(orderId, newStatus);
+      
+      // Show success message with animation
+      toast.success(`Order status updated to ${newStatus}`, {
+        duration: 3000,
+        style: {
+          background: '#10b981',
+          color: 'white',
+          animation: 'slideInRight 0.3s ease-out'
+        }
+      });
+      
+      // Reload analytics to reflect changes
+      await loadAnalytics();
+      
+    } catch (error) {
+      console.error('Error updating order status:', error);
+      
+      // Revert optimistic update on error
+      await loadOrders(0, false);
+      
+      toast.error(`Failed to update order status: ${error.message}`, {
+        duration: 4000,
+        style: {
+          background: '#ef4444',
+          color: 'white',
+          animation: 'slideInRight 0.3s ease-out'
+        }
+      });
+    }
+  }, [updateOrderInList, loadAnalytics, loadOrders]);
+
   // Event handlers
   const handleOrderClick = useCallback((orderId) => {
     navigate(`/order/${orderId}`);
   }, [navigate]);
 
-  const handleRefresh = useCallback(() => {
-    loadOrders(0, false);
-  }, [loadOrders]);
+  const handleRefresh = useCallback(async () => {
+    console.log('Refreshing orders...');
+    setIsRefreshing(true);
+    try {
+      await loadOrders(0, false);
+      await loadAnalytics();
+      toast.success('Orders refreshed');
+    } catch (error) {
+      console.error('Refresh error:', error);
+      toast.error('Failed to refresh orders');
+    } finally {
+      setIsRefreshing(false);
+    }
+  }, [loadOrders, loadAnalytics]);
+
+  // Handle pull-to-refresh
+  const handlePullRefresh = useCallback(async () => {
+    if (isRefreshing) return;
+    await handleRefresh();
+  }, [handleRefresh, isRefreshing]);
+
+  // Pull-to-refresh hook
+  const {
+    elementRef,
+    pullStyle,
+    isPulling,
+    isRefreshing: isPullRefreshing,
+    pullDistance,
+    shouldRefresh
+  } = usePullToRefresh(handlePullRefresh, 60);
 
   const handleFilterChange = useCallback((newFilters) => {
     setFilters(prev => ({ ...prev, ...newFilters }));
@@ -416,6 +530,14 @@ const Dashboard = ({ user, onLogout }) => {
           </div>
           <div className="header-actions">
             <button 
+              className="btn btn-info"
+              onClick={() => navigate('/print-test')}
+              title="Test print functionality"
+            >
+              <Printer size={16} />
+              Test Print
+            </button>
+            <button 
               className="btn btn-secondary"
               onClick={handleRefresh}
               disabled={isLoading}
@@ -516,7 +638,32 @@ const Dashboard = ({ user, onLogout }) => {
             </div>
           </div>
 
-          <div className="orders-list">
+          <div className="orders-list" ref={elementRef} style={pullStyle}>
+            {/* Pull-to-refresh indicator */}
+            {(isPulling || isPullRefreshing) && (
+              <div className="pull-refresh-indicator">
+                <div className="pull-indicator">
+                  {isPullRefreshing ? (
+                    <>
+                      <div className="spinner"></div>
+                      <span>Refreshing...</span>
+                    </>
+                  ) : (
+                    <>
+                      <RefreshCw 
+                        size={20} 
+                        style={{ 
+                          transform: `rotate(${shouldRefresh ? 180 : pullDistance * 3}deg)`,
+                          transition: 'transform 0.2s ease-out'
+                        }} 
+                      />
+                      <span>{shouldRefresh ? 'Release to refresh' : 'Pull to refresh'}</span>
+                    </>
+                  )}
+                </div>
+              </div>
+            )}
+
             {!Array.isArray(filteredOrders) || filteredOrders.length === 0 ? (
               <div className="empty-state">
                 <FileText size={48} className="empty-icon" />
@@ -540,14 +687,43 @@ const Dashboard = ({ user, onLogout }) => {
                 )}
               </div>
             ) : (
-              filteredOrders.map(order => (
-                <OrderCard
-                  key={order.id}
-                  order={order}
-                  onClick={() => handleOrderClick(order.id)}
-                  canEdit={canEdit}
-                />
-              ))
+              <>
+                {filteredOrders.map(order => (
+                  <OrderCard
+                    key={order.id}
+                    order={order}
+                    onClick={() => handleOrderClick(order.id)}
+                    canEdit={canEdit}
+                    onStatusUpdate={(newStatus) => updateOrderStatus(order.id, newStatus)}
+                    viewMode={viewMode}
+                    selected={selectedOrders.includes(order.id)}
+                    onSelect={(selected) => handleSelectOrder(order.id, selected)}
+                  />
+                ))}
+                
+                {/* Load More Button */}
+                {pagination.currentPage < pagination.totalPages - 1 && (
+                  <div className="load-more-container">
+                    <button
+                      className="btn btn-secondary load-more-btn"
+                      onClick={() => loadOrders(pagination.currentPage + 1, true)}
+                      disabled={isRefreshing}
+                    >
+                      {isRefreshing ? (
+                        <>
+                          <div className="spinner"></div>
+                          Loading...
+                        </>
+                      ) : (
+                        <>
+                          <RefreshCw size={16} />
+                          Load More Orders
+                        </>
+                      )}
+                    </button>
+                  </div>
+                )}
+              </>
             )}
           </div>
         </div>

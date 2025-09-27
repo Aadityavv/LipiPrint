@@ -18,6 +18,7 @@ import java.util.stream.Collectors;
 import org.json.JSONObject;
 import com.razorpay.RazorpayException;
 import com.lipiprint.backend.dto.UserDTO;
+import java.time.LocalDateTime;
 import com.lipiprint.backend.dto.FileDTO;
 import com.lipiprint.backend.dto.PrintJobDTO;
 import org.slf4j.Logger;
@@ -335,7 +336,7 @@ public class OrderController {
         UserDTO userDTO = u == null ? null : new UserDTO(
             u.getId(), u.getName(), u.getPhone(), u.getEmail(), 
             u.getRole() != null ? u.getRole().name() : null, 
-            u.isBlocked(), u.getCreatedAt(), u.getUpdatedAt(), false);
+            u.isBlocked(), u.isCanEdit(), u.getCreatedAt(), u.getUpdatedAt(), false);
 
         List<PrintJobDTO> printJobDTOs = null;
         if (printJobs != null) {
@@ -505,7 +506,7 @@ public class OrderController {
                 order.setProcessedAt(LocalDateTime.now());
             }
             
-            orderService.save(order);
+            orderService.save(order, null);
             return ResponseEntity.ok(new MessageResponse("Order marked as printed successfully"));
         } catch (Exception e) {
             logger.error("[OrderController] Error marking order as printed: ", e);
