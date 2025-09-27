@@ -84,6 +84,14 @@ public class OrderDTO {
     @JsonProperty("shipping_created")
     private Boolean shippingCreated;
 
+    // Admin tracking fields
+    private String printedByAdminName;
+    private String processedByAdminName;
+    private String completedByAdminName;
+    private LocalDateTime printedAt;
+    private LocalDateTime processedAt;
+    private LocalDateTime completedAt;
+
     // Default constructor
     public OrderDTO() {}
 
@@ -225,6 +233,25 @@ public class OrderDTO {
     
     public Boolean getShippingCreated() { return shippingCreated; }
     public void setShippingCreated(Boolean shippingCreated) { this.shippingCreated = shippingCreated; }
+
+    // Admin tracking getters and setters
+    public String getPrintedByAdminName() { return printedByAdminName; }
+    public void setPrintedByAdminName(String printedByAdminName) { this.printedByAdminName = printedByAdminName; }
+
+    public String getProcessedByAdminName() { return processedByAdminName; }
+    public void setProcessedByAdminName(String processedByAdminName) { this.processedByAdminName = processedByAdminName; }
+
+    public String getCompletedByAdminName() { return completedByAdminName; }
+    public void setCompletedByAdminName(String completedByAdminName) { this.completedByAdminName = completedByAdminName; }
+
+    public LocalDateTime getPrintedAt() { return printedAt; }
+    public void setPrintedAt(LocalDateTime printedAt) { this.printedAt = printedAt; }
+
+    public LocalDateTime getProcessedAt() { return processedAt; }
+    public void setProcessedAt(LocalDateTime processedAt) { this.processedAt = processedAt; }
+
+    public LocalDateTime getCompletedAt() { return completedAt; }
+    public void setCompletedAt(LocalDateTime completedAt) { this.completedAt = completedAt; }
 
     @Override
     public String toString() {

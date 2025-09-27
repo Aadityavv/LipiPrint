@@ -473,6 +473,21 @@ export default function AdminOrdersScreen({ navigation }) {
             )}
           </View>
 
+          {/* Admin tracking information */}
+          {(item.printedByAdminName || item.processedByAdminName || item.completedByAdminName) && (
+            <View style={styles.adminTracking}>
+              {item.printedByAdminName && (
+                <Text style={styles.adminInfo}>🖨️ Printed by: {item.printedByAdminName}</Text>
+              )}
+              {item.processedByAdminName && (
+                <Text style={styles.adminInfo}>⚙️ Processed by: {item.processedByAdminName}</Text>
+              )}
+              {item.completedByAdminName && (
+                <Text style={styles.adminInfo}>✅ Completed by: {item.completedByAdminName}</Text>
+              )}
+            </View>
+          )}
+
           <View style={styles.orderStats}>
             <View style={styles.statItem}>
               <Text style={styles.statValue}>₹{item.totalAmount?.toFixed(2) || '0.00'}</Text>
@@ -1057,6 +1072,17 @@ const styles = StyleSheet.create({
   },
   orderDetails: {
     marginBottom: 6,
+  },
+  adminTracking: {
+    backgroundColor: '#F3F4F6',
+    borderRadius: 8,
+    padding: 8,
+    marginBottom: 12,
+  },
+  adminInfo: {
+    fontSize: 12,
+    color: '#6B7280',
+    marginBottom: 2,
   },
   customerInfo: {
     flexDirection: 'row',

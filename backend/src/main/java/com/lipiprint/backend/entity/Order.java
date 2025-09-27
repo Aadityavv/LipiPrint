@@ -94,6 +94,23 @@ public class Order {
     @Column(name = "shipping_created")
     private Boolean shippingCreated = false;
 
+    // Admin tracking fields
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "printed_by_admin_id")
+    private User printedByAdmin;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "processed_by_admin_id")
+    private User processedByAdmin;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "completed_by_admin_id")
+    private User completedByAdmin;
+
+    private LocalDateTime printedAt;
+    private LocalDateTime processedAt;
+    private LocalDateTime completedAt;
+
     @OneToOne(mappedBy = "order", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     private Payment payment;
 
@@ -232,6 +249,25 @@ public class Order {
 
     public Boolean getShippingCreated() { return shippingCreated; }
     public void setShippingCreated(Boolean shippingCreated) { this.shippingCreated = shippingCreated; }
+
+    // *** ADMIN TRACKING GETTERS AND SETTERS ***
+    public User getPrintedByAdmin() { return printedByAdmin; }
+    public void setPrintedByAdmin(User printedByAdmin) { this.printedByAdmin = printedByAdmin; }
+
+    public User getProcessedByAdmin() { return processedByAdmin; }
+    public void setProcessedByAdmin(User processedByAdmin) { this.processedByAdmin = processedByAdmin; }
+
+    public User getCompletedByAdmin() { return completedByAdmin; }
+    public void setCompletedByAdmin(User completedByAdmin) { this.completedByAdmin = completedByAdmin; }
+
+    public LocalDateTime getPrintedAt() { return printedAt; }
+    public void setPrintedAt(LocalDateTime printedAt) { this.printedAt = printedAt; }
+
+    public LocalDateTime getProcessedAt() { return processedAt; }
+    public void setProcessedAt(LocalDateTime processedAt) { this.processedAt = processedAt; }
+
+    public LocalDateTime getCompletedAt() { return completedAt; }
+    public void setCompletedAt(LocalDateTime completedAt) { this.completedAt = completedAt; }
 
     // *** PAYMENT RELATIONSHIP ***
     public Payment getPayment() { return payment; }

@@ -1,0 +1,170 @@
+import React from 'react';
+import { 
+  User, 
+  FileText, 
+  Calendar, 
+  DollarSign, 
+  Truck, 
+  Store,
+  Clock,
+  CheckCircle,
+  Settings,
+  CheckSquare,
+  Square
+} from 'lucide-react';
+import './OrderCard.css';
+
+const OrderCard = ({ 
+  order, 
+  onClick, 
+  canEdit, 
+  selected = false, 
+  onSelect, 
+  viewMode = 'grid' 
+}) => {
+  const getStatusColor = (status) => {
+    switch (status) {
+      case 'PENDING': return '#f59e0b';
+      case 'PROCESSING': return '#3b82f6';
+      case 'COMPLETED': return '#10b981';
+      case 'DELIVERED': return '#8b5cf6';
+      case 'CANCELLED': return '#ef4444';
+      default: return '#6b7280';
+    }
+  };
+
+  const getStatusIcon = (status) => {
+    switch (status) {
+      case 'PENDING': return <Clock size={12} />;
+      case 'PROCESSING': return <Settings size={12} />;
+      case 'COMPLETED': return <CheckCircle size={12} />;
+      case 'DELIVERED': return <Truck size={12} />;
+      case 'CANCELLED': return <Clock size={12} />;
+      default: return <Clock size={12} />;
+    }
+  };
+
+  const getStatusLabel = (status) => {
+    switch (status) {
+      case 'PENDING': return 'Pending';
+      case 'PROCESSING': return 'Processing';
+      case 'COMPLETED': return 'Completed';
+      case 'DELIVERED': return 'Delivered';
+      case 'CANCELLED': return 'Cancelled';
+      default: return status;
+    }
+  };
+
+  const formatDate = (dateString) => {
+    return new Date(dateString).toLocaleDateString('en-US', {
+      month: 'short',
+      day: 'numeric',
+      year: 'numeric'
+    });
+  };
+
+  const formatDateTime = (dateString) => {
+    return new Date(dateString).toLocaleString('en-US', {
+      month: 'short',
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
+    });
+  };
+
+  const statusColor = getStatusColor(order.status);
+  const statusIcon = getStatusIcon(order.status);
+  const statusLabel = getStatusLabel(order.status);
+
+  const handleCardClick = (e) => {
+    // Don't trigger onClick if clicking on checkbox
+    if (e.target.closest('.order-checkbox')) {
+      return;
+    }
+    onClick();
+  };
+
+  const handleSelect = (e) => {
+    e.stopPropagation();
+    if (onSelect) {
+      onSelect(!selected);
+    }
+  };
+
+  return (
+    <div 
+      className={`order-card ${viewMode} ${selected ? 'selected' : ''}`} 
+      onClick={handleCardClick}
+    >
+      {onSelect && (
+        <div className="order-checkbox" onClick={handleSelect}>
+          {selected ? <CheckSquare size={16} /> : <Square size={16} />}
+        </div>
+      )}
+      
+      <div className="order-header">
+        <div className="order-id">
+          <span className="order-number">#{order.id}</span>
+          <div 
+            className="status-badge"
+            style={{ backgroundColor: statusColor }}
+          >
+            {statusIcon}
+            <span>{statusLabel}</span>
+          </div>
+        </div>
+        <div className="order-date">
+          {formatDate(order.createdAt)}
+        </div>
+      </div>
+
+      <div className="order-info">
+        <div className="info-row">
+          <div className="info-item">
+            <User size={14} className="info-icon" />
+            <span className="info-text">{order.userName || 'Unknown'}</span>
+          </div>
+          <div className="info-item">
+            <FileText size={14} className="info-icon" />
+            <span className="info-text">
+              Order #{order.id}
+            </span>
+          </div>
+        </div>
+        
+        <div className="info-row">
+          <div className="info-item">
+            {order.deliveryType === 'DELIVERY' ? (
+              <Truck size={14} className="info-icon" />
+            ) : (
+              <Store size={14} className="info-icon" />
+            )}
+            <span className="info-text">
+              {order.deliveryType === 'DELIVERY' ? 'Delivery' : 'Pickup'}
+            </span>
+          </div>
+          <div className="info-item">
+            <DollarSign size={14} className="info-icon" />
+            <span className="info-text">
+              ₹{order.totalAmount?.toFixed(2) || '0.00'}
+            </span>
+          </div>
+        </div>
+      </div>
+
+      {/* Admin tracking information - not available in OrderListDTO */}
+
+      <div className="order-footer">
+        <div className="order-amount">
+          <span className="amount-label">Total:</span>
+          <span className="amount-value">₹{order.totalAmount?.toFixed(2) || '0.00'}</span>
+        </div>
+        <div className="order-actions">
+          <span className="view-details">Click to view details →</span>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export default OrderCard;

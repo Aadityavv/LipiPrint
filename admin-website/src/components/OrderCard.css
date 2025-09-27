@@ -1,0 +1,292 @@
+.order-card {
+  background: white;
+  border: 1px solid #e1e5e9;
+  border-radius: 12px;
+  padding: 20px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  position: relative;
+  overflow: hidden;
+}
+
+.order-card:hover {
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
+  transform: translateY(-2px);
+  border-color: #667eea;
+}
+
+.order-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 4px;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.order-card:hover::before {
+  opacity: 1;
+}
+
+.order-card.selected {
+  border-color: #667eea;
+  background: rgba(102, 126, 234, 0.05);
+  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.15);
+}
+
+.order-card.list {
+  display: flex;
+  align-items: center;
+  padding: 16px 20px;
+  margin-bottom: 8px;
+}
+
+.order-card.grid {
+  display: block;
+}
+
+.order-checkbox {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  width: 24px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.9);
+  border: 1px solid #e1e5e9;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  z-index: 1;
+}
+
+.order-checkbox:hover {
+  background: #f8fafc;
+  border-color: #cbd5e1;
+}
+
+.order-card.selected .order-checkbox {
+  background: #667eea;
+  border-color: #667eea;
+  color: white;
+}
+
+.order-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 15px;
+}
+
+.order-id {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.order-number {
+  font-size: 1.2rem;
+  font-weight: 700;
+  color: #333;
+}
+
+.status-badge {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  border-radius: 20px;
+  color: white;
+  font-size: 0.8rem;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.order-date {
+  font-size: 0.9rem;
+  color: #666;
+  font-weight: 500;
+}
+
+.order-info {
+  margin-bottom: 15px;
+}
+
+.info-row {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 8px;
+}
+
+.info-row:last-child {
+  margin-bottom: 0;
+}
+
+.info-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: 1;
+}
+
+.info-icon {
+  color: #666;
+  flex-shrink: 0;
+}
+
+.info-text {
+  font-size: 0.9rem;
+  color: #333;
+  font-weight: 500;
+}
+
+.admin-tracking {
+  background: #f8fafc;
+  border-radius: 8px;
+  padding: 12px;
+  margin-bottom: 15px;
+  border-left: 4px solid #667eea;
+}
+
+.admin-info {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  margin-bottom: 6px;
+  font-size: 0.85rem;
+}
+
+.admin-info:last-child {
+  margin-bottom: 0;
+}
+
+.admin-icon {
+  font-size: 1rem;
+  flex-shrink: 0;
+  margin-top: 1px;
+}
+
+.admin-text {
+  color: #4b5563;
+  line-height: 1.4;
+}
+
+.admin-text strong {
+  color: #1f2937;
+  font-weight: 600;
+}
+
+.admin-time {
+  color: #6b7280;
+  font-size: 0.8rem;
+  font-style: italic;
+}
+
+.order-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding-top: 15px;
+  border-top: 1px solid #f1f5f9;
+}
+
+.order-amount {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.amount-label {
+  font-size: 0.9rem;
+  color: #666;
+  font-weight: 500;
+}
+
+.amount-value {
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: #333;
+}
+
+.order-actions {
+  display: flex;
+  align-items: center;
+}
+
+.view-details {
+  font-size: 0.9rem;
+  color: #667eea;
+  font-weight: 500;
+  transition: color 0.2s ease;
+}
+
+.order-card:hover .view-details {
+  color: #5a67d8;
+}
+
+/* Responsive design */
+@media (max-width: 768px) {
+  .order-card {
+    padding: 15px;
+  }
+  
+  .order-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 10px;
+  }
+  
+  .order-id {
+    width: 100%;
+    justify-content: space-between;
+  }
+  
+  .info-row {
+    flex-direction: column;
+    gap: 8px;
+  }
+  
+  .info-item {
+    justify-content: flex-start;
+  }
+  
+  .order-footer {
+    flex-direction: column;
+    gap: 10px;
+    align-items: flex-start;
+  }
+  
+  .order-actions {
+    width: 100%;
+    justify-content: flex-end;
+  }
+}
+
+@media (max-width: 480px) {
+  .order-card {
+    padding: 12px;
+  }
+  
+  .order-number {
+    font-size: 1.1rem;
+  }
+  
+  .status-badge {
+    padding: 4px 8px;
+    font-size: 0.75rem;
+  }
+  
+  .admin-tracking {
+    padding: 10px;
+  }
+  
+  .admin-info {
+    font-size: 0.8rem;
+  }
+}

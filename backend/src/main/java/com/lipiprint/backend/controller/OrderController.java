@@ -385,6 +385,20 @@ public class OrderController {
         orderDTO.setCourierId(order.getCourierId());
         orderDTO.setShippingCreated(order.getShippingCreated());
         
+        // Set admin tracking information
+        if (order.getPrintedByAdmin() != null) {
+            orderDTO.setPrintedByAdminName(order.getPrintedByAdmin().getName());
+        }
+        if (order.getProcessedByAdmin() != null) {
+            orderDTO.setProcessedByAdminName(order.getProcessedByAdmin().getName());
+        }
+        if (order.getCompletedByAdmin() != null) {
+            orderDTO.setCompletedByAdminName(order.getCompletedByAdmin().getName());
+        }
+        orderDTO.setPrintedAt(order.getPrintedAt());
+        orderDTO.setProcessedAt(order.getProcessedAt());
+        orderDTO.setCompletedAt(order.getCompletedAt());
+        
         return orderDTO;
     }
 
@@ -442,15 +456,27 @@ public class OrderController {
     }
 
     @PutMapping("/{id}/status")
-    public ResponseEntity<?> updateOrderStatus(@PathVariable Long id, @RequestParam String status) {
+    public ResponseEntity<?> updateOrderStatus(@PathVariable Long id, @RequestParam String status, Authentication authentication) {
         try {
             Order order = orderService.findById(id).orElseThrow();
+            User currentUser = userService.findByPhone(authentication.getName()).orElseThrow();
             Order.Status newStatus;
             try {
                 newStatus = Order.Status.valueOf(status.toUpperCase());
             } catch (IllegalArgumentException e) {
                 return ResponseEntity.badRequest().body(Map.of("error", "Invalid status value: " + status));
             }
+            
+            // Track admin actions
+            LocalDateTime now = LocalDateTime.now();
+            if (newStatus == Order.Status.PROCESSING) {
+                order.setProcessedByAdmin(currentUser);
+                order.setProcessedAt(now);
+            } else if (newStatus == Order.Status.COMPLETED) {
+                order.setCompletedByAdmin(currentUser);
+                order.setCompletedAt(now);
+            }
+            
             // Use the service method which handles shipment creation properly
             orderService.updateOrderStatus(id, newStatus);
             Order updated = orderService.findById(id).orElse(order);
@@ -459,6 +485,31 @@ public class OrderController {
         } catch (Exception e) {
             logger.error("[OrderController] Error updating order status: ", e);
             return ResponseEntity.status(500).body(Map.of("error", "Failed to update order status: " + e.getMessage()));
+        }
+    }
+
+    @PostMapping("/{id}/print")
+    public ResponseEntity<?> markAsPrinted(@PathVariable Long id, Authentication authentication) {
+        try {
+            Order order = orderService.findById(id).orElseThrow();
+            User currentUser = userService.findByPhone(authentication.getName()).orElseThrow();
+            
+            // Track admin who printed
+            order.setPrintedByAdmin(currentUser);
+            order.setPrintedAt(LocalDateTime.now());
+            
+            // If not already processing, set to processing
+            if (order.getStatus() == Order.Status.PENDING) {
+                order.setStatus(Order.Status.PROCESSING);
+                order.setProcessedByAdmin(currentUser);
+                order.setProcessedAt(LocalDateTime.now());
+            }
+            
+            orderService.save(order);
+            return ResponseEntity.ok(new MessageResponse("Order marked as printed successfully"));
+        } catch (Exception e) {
+            logger.error("[OrderController] Error marking order as printed: ", e);
+            return ResponseEntity.status(500).body(Map.of("error", "Failed to mark order as printed: " + e.getMessage()));
         }
     }
 

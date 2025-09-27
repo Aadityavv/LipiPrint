@@ -448,6 +448,13 @@ class ApiService {
     async checkCanEdit() {
         return await this.request('/user/can-edit');
     }
+
+    // Order admin actions
+    async markOrderAsPrinted(orderId) {
+        return await this.request(`/orders/${orderId}/print`, {
+            method: 'POST',
+        });
+    }
 }
 
 export default new ApiService();
