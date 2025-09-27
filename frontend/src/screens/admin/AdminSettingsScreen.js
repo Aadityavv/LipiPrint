@@ -16,6 +16,7 @@ export default function AdminSettingsScreen({ navigation }) {
   const [notifications, setNotifications] = useState(true);
   const [acceptingOrders, setAcceptingOrders] = useState(true);
   const [acceptingOrdersLoading, setAcceptingOrdersLoading] = useState(true);
+  const [canEdit, setCanEdit] = useState(false);
 
   useEffect(() => {
     api.request('/services')
@@ -29,6 +30,9 @@ export default function AdminSettingsScreen({ navigation }) {
       .then(res => setAcceptingOrders(res.acceptingOrders))
       .catch(() => setAcceptingOrders(true))
       .finally(() => setAcceptingOrdersLoading(false));
+    api.checkCanEdit()
+      .then(res => setCanEdit(res.canEdit))
+      .catch(() => setCanEdit(false));
   }, []);
 
   const handleToggleAcceptingOrders = async () => {
@@ -102,11 +106,20 @@ export default function AdminSettingsScreen({ navigation }) {
       </LinearGradient>
       <View style={styles.content}>
         <Text style={[styles.sectionTitle, { color: theme.text }]}>Preferences</Text>
-        <View style={[styles.settingRow, { backgroundColor: theme.card }]}>
+        <View style={[styles.settingRow, { backgroundColor: theme.card, opacity: canEdit ? 1 : 0.5 }]}>
           <Icon name={acceptingOrders ? 'check-circle' : 'block'} size={24} color={acceptingOrders ? '#4CAF50' : '#F44336'} style={{ marginRight: 12 }} />
           <Text style={[styles.settingLabel, { color: theme.text }]}>Accepting Orders</Text>
-          <Switch value={acceptingOrders} onValueChange={handleToggleAcceptingOrders} disabled={acceptingOrdersLoading} />
+          <Switch 
+            value={acceptingOrders} 
+            onValueChange={handleToggleAcceptingOrders} 
+            disabled={acceptingOrdersLoading || !canEdit} 
+          />
         </View>
+        {!canEdit && (
+          <Text style={[styles.permissionText, { color: theme.text }]}>
+            Only the super admin can toggle accepting orders
+          </Text>
+        )}
         <View style={[styles.settingRow, { backgroundColor: theme.card }]}>
           <Icon name="notifications" size={24} color={theme.icon} style={{ marginRight: 12 }} />
           <Text style={[styles.settingLabel, { color: theme.text }]}>Enable Notifications</Text>
@@ -135,5 +148,6 @@ const styles = StyleSheet.create({
   sectionTitle: { fontSize: 20, fontWeight: 'bold', color: '#1a1a1a', marginBottom: 16 },
   settingRow: { flexDirection: 'row', alignItems: 'center', backgroundColor: 'white', borderRadius: 12, padding: 16, marginBottom: 16, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.05, shadowRadius: 4, elevation: 2 },
   settingLabel: { fontSize: 16, color: '#1a1a1a', flex: 1 },
+  permissionText: { fontSize: 12, color: '#666', fontStyle: 'italic', marginTop: -8, marginBottom: 8, marginLeft: 16 },
   input: { borderWidth: 1, borderColor: '#ddd', borderRadius: 6, padding: 8, marginBottom: 8, backgroundColor: '#fff' },
 }); 

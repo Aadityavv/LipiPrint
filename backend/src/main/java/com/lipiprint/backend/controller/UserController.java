@@ -25,7 +25,7 @@ public class UserController {
     @GetMapping("/profile")
     public ResponseEntity<UserDTO> getProfile(Authentication authentication) {
         User user = userService.findByPhone(authentication.getName()).orElseThrow();
-        UserDTO userDTO = new UserDTO(user.getId(), user.getName(), user.getPhone(), user.getEmail(), user.getRole().name(), user.isBlocked(), user.getCreatedAt(), user.getUpdatedAt(), false);
+        UserDTO userDTO = new UserDTO(user.getId(), user.getName(), user.getPhone(), user.getEmail(), user.getRole().name(), user.isBlocked(), user.isCanEdit(), user.getCreatedAt(), user.getUpdatedAt(), false);
         return ResponseEntity.ok(userDTO);
     }
 
@@ -59,7 +59,7 @@ public class UserController {
         }
         
         userService.updateProfile(user);
-        UserDTO userDTO = new UserDTO(user.getId(), user.getName(), user.getPhone(), user.getEmail(), user.getRole().name(), user.isBlocked(), user.getCreatedAt(), user.getUpdatedAt(), false);
+        UserDTO userDTO = new UserDTO(user.getId(), user.getName(), user.getPhone(), user.getEmail(), user.getRole().name(), user.isBlocked(), user.isCanEdit(), user.getCreatedAt(), user.getUpdatedAt(), false);
         return ResponseEntity.ok(userDTO);
     }
 
@@ -74,7 +74,7 @@ public class UserController {
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<List<UserDTO>> listUsers() {
         List<UserDTO> users = userService.getAllUsers().stream()
-                .map(user -> new UserDTO(user.getId(), user.getName(), user.getPhone(), user.getEmail(), user.getRole().name(), user.isBlocked(), user.getCreatedAt(), user.getUpdatedAt(), false))
+                .map(user -> new UserDTO(user.getId(), user.getName(), user.getPhone(), user.getEmail(), user.getRole().name(), user.isBlocked(), user.isCanEdit(), user.getCreatedAt(), user.getUpdatedAt(), false))
                 .collect(Collectors.toList());
         return ResponseEntity.ok(users);
     }
@@ -91,5 +91,20 @@ public class UserController {
     public ResponseEntity<MessageResponse> assignRole(@PathVariable Long id, @RequestParam String role) {
         userService.assignRole(id, User.Role.valueOf(role));
         return ResponseEntity.ok(new MessageResponse("User role updated."));
+    }
+
+    @PostMapping("/can-edit/{id}")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<MessageResponse> updateCanEdit(@PathVariable Long id, @RequestParam boolean canEdit) {
+        userService.updateCanEdit(id, canEdit);
+        return ResponseEntity.ok(new MessageResponse("User edit permission updated."));
+    }
+
+    @GetMapping("/can-edit")
+    public ResponseEntity<Map<String, Boolean>> checkCanEdit(Authentication authentication) {
+        User user = userService.findByPhone(authentication.getName()).orElseThrow();
+        Map<String, Boolean> response = new java.util.HashMap<>();
+        response.put("canEdit", user.isCanEdit());
+        return ResponseEntity.ok(response);
     }
 } 

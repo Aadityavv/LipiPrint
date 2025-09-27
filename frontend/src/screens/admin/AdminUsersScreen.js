@@ -15,9 +15,14 @@ export default function AdminUsersScreen({ navigation }) {
   const [filter, setFilter] = useState('all'); // 'all' or 'blocked'
   const [search, setSearch] = useState('');
   const [refreshing, setRefreshing] = useState(false);
+  const [activeTab, setActiveTab] = useState('admins'); // 'admins' or 'users'
+  const [canEdit, setCanEdit] = useState(false);
 
   useEffect(() => {
     fetchUsers();
+    api.checkCanEdit()
+      .then(res => setCanEdit(res.canEdit))
+      .catch(() => setCanEdit(false));
   }, []);
 
   const fetchUsers = () => {
@@ -79,6 +84,26 @@ export default function AdminUsersScreen({ navigation }) {
     );
   };
 
+  const handleToggleCanEdit = (user) => {
+    const action = user.canEdit ? 'revoke' : 'grant';
+    showAlert(
+      `${action === 'grant' ? 'Grant' : 'Revoke'} Edit Permission`,
+      `Are you sure you want to ${action} edit permission for user: ${user.name}?`,
+      'warning',
+      async () => {
+        hideAlert();
+        try {
+          await api.updateCanEdit(user.id, !user.canEdit);
+          refreshUsers();
+          showAlert('Success', `Edit permission ${action}ed successfully.`, 'success');
+        } catch (e) {
+          showAlert('Error', `Failed to ${action} edit permission.`, 'error');
+        }
+      },
+      true
+    );
+  };
+
   // Filtering and searching logic
   const filteredUsers = users.filter(user => {
     if (filter === 'blocked' && !user.blocked) return false;
@@ -98,29 +123,53 @@ export default function AdminUsersScreen({ navigation }) {
   const regularUsers = filteredUsers.filter(user => user.role !== 'ADMIN');
 
   const renderUser = ({ item, index }) => (
-    <Animatable.View animation="fadeInUp" delay={index * 60} duration={400}>
-      <View style={[styles.userCard, item.blocked && { borderColor: '#FF3B30', backgroundColor: '#fff6f6' }]}> 
-        <View style={styles.userInfo}>
-          <Icon name="person" size={32} color={item.blocked ? '#FF3B30' : '#667eea'} style={{ marginRight: 12 }} />
-          <View style={{ flex: 1 }}>
-            <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 2 }}>
-              <Text style={styles.userName}>{item.name}</Text>
-              {item.blocked && (
-                <Text style={styles.blockedTag}>(Blocked)</Text>
-              )}
-            </View>
-            <Text style={styles.userEmail}>{item.email}</Text>
-            <Text style={styles.userRole}>{item.role}</Text>
-          </View>
+    <Animatable.View animation="fadeInUp" delay={index * 50} duration={300}>
+      <View style={[styles.userCard, item.blocked && styles.blockedCard]}> 
+        <View style={styles.userAvatar}>
+          <Icon name={item.role === 'ADMIN' ? "admin-panel-settings" : "person"} 
+                size={18} 
+                color={item.blocked ? '#FF3B30' : '#4F46E5'} />
         </View>
+        
+        <View style={styles.userDetails}>
+          <View style={styles.userNameRow}>
+            <Text style={styles.userName} numberOfLines={1}>{item.name}</Text>
+            {item.blocked && (
+              <View style={styles.blockedBadge}>
+                <Text style={styles.blockedText}>Blocked</Text>
+              </View>
+            )}
+            {item.canEdit && (
+              <View style={styles.canEditBadge}>
+                <Text style={styles.canEditText}>Super Admin</Text>
+              </View>
+            )}
+          </View>
+          <Text style={styles.userEmail} numberOfLines={1}>{item.email}</Text>
+        </View>
+        
         <View style={styles.userActions}>
+          {item.role === 'ADMIN' && canEdit && (
+            <TouchableOpacity 
+              style={[styles.actionButton, { backgroundColor: item.canEdit ? '#F59E0B' : '#10B981' }]} 
+              onPress={() => handleToggleCanEdit(item)}
+            >
+              <Icon name={item.canEdit ? "admin-panel-settings" : "person"} size={18} color="white" />
+            </TouchableOpacity>
+          )}
           {item.blocked ? (
-            <TouchableOpacity style={styles.actionBtn} onPress={() => handleUnblockUser(item)}>
-              <Icon name="lock-open" size={22} color="#2ecc71" />
+            <TouchableOpacity 
+              style={styles.actionButton} 
+              onPress={() => handleUnblockUser(item)}
+            >
+              <Icon name="lock-open" size={18} color="#10B981" />
             </TouchableOpacity>
           ) : (
-            <TouchableOpacity style={styles.actionBtn} onPress={() => handleBlockUser(item)}>
-              <Icon name="block" size={22} color="#FF3B30" />
+            <TouchableOpacity 
+              style={styles.actionButton} 
+              onPress={() => handleBlockUser(item)}
+            >
+              <Icon name="block" size={18} color="#EF4444" />
             </TouchableOpacity>
           )}
         </View>
@@ -129,141 +178,136 @@ export default function AdminUsersScreen({ navigation }) {
   );
 
   if (loading) {
-    return <View style={styles.centered}><ActivityIndicator size="large" color="#667eea" /><Text style={{marginTop: 12}}>Loading users...</Text></View>;
+    return (
+      <View style={styles.centered}>
+        <ActivityIndicator size="large" color="#4F46E5" />
+        <Text style={styles.loadingText}>Loading users...</Text>
+      </View>
+    );
   }
+  
   if (error) {
-    return <View style={styles.centered}><Text>{error}</Text></View>;
+    return (
+      <View style={styles.centered}>
+        <Icon name="error-outline" size={48} color="#EF4444" />
+        <Text style={styles.errorText}>{error}</Text>
+        <TouchableOpacity style={styles.retryButton} onPress={fetchUsers}>
+          <Text style={styles.retryButtonText}>Retry</Text>
+        </TouchableOpacity>
+      </View>
+    );
   }
 
   return (
     <View style={styles.container}>
+      {/* Header */}
       <LinearGradient
-        colors={['#667eea', '#764ba2']}
-        style={{paddingTop: 40, paddingBottom: 20, paddingHorizontal: 20}}
+        colors={['#4F46E5', '#6366F1']}
+        style={styles.header}
       >
-        <View style={{flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', minHeight: 44}}>
-          <TouchableOpacity onPress={() => navigation.goBack()} style={{padding: 6}}>
-            <Icon name="arrow-back" size={24} color="white" />
+        <View style={styles.headerContent}>
+          <TouchableOpacity onPress={() => navigation.goBack()} style={styles.headerButton}>
+            <Icon name="arrow-back" size={22} color="white" />
           </TouchableOpacity>
-          <Text style={{flex: 1, textAlign: 'center', fontSize: 20, color: '#fff', fontWeight: 'bold', marginLeft: -30}}>
-            Manage Users
-          </Text>
-          <TouchableOpacity style={{padding: 6}} onPress={() => navigation.navigate('AddEmployee')}>
-            <Icon name="person-add" size={24} color="white" />
+          <Text style={styles.headerTitle}>Manage Users</Text>
+          <TouchableOpacity style={styles.headerButton} onPress={() => navigation.navigate('AddEmployee')}>
+            <Icon name="person-add" size={22} color="white" />
           </TouchableOpacity>
         </View>
       </LinearGradient>
-      {/* Filters */}
-      <View style={styles.filterRow}>
-        <TouchableOpacity
-          style={[styles.filterBtn, filter === 'all' && styles.filterBtnActive]}
-          onPress={() => setFilter('all')}
+      
+      {/* Tabs */}
+      <View style={styles.tabContainer}>
+        <TouchableOpacity 
+          style={[styles.tab, activeTab === 'admins' && styles.activeTab]} 
+          onPress={() => setActiveTab('admins')}
         >
-          <Text style={[styles.filterText, filter === 'all' && styles.filterTextActive]}>All users</Text>
+          <Text style={[styles.tabText, activeTab === 'admins' && styles.activeTabText]}>
+            Admins ({adminUsers.length})
+          </Text>
         </TouchableOpacity>
-        <TouchableOpacity
-          style={[styles.filterBtn, filter === 'blocked' && styles.filterBtnActive]}
-          onPress={() => setFilter('blocked')}
+        <TouchableOpacity 
+          style={[styles.tab, activeTab === 'users' && styles.activeTab]} 
+          onPress={() => setActiveTab('users')}
         >
-          <Text style={[styles.filterText, filter === 'blocked' && styles.filterTextActive]}>Blocked</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.refreshBtn} onPress={refreshUsers}>
-          <Icon name={refreshing ? 'autorenew' : 'refresh'} size={22} color="#667eea" style={{ transform: [{ rotate: refreshing ? '180deg' : '0deg' }] }} />
+          <Text style={[styles.tabText, activeTab === 'users' && styles.activeTabText]}>
+            Users ({regularUsers.length})
+          </Text>
         </TouchableOpacity>
       </View>
-      {/* Search bar */}
-      <View style={styles.searchBarWrap}>
-        <Icon name="search" size={20} color="#aaa" style={{ marginRight: 8 }} />
-        <TextInput
-          style={styles.searchBar}
-          placeholder="Search by name, email, or phone"
-          value={search}
-          onChangeText={setSearch}
-          placeholderTextColor="#aaa"
-        />
-      </View>
-      {filteredUsers.length === 0 ? (
-        <View style={styles.emptyState}>
-          <Icon name="people-outline" size={60} color="#eee" />
-          <Text style={{ color: '#aaa', fontSize: 18, marginTop: 10 }}>No users found.</Text>
+      
+      {/* Controls */}
+      <View style={styles.controlsContainer}>
+        <View style={styles.searchBar}>
+          <Icon name="search" size={18} color="#9CA3AF" style={styles.searchIcon} />
+          <TextInput
+            style={styles.searchInput}
+            placeholder="Search..."
+            value={search}
+            onChangeText={setSearch}
+            placeholderTextColor="#9CA3AF"
+          />
+          {search ? (
+            <TouchableOpacity onPress={() => setSearch('')}>
+              <Icon name="cancel" size={18} color="#9CA3AF" />
+            </TouchableOpacity>
+          ) : null}
         </View>
-      ) : (
-        <ScrollView contentContainerStyle={styles.listContent} showsVerticalScrollIndicator={false}>
-          {/* Admin Users Section */}
-          {adminUsers.length > 0 && (
-            <View style={styles.sectionContainer}>
-              <Text style={styles.sectionTitle}>Administrators ({adminUsers.length})</Text>
-              {adminUsers.map((item, index) => (
-                <Animatable.View key={item.id?.toString()} animation="fadeInUp" delay={index * 60} duration={400}>
-                  <View style={[styles.userCard, item.blocked && { borderColor: '#FF3B30', backgroundColor: '#fff6f6' }, styles.adminCard]}> 
-                    <View style={styles.userInfo}>
-                      <Icon name="admin-panel-settings" size={32} color={item.blocked ? '#FF3B30' : '#667eea'} style={{ marginRight: 12 }} />
-                      <View style={{ flex: 1 }}>
-                        <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 2 }}>
-                          <Text style={styles.userName}>{item.name}</Text>
-                          {item.blocked && (
-                            <Text style={styles.blockedTag}>(Blocked)</Text>
-                          )}
-                        </View>
-                        <Text style={styles.userEmail}>{item.email}</Text>
-                        <Text style={styles.userRole}>{item.role}</Text>
-                      </View>
-                    </View>
-                    <View style={styles.userActions}>
-                      {item.blocked ? (
-                        <TouchableOpacity style={styles.actionBtn} onPress={() => handleUnblockUser(item)}>
-                          <Icon name="lock-open" size={22} color="#2ecc71" />
-                        </TouchableOpacity>
-                      ) : (
-                        <TouchableOpacity style={styles.actionBtn} onPress={() => handleBlockUser(item)}>
-                          <Icon name="block" size={22} color="#FF3B30" />
-                        </TouchableOpacity>
-                      )}
-                    </View>
-                  </View>
-                </Animatable.View>
-              ))}
-            </View>
-          )}
-
-          {/* Regular Users Section */}
-          {regularUsers.length > 0 && (
-            <View style={styles.sectionContainer}>
-              <Text style={styles.sectionTitle}>Users ({regularUsers.length})</Text>
-              {regularUsers.map((item, index) => (
-                <Animatable.View key={item.id?.toString()} animation="fadeInUp" delay={index * 60} duration={400}>
-                  <View style={[styles.userCard, item.blocked && { borderColor: '#FF3B30', backgroundColor: '#fff6f6' }]}> 
-                    <View style={styles.userInfo}>
-                      <Icon name="person" size={32} color={item.blocked ? '#FF3B30' : '#667eea'} style={{ marginRight: 12 }} />
-                      <View style={{ flex: 1 }}>
-                        <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 2 }}>
-                          <Text style={styles.userName}>{item.name}</Text>
-                          {item.blocked && (
-                            <Text style={styles.blockedTag}>(Blocked)</Text>
-                          )}
-                        </View>
-                        <Text style={styles.userEmail}>{item.email}</Text>
-                        <Text style={styles.userRole}>{item.role}</Text>
-                      </View>
-                    </View>
-                    <View style={styles.userActions}>
-                      {item.blocked ? (
-                        <TouchableOpacity style={styles.actionBtn} onPress={() => handleUnblockUser(item)}>
-                          <Icon name="lock-open" size={22} color="#2ecc71" />
-                        </TouchableOpacity>
-                      ) : (
-                        <TouchableOpacity style={styles.actionBtn} onPress={() => handleBlockUser(item)}>
-                          <Icon name="block" size={22} color="#FF3B30" />
-                        </TouchableOpacity>
-                      )}
-                    </View>
-                  </View>
-                </Animatable.View>
-              ))}
-            </View>
-          )}
-        </ScrollView>
+        
+        <View style={styles.filterContainer}>
+          <TouchableOpacity
+            style={[styles.filterButton, filter === 'all' && styles.activeFilterButton]}
+            onPress={() => setFilter('all')}
+          >
+            <Text style={[styles.filterText, filter === 'all' && styles.activeFilterText]}>All</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[styles.filterButton, filter === 'blocked' && styles.activeFilterButton]}
+            onPress={() => setFilter('blocked')}
+          >
+            <Text style={[styles.filterText, filter === 'blocked' && styles.activeFilterText]}>Blocked</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.refreshButton} onPress={refreshUsers}>
+            <Icon name={refreshing ? 'autorenew' : 'refresh'} size={18} color="#4F46E5" />
+          </TouchableOpacity>
+        </View>
+      </View>
+      
+      {/* User List */}
+      {activeTab === 'admins' && adminUsers.length === 0 && (
+        <View style={styles.emptyState}>
+          <Icon name="admin-panel-settings" size={48} color="#D1D5DB" />
+          <Text style={styles.emptyTitle}>No administrators found</Text>
+        </View>
       )}
+      
+      {activeTab === 'users' && regularUsers.length === 0 && (
+        <View style={styles.emptyState}>
+          <Icon name="people-outline" size={48} color="#D1D5DB" />
+          <Text style={styles.emptyTitle}>No users found</Text>
+        </View>
+      )}
+      
+      {activeTab === 'admins' && adminUsers.length > 0 && (
+        <FlatList
+          data={adminUsers}
+          keyExtractor={(item) => `admin-${item.id}`}
+          renderItem={renderUser}
+          contentContainerStyle={styles.listContent}
+          showsVerticalScrollIndicator={false}
+        />
+      )}
+      
+      {activeTab === 'users' && regularUsers.length > 0 && (
+        <FlatList
+          data={regularUsers}
+          keyExtractor={(item) => `user-${item.id}`}
+          renderItem={renderUser}
+          contentContainerStyle={styles.listContent}
+          showsVerticalScrollIndicator={false}
+        />
+      )}
+      
       <CustomAlert
         visible={alert.visible}
         title={alert.title}
@@ -278,33 +322,240 @@ export default function AdminUsersScreen({ navigation }) {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#f5f6fa' },
-  headerGradient: {paddingBottom: 12 },
-  header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 18, paddingTop: 38, paddingBottom: 20, },
-  backButton: { padding: 6, marginRight: 8 },
-  headerTitle: { color: 'white', fontSize: 22, fontWeight: 'bold', letterSpacing: 0.5 },
-  addButton: { padding: 6, marginLeft: 8 },
-  filterRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', marginTop: 16, marginBottom: 8 },
-  filterBtn: { paddingVertical: 8, paddingHorizontal: 18, borderRadius: 20, borderWidth: 1, borderColor: '#eee', marginHorizontal: 5, backgroundColor: '#fff' },
-  filterBtnActive: { backgroundColor: '#667eea', borderColor: '#667eea' },
-  filterText: { fontSize: 14, fontWeight: 'bold', color: '#667eea' },
-  filterTextActive: { color: 'white' },
-  refreshBtn: { marginLeft: 10, backgroundColor: '#fff', borderRadius: 20, padding: 8, elevation: 2 },
-  searchBarWrap: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#fff', borderRadius: 10, marginHorizontal: 16, marginBottom: 8, paddingHorizontal: 10, paddingVertical: 4, elevation: 1 },
-  searchBar: { flex: 1, fontSize: 16, color: '#222', paddingVertical: 6 },
-  userCard: { backgroundColor: '#fff', borderRadius: 16, padding: 18, marginHorizontal: 16, marginVertical: 7, flexDirection: 'row', alignItems: 'center', borderWidth: 1, borderColor: '#eee', elevation: 2 },
-  userInfo: { flex: 1, flexDirection: 'row', alignItems: 'center' },
-  userName: { fontSize: 17, fontWeight: 'bold', color: '#222' },
-  blockedTag: { color: '#FF3B30', marginLeft: 8, fontWeight: 'bold', fontSize: 14 },
-  userEmail: { fontSize: 14, color: '#555', marginTop: 2 },
-  userRole: { fontSize: 13, color: '#888', marginTop: 1 },
-  userActions: { flexDirection: 'row', alignItems: 'center', marginLeft: 10 },
-  actionBtn: { marginLeft: 8, backgroundColor: '#fff', borderRadius: 8, padding: 8, elevation: 1 },
-  userStatus: { fontSize: 12, fontWeight: 'bold', marginRight: 12 },
-  emptyState: { flex: 1, justifyContent: 'center', alignItems: 'center', marginTop: 60 },
-  centered: { flex: 1, justifyContent: 'center', alignItems: 'center' },
-  listContent: { paddingBottom: 30 },
-  sectionContainer: { marginTop: 16, marginBottom: 8 },
-  sectionTitle: { fontSize: 18, fontWeight: 'bold', color: '#333', marginBottom: 12, paddingHorizontal: 16 },
-  adminCard: { borderLeftWidth: 4, borderLeftColor: '#667eea' },
+  container: {
+    flex: 1,
+    backgroundColor: '#F9FAFB',
+  },
+  header: {
+    paddingTop: 40,
+    paddingBottom: 16,
+    paddingHorizontal: 16,
+  },
+  headerContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  headerButton: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  headerTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: 'white',
+  },
+  tabContainer: {
+    flexDirection: 'row',
+    backgroundColor: 'white',
+    marginHorizontal: 16,
+    borderRadius: 8,
+    marginTop: 16,
+    marginBottom: 8,
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+  },
+  tab: {
+    flex: 1,
+    paddingVertical: 10,
+    alignItems: 'center',
+    borderRadius: 6,
+  },
+  activeTab: {
+    backgroundColor: '#EEF2FF',
+  },
+  tabText: {
+    fontSize: 14,
+    fontWeight: '500',
+    color: '#6B7280',
+  },
+  activeTabText: {
+    color: '#4F46E5',
+    fontWeight: '600',
+  },
+  controlsContainer: {
+    paddingHorizontal: 16,
+    marginBottom: 8,
+  },
+  searchBar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'white',
+    borderRadius: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+    marginBottom: 8,
+  },
+  searchIcon: {
+    marginRight: 8,
+  },
+  searchInput: {
+    flex: 1,
+    fontSize: 14,
+    color: '#1F2937',
+  },
+  filterContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  filterButton: {
+    paddingVertical: 6,
+    paddingHorizontal: 12,
+    borderRadius: 6,
+    marginRight: 8,
+    backgroundColor: 'white',
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+  },
+  activeFilterButton: {
+    backgroundColor: '#4F46E5',
+    borderColor: '#4F46E5',
+  },
+  filterText: {
+    fontSize: 13,
+    fontWeight: '500',
+    color: '#6B7280',
+  },
+  activeFilterText: {
+    color: 'white',
+  },
+  refreshButton: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: 'white',
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+  },
+  userCard: {
+    backgroundColor: 'white',
+    borderRadius: 8,
+    padding: 12,
+    marginHorizontal: 16,
+    marginBottom: 8,
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+  },
+  blockedCard: {
+    backgroundColor: '#FEF2F2',
+    borderColor: '#FECACA',
+  },
+  userAvatar: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: '#EEF2FF',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 12,
+  },
+  userDetails: {
+    flex: 1,
+  },
+  userNameRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 2,
+  },
+  userName: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#1F2937',
+    flex: 1,
+  },
+  blockedBadge: {
+    backgroundColor: '#FEE2E2',
+    paddingHorizontal: 6,
+    paddingVertical: 1,
+    borderRadius: 10,
+    marginLeft: 6,
+  },
+  blockedText: {
+    fontSize: 10,
+    fontWeight: '500',
+    color: '#EF4444',
+  },
+  canEditBadge: {
+    backgroundColor: '#FEF3C7',
+    paddingHorizontal: 6,
+    paddingVertical: 1,
+    borderRadius: 10,
+    marginLeft: 6,
+  },
+  canEditText: {
+    fontSize: 10,
+    fontWeight: '500',
+    color: '#F59E0B',
+  },
+  userEmail: {
+    fontSize: 12,
+    color: '#6B7280',
+  },
+  userActions: {
+    marginLeft: 8,
+  },
+  actionButton: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: '#F9FAFB',
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+  },
+  emptyState: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingVertical: 60,
+  },
+  emptyTitle: {
+    fontSize: 16,
+    fontWeight: '500',
+    color: '#6B7280',
+    marginTop: 12,
+  },
+  centered: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  loadingText: {
+    marginTop: 12,
+    fontSize: 16,
+    color: '#6B7280',
+  },
+  errorText: {
+    marginTop: 12,
+    fontSize: 16,
+    color: '#EF4444',
+    textAlign: 'center',
+    paddingHorizontal: 20,
+  },
+  retryButton: {
+    marginTop: 20,
+    backgroundColor: '#4F46E5',
+    paddingHorizontal: 24,
+    paddingVertical: 12,
+    borderRadius: 8,
+  },
+  retryButtonText: {
+    color: 'white',
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  listContent: {
+    paddingBottom: 20,
+  },
 });

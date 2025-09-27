@@ -222,7 +222,7 @@ export default function DashboardScreen({ navigation }) {
       <LinearGradient colors={['#22194f', '#22194f']} style={styles.headerGradient}>
         <Heading 
           title="Dashboard" 
-          subtitle={`Welcome back, ${user?.name || 'User'}!`} 
+          subtitle={`Welcome, ${user?.name || 'User'}!`} 
           variant="primary" 
         />
       </LinearGradient>

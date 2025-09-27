@@ -235,7 +235,6 @@ export default function AdminOrdersScreen({ navigation }) {
     }
   };
 
-
   const blobToBase64 = (blob) => {
     return new Promise((resolve, reject) => {
       const reader = new FileReader();
@@ -449,27 +448,26 @@ export default function AdminOrdersScreen({ navigation }) {
             <View style={styles.orderIdContainer}>
               <Text style={styles.orderId}>#{item.id}</Text>
               <View style={[styles.statusBadge, { backgroundColor: statusColor }]}>
-                <Icon name={getStatusIcon(status)} size={12} color="white" />
+                <Icon name={getStatusIcon(status)} size={10} color="white" />
                 <Text style={styles.statusBadgeText}>{statusLabels[status] || status}</Text>
               </View>
             </View>
             <Text style={styles.orderDate}>
               {item.createdAt ? new Date(item.createdAt).toLocaleDateString('en-US', {
                 month: 'short',
-                day: 'numeric',
-                year: 'numeric'
+                day: 'numeric'
               }) : ''}
             </Text>
           </View>
 
           <View style={styles.orderDetails}>
             <View style={styles.customerInfo}>
-              <Icon name="person" size={16} color="#6B7280" />
+              <Icon name="person" size={14} color="#6B7280" />
               <Text style={styles.customerName}>{item.userName}</Text>
             </View>
             {item.deliveryType && (
               <View style={styles.deliveryInfo}>
-                <Icon name="local-shipping" size={16} color="#6B7280" />
+                <Icon name="local-shipping" size={14} color="#6B7280" />
                 <Text style={styles.deliveryType}>{item.deliveryType}</Text>
               </View>
             )}
@@ -477,13 +475,9 @@ export default function AdminOrdersScreen({ navigation }) {
 
           <View style={styles.orderStats}>
             <View style={styles.statItem}>
-              <Text style={styles.statLabel}>Amount</Text>
-              <Text style={[styles.statValue, { color: '#10B981', fontWeight: 'bold' }]}>
-                ₹{item.totalAmount?.toFixed(2) || '0.00'}
-              </Text>
+              <Text style={styles.statValue}>₹{item.totalAmount?.toFixed(2) || '0.00'}</Text>
             </View>
             <View style={styles.statItem}>
-              <Text style={styles.statLabel}>Status</Text>
               <Text style={[styles.statValue, { color: statusColor }]}>
                 {statusLabels[status] || status}
               </Text>
@@ -502,9 +496,8 @@ export default function AdminOrdersScreen({ navigation }) {
               {downloadingInvoiceId === item.id ? (
                 <ActivityIndicator size="small" color="#6B7280" />
               ) : (
-                <Icon name="visibility" size={20} color="#6B7280" />
+                <Icon name="visibility" size={16} color="#6B7280" />
               )}
-              <Text style={styles.actionButtonText}>Preview</Text>
             </TouchableOpacity>
 
             {(status === 'PENDING' || status === 'PROCESSING') && (
@@ -523,11 +516,8 @@ export default function AdminOrdersScreen({ navigation }) {
                 {updatingId === item.id ? (
                   <ActivityIndicator size="small" color="white" />
                 ) : (
-                  <Icon name={status === 'PENDING' ? 'autorenew' : 'check-circle'} size={20} color="white" />
+                  <Icon name={status === 'PENDING' ? 'autorenew' : 'check-circle'} size={16} color="white" />
                 )}
-                <Text style={[styles.actionButtonText, { color: 'white' }]}>
-                  {status === 'PENDING' ? 'Process' : 'Complete'}
-                </Text>
               </TouchableOpacity>
             )}
 
@@ -536,8 +526,7 @@ export default function AdminOrdersScreen({ navigation }) {
                 style={[styles.actionButton, styles.statusActionButton, { backgroundColor: '#FBC02D' }]}
                 onPress={(e) => { e.stopPropagation(); handleUpdateStatus(item.id, 'OUT_FOR_DELIVERY'); }}
               >
-                <Icon name="local-shipping" size={20} color="white" />
-                <Text style={[styles.actionButtonText, { color: 'white' }]}>Deliver</Text>
+                <Icon name="local-shipping" size={16} color="white" />
               </TouchableOpacity>
             )}
 
@@ -546,8 +535,7 @@ export default function AdminOrdersScreen({ navigation }) {
                 style={[styles.actionButton, styles.statusActionButton, { backgroundColor: '#66BB6A' }]}
                 onPress={(e) => { e.stopPropagation(); handleUpdateStatus(item.id, 'DELIVERED'); }}
               >
-                <Icon name="done-all" size={20} color="white" />
-                <Text style={[styles.actionButtonText, { color: 'white' }]}>Delivered</Text>
+                <Icon name="done-all" size={16} color="white" />
               </TouchableOpacity>
             )}
           </View>
@@ -591,7 +579,7 @@ export default function AdminOrdersScreen({ navigation }) {
       style={styles.statusFilter}
       contentContainerStyle={styles.statusFilterContent}
     >
-      {['all', 'PENDING', 'PROCESSING', 'COMPLETED', 'OUT_FOR_DELIVERY', 'DELIVERED'].map((tab, idx, arr) => (
+      {['all', 'PENDING', 'PROCESSING', 'COMPLETED', 'OUT_FOR_DELIVERY', 'DELIVERED'].map((tab) => (
         <TouchableOpacity
           key={tab}
           style={[
@@ -637,16 +625,16 @@ export default function AdminOrdersScreen({ navigation }) {
         <LinearGradient colors={["#22194f", "#667eea"]} style={styles.headerGradient}>
           <View style={styles.header}>
             <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
-              <Icon name="arrow-back" size={24} color="white" />
+              <Icon name="arrow-back" size={20} color="white" />
             </TouchableOpacity>
             <Text style={styles.headerTitle}>Manage Orders</Text>
             <TouchableOpacity style={styles.refreshButton} onPress={() => fetchOrders(true)}>
-              <Icon name="refresh" size={24} color="white" />
+              <Icon name="refresh" size={20} color="white" />
             </TouchableOpacity>
           </View>
         </LinearGradient>
         <View style={styles.loadingContainer}>
-          <LottieView source={LoadingAnim} autoPlay loop style={{ width: 120, height: 120 }} />
+          <LottieView source={LoadingAnim} autoPlay loop style={{ width: 80, height: 80 }} />
           <Text style={styles.loadingText}>Loading orders...</Text>
         </View>
       </View>
@@ -658,11 +646,11 @@ export default function AdminOrdersScreen({ navigation }) {
       <LinearGradient colors={["#22194f", "#667eea"]} style={styles.headerGradient}>
         <View style={styles.header}>
           <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
-            <Icon name="arrow-back" size={24} color="white" />
+            <Icon name="arrow-back" size={20} color="white" />
           </TouchableOpacity>
           <Text style={styles.headerTitle}>Manage Orders</Text>
           <TouchableOpacity style={styles.refreshButton} onPress={() => fetchOrders(true)}>
-            <Icon name="refresh" size={24} color="white" />
+            <Icon name="refresh" size={20} color="white" />
           </TouchableOpacity>
         </View>
       </LinearGradient>
@@ -680,10 +668,10 @@ export default function AdminOrdersScreen({ navigation }) {
         }
       >
         <View style={styles.searchContainer}>
-          <Icon name="search" size={20} color="#6B7280" />
+          <Icon name="search" size={16} color="#6B7280" />
           <TextInput
             style={styles.searchInput}
-            placeholder="Search by user, file, or date..."
+            placeholder="Search orders..."
             placeholderTextColor="#9CA3AF"
             value={search}
             onChangeText={setSearch}
@@ -692,7 +680,7 @@ export default function AdminOrdersScreen({ navigation }) {
           />
           {search.length > 0 && (
             <TouchableOpacity onPress={() => setSearch('')}>
-              <Icon name="close" size={20} color="#6B7280" />
+              <Icon name="close" size={16} color="#6B7280" />
             </TouchableOpacity>
           )}
         </View>
@@ -700,7 +688,7 @@ export default function AdminOrdersScreen({ navigation }) {
         <View style={styles.summaryContainer}>
           <View style={styles.summaryItem}>
             <Text style={styles.summaryValue}>{summaryStats.totalOrders}</Text>
-            <Text style={styles.summaryLabel}>Total Orders</Text>
+            <Text style={styles.summaryLabel}>Total</Text>
           </View>
           <View style={styles.summaryItem}>
             <Text style={styles.summaryValue}>{summaryStats.pendingOrders}</Text>
@@ -711,7 +699,7 @@ export default function AdminOrdersScreen({ navigation }) {
             <Text style={styles.summaryLabel}>Completed</Text>
           </View>
           <View style={styles.summaryItem}>
-            <Text style={styles.summaryValue}>₹{summaryStats.totalRevenue.toFixed(2)}</Text>
+            <Text style={styles.summaryValue}>₹{summaryStats.totalRevenue.toFixed(0)}</Text>
             <Text style={styles.summaryLabel}>Revenue</Text>
           </View>
         </View>
@@ -723,7 +711,7 @@ export default function AdminOrdersScreen({ navigation }) {
             style={styles.sortButton}
             onPress={() => setDateSort(dateSort === 'desc' ? 'asc' : 'desc')}
           >
-            <Icon name="event" size={18} color="#6B7280" />
+            <Icon name="event" size={14} color="#6B7280" />
             <Text style={styles.sortButtonText}>
               {dateSort === 'desc' ? 'Newest' : 'Oldest'}
             </Text>
@@ -733,7 +721,7 @@ export default function AdminOrdersScreen({ navigation }) {
             style={styles.sortButton}
             onPress={() => setPriceSort(priceSort === 'none' ? 'desc' : priceSort === 'desc' ? 'asc' : 'none')}
           >
-            <Icon name="payments" size={18} color="#6B7280" />
+            <Icon name="payments" size={14} color="#6B7280" />
             <Text style={styles.sortButtonText}>
               {priceSort === 'none' ? 'Price' : priceSort === 'desc' ? 'High → Low' : 'Low → High'}
             </Text>
@@ -743,13 +731,13 @@ export default function AdminOrdersScreen({ navigation }) {
         <View style={styles.ordersList}>
           {error ? (
             <View style={styles.emptyContainer}>
-              <Icon name="error" size={64} color="#EF4444" />
+              <Icon name="error" size={48} color="#EF4444" />
               <Text style={styles.emptyText}>{error}</Text>
             </View>
           ) : getFilteredSortedOrders().length === 0 ? (
             <View style={styles.emptyContainer}>
-              <Icon name="inbox" size={64} color="#9CA3AF" />
-              <Text style={styles.emptyText}>No orders found for this filter.</Text>
+              <Icon name="inbox" size={48} color="#9CA3AF" />
+              <Text style={styles.emptyText}>No orders found</Text>
               {search.length > 0 && (
                 <TouchableOpacity
                   style={styles.clearSearchButton}
@@ -787,7 +775,7 @@ export default function AdminOrdersScreen({ navigation }) {
           navigation.navigate('CreateOrderScreen');
         }}
       >
-        <Icon name="add" size={24} color="white" />
+        <Icon name="add" size={20} color="white" />
       </TouchableOpacity>
 
       <CustomAlert
@@ -810,7 +798,7 @@ export default function AdminOrdersScreen({ navigation }) {
               style={styles.closeButton}
               onPress={() => setInvoiceModal({ visible: false, filePath: '', orderId: null, url: '', loading: false })}
             >
-              <Icon name="close" size={24} color="#6B7280" />
+              <Icon name="close" size={20} color="#6B7280" />
             </TouchableOpacity>
           </View>
           
@@ -828,7 +816,7 @@ export default function AdminOrdersScreen({ navigation }) {
               />
             ) : (
               <View style={styles.pdfPlaceholder}>
-                <Icon name="error" size={40} color="#EF4444" />
+                <Icon name="error" size={32} color="#EF4444" />
                 <Text style={styles.pdfPlaceholderText}>Failed to load invoice</Text>
               </View>
             )}
@@ -839,7 +827,7 @@ export default function AdminOrdersScreen({ navigation }) {
               style={styles.modalButton}
               onPress={() => handlePrintInvoice(invoiceModal.orderId)}
             >
-              <Icon name="print" size={20} color="white" />
+              <Icon name="print" size={16} color="white" />
               <Text style={styles.modalButtonText}>Print</Text>
             </TouchableOpacity>
             
@@ -861,7 +849,7 @@ export default function AdminOrdersScreen({ navigation }) {
                 }
               }}
             >
-              <Icon name="share" size={20} color="white" />
+              <Icon name="share" size={16} color="white" />
               <Text style={styles.modalButtonText}>Share</Text>
             </TouchableOpacity>
           </View>
@@ -877,174 +865,173 @@ const styles = StyleSheet.create({
     backgroundColor: '#F9FAFB',
   },
   headerGradient: {
-    paddingTop: 40,
-    paddingBottom: 12,
-    paddingHorizontal: 20,
-    borderBottomLeftRadius: 24,
-    borderBottomRightRadius: 24,
-    elevation: 6,
+    paddingTop: 30,
+    paddingBottom: 8,
+    paddingHorizontal: 16,
+    borderBottomLeftRadius: 12,
+    borderBottomRightRadius: 12,
+    elevation: 4,
   },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    minHeight: 44,
+    minHeight: 36,
   },
   backButton: {
-    padding: 8,
+    padding: 6,
   },
   headerTitle: {
     flex: 1,
     textAlign: 'center',
-    fontSize: 22,
+    fontSize: 18,
     color: '#fff',
     fontWeight: 'bold',
-    letterSpacing: 0.5,
   },
   refreshButton: {
-    padding: 8,
+    padding: 6,
   },
   content: {
     flex: 1,
-    paddingHorizontal: 20,
-    paddingTop: 16,
+    paddingHorizontal: 12,
+    paddingTop: 12,
   },
   loadingContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    paddingVertical: 50,
+    paddingVertical: 40,
   },
   loadingText: {
-    marginTop: 12,
-    fontSize: 16,
+    marginTop: 8,
+    fontSize: 14,
     fontWeight: '500',
     color: '#4B5563',
   },
   searchContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 16,
-    paddingVertical: 10,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
     backgroundColor: '#fff',
-    borderRadius: 12,
-    marginBottom: 12,
-    elevation: 2,
+    borderRadius: 8,
+    marginBottom: 8,
+    elevation: 1,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
-    shadowRadius: 2,
+    shadowOpacity: 0.05,
+    shadowRadius: 1,
   },
   searchInput: {
     flex: 1,
-    marginLeft: 12,
-    fontSize: 16,
+    marginLeft: 8,
+    fontSize: 14,
     color: '#1F2937',
   },
   summaryContainer: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     backgroundColor: '#fff',
-    borderRadius: 12,
-    padding: 12,
-    marginBottom: 12,
-    elevation: 2,
+    borderRadius: 8,
+    padding: 8,
+    marginBottom: 8,
+    elevation: 1,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
-    shadowRadius: 2,
+    shadowOpacity: 0.05,
+    shadowRadius: 1,
   },
   summaryItem: {
     alignItems: 'center',
   },
   summaryValue: {
-    fontSize: 18,
+    fontSize: 16,
     fontWeight: 'bold',
     color: '#1F2937',
   },
   summaryLabel: {
-    fontSize: 12,
+    fontSize: 10,
     color: '#6B7280',
-    marginTop: 4,
+    marginTop: 2,
   },
   statusFilter: {
-    marginBottom: 12,
+    marginBottom: 8,
   },
   statusFilterContent: {
-    paddingRight: 20,
+    paddingRight: 12,
   },
   statusChip: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 16,
-    paddingVertical: 6,
-    borderRadius: 20,
-    marginRight: 12,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 16,
+    marginRight: 8,
     elevation: 1,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
+    shadowOpacity: 0.05,
     shadowRadius: 1,
   },
   statusChipText: {
-    fontSize: 14,
+    fontSize: 12,
     fontWeight: '600',
   },
   statusBadge: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-    borderRadius: 10,
-    marginLeft: 8,
+    paddingHorizontal: 4,
+    paddingVertical: 1,
+    borderRadius: 8,
+    marginLeft: 6,
   },
   statusBadgeText: {
-    fontSize: 12,
+    fontSize: 10,
     fontWeight: 'bold',
-    marginLeft: 2,
+    marginLeft: 1,
   },
   sortFilterContainer: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    marginBottom: 12,
+    marginBottom: 8,
   },
   sortButton: {
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: '#fff',
-    borderRadius: 12,
-    paddingHorizontal: 16,
-    paddingVertical: 8,
+    borderRadius: 8,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    elevation: 1,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 1,
+    flex: 1,
+    marginHorizontal: 4,
+  },
+  sortButtonText: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#4B5563',
+    marginLeft: 4,
+  },
+  ordersList: {
+    paddingBottom: 16,
+  },
+  orderCard: {
+    borderRadius: 8,
+    padding: 8,
+    marginBottom: 8,
     elevation: 2,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
+    shadowOpacity: 0.05,
     shadowRadius: 2,
-    flex: 1,
-    marginHorizontal: 5,
-  },
-  sortButtonText: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#4B5563',
-    marginLeft: 6,
-  },
-  ordersList: {
-    paddingBottom: 20,
-  },
-  orderCard: {
-    borderRadius: 16,
-    padding: 12,
-    marginBottom: 12,
-    elevation: 3,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
     backgroundColor: '#fff',
   },
   highlightedCard: {
-    borderWidth: 2,
+    borderWidth: 1,
     borderColor: '#FBBF24',
     backgroundColor: '#FFFBEB',
   },
@@ -1052,139 +1039,126 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'flex-start',
-    marginBottom: 6,
+    marginBottom: 4,
   },
   orderIdContainer: {
     flexDirection: 'row',
     alignItems: 'center',
   },
   orderId: {
-    fontSize: 18,
+    fontSize: 14,
     fontWeight: 'bold',
     color: '#1F2937',
-    marginRight: 8,
+    marginRight: 6,
   },
   orderDate: {
-    fontSize: 12,
+    fontSize: 10,
     color: '#6B7280',
   },
   orderDetails: {
-    marginBottom: 8,
+    marginBottom: 6,
   },
   customerInfo: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 4,
+    marginBottom: 2,
   },
   customerName: {
-    fontSize: 16,
+    fontSize: 12,
     fontWeight: '600',
     color: '#1F2937',
-    marginLeft: 8,
+    marginLeft: 6,
   },
   deliveryInfo: {
     flexDirection: 'row',
     alignItems: 'center',
   },
   deliveryType: {
-    fontSize: 14,
+    fontSize: 11,
     color: '#4B5563',
-    marginLeft: 8,
+    marginLeft: 6,
   },
   orderStats: {
     flexDirection: 'row',
     justifyContent: 'space-around',
-    marginBottom: 8,
-    paddingVertical: 6,
+    marginBottom: 6,
+    paddingVertical: 4,
     backgroundColor: '#F9FAFB',
-    borderRadius: 8,
+    borderRadius: 6,
   },
   statItem: {
     alignItems: 'center',
   },
-  statLabel: {
-    fontSize: 12,
-    color: '#6B7280',
-    marginBottom: 2,
-  },
   statValue: {
-    fontSize: 16,
+    fontSize: 12,
     fontWeight: 'bold',
     color: '#1F2937',
   },
   orderActions: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
-    flexWrap: 'wrap',
-    gap: 8,
+    justifyContent: 'flex-end',
+    gap: 6,
   },
   actionButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 8,
+    width: 32,
+    height: 32,
+    borderRadius: 16,
     backgroundColor: '#F3F4F6',
-    flex: 1,
-    minWidth: (width - 80) / 2,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   statusActionButton: {
     backgroundColor: '#3B82F6',
   },
-  actionButtonText: {
-    fontSize: 14,
-    fontWeight: '600',
-    marginLeft: 4,
-    color: '#4B5563',
-  },
   emptyContainer: {
     alignItems: 'center',
-    paddingVertical: 50,
+    paddingVertical: 40,
   },
   emptyText: {
-    fontSize: 16,
-    marginTop: 16,
+    fontSize: 14,
+    marginTop: 12,
     textAlign: 'center',
     color: '#4B5563',
   },
   clearSearchButton: {
-    marginTop: 16,
-    paddingHorizontal: 20,
-    paddingVertical: 8,
+    marginTop: 12,
+    paddingHorizontal: 16,
+    paddingVertical: 6,
     backgroundColor: '#3B82F6',
-    borderRadius: 8,
+    borderRadius: 6,
   },
   clearSearchText: {
     color: 'white',
     fontWeight: '600',
+    fontSize: 12,
   },
   loadMoreButton: {
-    paddingVertical: 12,
+    paddingVertical: 8,
     alignItems: 'center',
     backgroundColor: '#F3F4F6',
-    borderRadius: 8,
-    marginTop: 10,
+    borderRadius: 6,
+    marginTop: 8,
   },
   loadMoreText: {
     color: '#3B82F6',
     fontWeight: '600',
+    fontSize: 12,
   },
   fab: {
     position: 'absolute',
-    right: 20,
-    bottom: 20,
-    width: 56,
-    height: 56,
-    borderRadius: 28,
+    right: 16,
+    bottom: 16,
+    width: 48,
+    height: 48,
+    borderRadius: 24,
     backgroundColor: '#3B82F6',
     justifyContent: 'center',
     alignItems: 'center',
-    elevation: 4,
+    elevation: 3,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
+    shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.2,
-    shadowRadius: 3,
+    shadowRadius: 2,
   },
   bottomModal: {
     justifyContent: 'flex-end',
@@ -1192,30 +1166,30 @@ const styles = StyleSheet.create({
   },
   modalContainer: {
     backgroundColor: '#fff',
-    borderTopLeftRadius: 20,
-    borderTopRightRadius: 20,
-    padding: 16,
-    maxHeight: '80%',
+    borderTopLeftRadius: 16,
+    borderTopRightRadius: 16,
+    padding: 12,
+    maxHeight: '70%',
   },
   modalHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 12,
+    marginBottom: 8,
   },
   modalTitle: {
-    fontSize: 20,
+    fontSize: 16,
     fontWeight: 'bold',
     color: '#1F2937',
   },
   closeButton: {
-    padding: 4,
+    padding: 2,
   },
   pdfPreview: {
-    height: 250,
-    borderRadius: 12,
+    height: 200,
+    borderRadius: 8,
     overflow: 'hidden',
-    marginBottom: 12,
+    marginBottom: 8,
     backgroundColor: '#F3F4F6',
   },
   pdfViewer: {
@@ -1227,14 +1201,14 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   pdfPlaceholderText: {
-    marginTop: 8,
-    fontSize: 14,
+    marginTop: 6,
+    fontSize: 12,
     color: '#6B7280',
   },
   modalActions: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    gap: 12,
+    gap: 8,
   },
   modalButton: {
     flex: 1,
@@ -1242,13 +1216,13 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: '#3B82F6',
-    paddingVertical: 12,
-    borderRadius: 8,
-    gap: 8,
+    paddingVertical: 8,
+    borderRadius: 6,
+    gap: 6,
   },
   modalButtonText: {
     color: 'white',
     fontWeight: 'bold',
-    fontSize: 16,
+    fontSize: 14,
   },
 });

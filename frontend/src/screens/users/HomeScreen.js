@@ -66,33 +66,44 @@ export default function HomeScreen({ navigation }) {
   // Enhanced quickActions with better organization
 const quickActions = [
   {
-    title: 'Upload & Print',
-    subtitle: 'A3 & A4 colour & b/w prints',
+    title: 'Documentation',
+    subtitle: 'Upload & Print A3 & A4 colour & b/w prints',
     color: ['#667eea', '#764ba2'],
-    icon: <Icon name="upload-file" size={32} color="white" style={{ marginBottom: 8 }} />,
+    icon: <Icon name="upload-file" size={32} color="white" style={{ marginBottom: 2 }} />,
     onPress: () => navigation.navigate('Upload'),
   },
+  // {
+  //   title: 'Track Orders',
+  //   subtitle: 'Monitor your shipments',
+  //   color: ['#4CAF50', '#45a049'],
+  //   icon: <Icon name="track-changes" size={32} color="white" style={{ marginBottom: 8 }} />,
+  //   onPress: () => navigation.navigate('TrackOrderScreen'),
+  // },
+  // {
+  //   title: 'My Orders',
+  //   subtitle: 'View order history',
+  //   color: ['#FF9800', '#F57C00'],
+  //   icon: <Icon name="assignment" size={32} color="white" style={{ marginBottom: 8 }} />,
+  //   onPress: () => navigation.navigate('OrdersScreen'),
+  // },
+  // {
+  //   title: 'Profile',
+  //   subtitle: 'Manage your account',
+  //   color: ['#9C27B0', '#7B1FA2'],
+  //   icon: <Icon name="person" size={32} color="white" style={{ marginBottom: 8 }} />,
+  //   onPress: () => navigation.navigate('Profile'),
+  // },
   {
-    title: 'Track Orders',
-    subtitle: 'Monitor your shipments',
-    color: ['#4CAF50', '#45a049'],
-    icon: <Icon name="track-changes" size={32} color="white" style={{ marginBottom: 8 }} />,
-    onPress: () => navigation.navigate('TrackOrderScreen'),
-  },
-  {
-    title: 'My Orders',
-    subtitle: 'View order history',
-    color: ['#FF9800', '#F57C00'],
-    icon: <Icon name="assignment" size={32} color="white" style={{ marginBottom: 8 }} />,
-    onPress: () => navigation.navigate('OrdersScreen'),
-  },
-  {
-    title: 'Profile',
-    subtitle: 'Manage your account',
-    color: ['#9C27B0', '#7B1FA2'],
-    icon: <Icon name="person" size={32} color="white" style={{ marginBottom: 8 }} />,
-    onPress: () => navigation.navigate('Profile'),
-  },
+      title: 'Many more options to come',
+      // subtitle: 'View order history',
+      color: ['#FF6A5A', '#D8226B'],
+      icon: <Icon name="assignment" size={32} color="white" style={{ marginBottom: 8 }} />,
+      onPress: () => {
+        setAlertTitle('Under Development');
+        setAlertMessage('This feature is coming soon! Stay tuned for more exciting options.');
+        setAlertVisible(true);
+      },
+    },
 ];
 
 
@@ -174,17 +185,17 @@ function getGradientColors(title) {
         <View style={{flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', minHeight: 44}}>
           <View style={{flex: 1}}>
             <Text style={{fontSize: 26, color: '#fff', fontWeight: 'bold', textAlign: 'left', marginBottom: 4}}>
-              {`Welcome back, ${(user?.name?.split(' ')[0]) || 'User'}! 👋`}
+              {`Welcome, ${(user?.name?.split(' ')[0]) || 'User'}!`}
             </Text>
             <Text style={{fontSize: 16, color: '#e0e0e0', textAlign: 'left'}}>
               Ready to print something amazing today?
             </Text>
           </View>
           <View style={{flexDirection: 'row', alignItems: 'center', gap: 12}}>
-            <TouchableOpacity style={styles.notificationButton} onPress={() => navigation.navigate('Notifications')}>
+            {/* <TouchableOpacity style={styles.notificationButton} onPress={() => navigation.navigate('Notifications')}>
               <Icon name="notifications" size={22} color="white" />
               <View style={styles.badge} />
-            </TouchableOpacity>
+            </TouchableOpacity> */}
             <TouchableOpacity style={styles.notificationButton} onPress={() => navigation.navigate('Profile')}>
               <Icon name="person" size={24} color="white" />
             </TouchableOpacity>
@@ -219,7 +230,7 @@ function getGradientColors(title) {
                   activeOpacity={0.85}
                 >
                   <LinearGradient
-                    colors={getGradientColors(action.title)}
+                    colors={action.color}
                     start={{ x: 0, y: 0 }}
                     end={{ x: 1, y: 0 }}
                     style={StyleSheet.absoluteFill}
@@ -332,7 +343,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#f8f9fa',
   },
   headerGradient: {
-    paddingTop: 50,
+    paddingTop: 20,
     paddingBottom: 30,
     paddingHorizontal: 20,
   },
@@ -385,14 +396,14 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     flexWrap: 'wrap',
     justifyContent: 'space-between',
-    marginBottom: 30,
+    marginBottom: 10,
   },
   actionGridItem: {
-    width: (width - 60) / 2,
-    marginBottom: 16,
+    width: (width-30),
+    marginBottom: 10,
   },
   actionCardGrid: {
-    height: 120,
+    height: 100,
     borderRadius: 16,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 4 },
@@ -420,7 +431,7 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: 12,
+    marginBottom: 10,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.1,

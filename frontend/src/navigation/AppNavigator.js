@@ -71,6 +71,7 @@ function TabNavigator() {
         tabBarActiveTintColor: '#0058A3',
         tabBarInactiveTintColor: 'gray',
         headerShown: false,
+        tabBarStyle: { display: 'none' },
       })}
     >
       <Tab.Screen name="Home" component={HomeScreen} />

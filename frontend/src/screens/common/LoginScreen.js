@@ -52,7 +52,17 @@ export default function LoginScreen({ navigation }) {
     }
     
     if (!cleanPassword) {
-      setPasswordError('Please enter your password');
+      setPasswordError('Please enter your 4-digit PIN');
+      return;
+    }
+    
+    if (cleanPassword.length !== 4) {
+      setPasswordError('PIN must be exactly 4 digits');
+      return;
+    }
+    
+    if (!/^[0-9]{4}$/.test(cleanPassword)) {
+      setPasswordError('PIN must contain only numbers');
       return;
     }
 
@@ -123,7 +133,9 @@ export default function LoginScreen({ navigation }) {
   // };
 
   const handlePasswordChange = (value) => {
-    setPassword(value);
+    // Only allow numeric input and limit to 4 digits
+    const numericValue = value.replace(/[^0-9]/g, '').slice(0, 4);
+    setPassword(numericValue);
     if (passwordError) setPasswordError('');
   };
 
@@ -173,16 +185,18 @@ export default function LoginScreen({ navigation }) {
           </Animatable.View>
 
           <Animatable.View animation="fadeInUp" delay={400} duration={350} style={{ width: '100%' }}>
-            <Text style={styles.inputLabel}>Password</Text>
+            <Text style={styles.inputLabel}>4-Digit PIN</Text>
             <View style={styles.passwordContainer}>
               <TextInput
                 style={[styles.passwordInput, inputFocused.password && styles.passwordInputFocused, passwordError && styles.passwordInputError]}
-                placeholder="Enter your password"
+                placeholder="Enter your 4-digit PIN"
                 value={password}
                 onChangeText={handlePasswordChange}
                 onFocus={() => handleFocus('password')}
                 onBlur={() => handleBlur('password')}
                 secureTextEntry={!showPassword}
+                keyboardType="numeric"
+                maxLength={4}
               />
               <TouchableOpacity
                 style={styles.eyeButton}

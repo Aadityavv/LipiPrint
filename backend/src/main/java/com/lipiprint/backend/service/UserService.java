@@ -80,6 +80,13 @@ public class UserService {
         userRepository.save(user);
     }
 
+    public void updateCanEdit(Long userId, boolean canEdit) {
+        User user = userRepository.findById(userId).orElseThrow();
+        user.setCanEdit(canEdit);
+        user.setUpdatedAt(java.time.LocalDateTime.now());
+        userRepository.save(user);
+    }
+
     public List<User> getAllUsers() {
         return userRepository.findAll();
     }

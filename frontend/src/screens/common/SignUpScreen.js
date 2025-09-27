@@ -74,25 +74,63 @@ export default function SignUpScreen({ navigation }) {
     }
     if (!formData.password.trim()) {
       setAlertTitle('Error');
-      setAlertMessage('Please enter your password');
+      setAlertMessage('Please enter your 4-digit PIN');
       setAlertType('error');
       setAlertVisible(true);
       return false;
     }
-    if (formData.password.length < 6) {
+    if (formData.password.length !== 4) {
       setAlertTitle('Error');
-      setAlertMessage('Password must be at least 6 characters long');
+      setAlertMessage('PIN must be exactly 4 digits');
+      setAlertType('error');
+      setAlertVisible(true);
+      return false;
+    }
+    if (!/^[0-9]{4}$/.test(formData.password)) {
+      setAlertTitle('Error');
+      setAlertMessage('PIN must contain only numbers');
       setAlertType('error');
       setAlertVisible(true);
       return false;
     }
     if (formData.password !== formData.confirmPassword) {
       setAlertTitle('Error');
-      setAlertMessage('Passwords do not match');
+      setAlertMessage('PINs do not match');
       setAlertType('error');
       setAlertVisible(true);
       return false;
     }
+    
+    // GSTIN validation for professionals
+    if (formData.userType === 'professional' && formData.gstin.trim()) {
+      const gstin = formData.gstin.trim();
+      if (gstin.length !== 15) {
+        setAlertTitle('Error');
+        setAlertMessage('GSTIN must be exactly 15 characters long');
+        setAlertType('error');
+        setAlertVisible(true);
+        return false;
+      }
+      // Check if first 2 characters are numeric
+      const firstTwoDigits = gstin.substring(0, 2);
+      if (!/^[0-9]{2}$/.test(firstTwoDigits)) {
+        setAlertTitle('Error');
+        setAlertMessage('GSTIN must start with 2 numeric characters');
+        setAlertType('error');
+        setAlertVisible(true);
+        return false;
+      }
+      // Additional validation - ensure it contains valid GSTIN format
+      const gstinPattern = /^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[0-9A-Z]{1}Z[0-9A-Z]{1}$/;
+      if (!gstinPattern.test(gstin)) {
+        setAlertTitle('Error');
+        setAlertMessage('Please enter a valid GSTIN number');
+        setAlertType('error');
+        setAlertVisible(true);
+        return false;
+      }
+    }
+    
     return true;
   };
 
@@ -234,16 +272,22 @@ export default function SignUpScreen({ navigation }) {
 
             {/* Password Input */}
             <Animatable.View animation="fadeInUp" delay={325} duration={500}>
-              <Text style={[styles.inputLabel, { color: theme.text }]}>Password</Text>
+              <Text style={[styles.inputLabel, { color: theme.text }]}>4-Digit PIN</Text>
               <View style={styles.passwordContainer}>
                 <TextInput
                   style={[styles.input, inputFocused.password && styles.inputFocused]}
-                  placeholder="Enter your password"
+                  placeholder="Enter your 4-digit PIN"
                   value={formData.password}
-                  onChangeText={(value) => updateFormData('password', value)}
+                  onChangeText={(value) => {
+                    // Only allow numeric input and limit to 4 digits
+                    const numericValue = value.replace(/[^0-9]/g, '').slice(0, 4);
+                    updateFormData('password', numericValue);
+                  }}
                   onFocus={() => handleFocus('password')}
                   onBlur={() => handleBlur('password')}
                   secureTextEntry={!showPassword}
+                  keyboardType="numeric"
+                  maxLength={4}
                 />
                 <TouchableOpacity
                   style={styles.eyeButton}
@@ -257,16 +301,22 @@ export default function SignUpScreen({ navigation }) {
 
             {/* Confirm Password Input */}
             <Animatable.View animation="fadeInUp" delay={350} duration={500}>
-              <Text style={[styles.inputLabel, { color: theme.text }]}>Confirm Password</Text>
+              <Text style={[styles.inputLabel, { color: theme.text }]}>Confirm 4-Digit PIN</Text>
               <View style={styles.passwordContainer}>
                 <TextInput
                   style={[styles.input, inputFocused.confirmPassword && styles.inputFocused]}
-                  placeholder="Confirm your password"
+                  placeholder="Confirm your 4-digit PIN"
                   value={formData.confirmPassword}
-                  onChangeText={(value) => updateFormData('confirmPassword', value)}
+                  onChangeText={(value) => {
+                    // Only allow numeric input and limit to 4 digits
+                    const numericValue = value.replace(/[^0-9]/g, '').slice(0, 4);
+                    updateFormData('confirmPassword', numericValue);
+                  }}
                   onFocus={() => handleFocus('confirmPassword')}
                   onBlur={() => handleBlur('confirmPassword')}
                   secureTextEntry={!showConfirmPassword}
+                  keyboardType="numeric"
+                  maxLength={4}
                 />
                 <TouchableOpacity
                   style={styles.eyeButton}
@@ -326,16 +376,21 @@ export default function SignUpScreen({ navigation }) {
                 <Text style={[styles.inputLabel, { color: theme.text }]}>GSTIN Number (Optional)</Text>
                 <TextInput
                   style={[styles.input, inputFocused.gstin && styles.inputFocused]}
-                  placeholder="Enter your GSTIN number"
+                  placeholder="Enter your GSTIN number (15 characters)"
                   value={formData.gstin}
-                  onChangeText={(value) => updateFormData('gstin', value)}
+                  onChangeText={(value) => {
+                    const uppercaseValue = value.toUpperCase();
+                    // Limit to 15 characters
+                    const limitedValue = uppercaseValue.slice(0, 15);
+                    updateFormData('gstin', limitedValue);
+                  }}
                   onFocus={() => handleFocus('gstin')}
                   onBlur={() => handleBlur('gstin')}
                   autoCapitalize="characters"
                   maxLength={15}
                 />
                 <Text style={styles.gstinNote}>
-                  GSTIN helps you claim tax benefits on business orders
+                  GSTIN helps you claim tax benefits on business orders.{'\n'}⚠️ You are responsible for ensuring the entered GSTIN number is correct.
                 </Text>
               </Animatable.View>
             )}
@@ -539,10 +594,11 @@ const styles = StyleSheet.create({
   },
   gstinNote: {
     fontSize: 12,
-    color: '#666',
-    marginTop: -16,
+    color: '#FF6B35',
+    marginTop: -8,
     marginBottom: 20,
     fontStyle: 'italic',
+    lineHeight: 16,
   },
   termsContainer: {
     marginBottom: 24,

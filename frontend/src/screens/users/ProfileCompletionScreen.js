@@ -69,10 +69,22 @@ export default function ProfileCompletionScreen({ navigation, route }) {
     }
 
     // Validate GSTIN (optional)
-    if (formData.gstin) {
-      const gstinValidation = validateGSTIN(formData.gstin);
-      if (!gstinValidation.isValid) {
-        newErrors.gstin = gstinValidation.error;
+    if (formData.gstin && formData.gstin.trim()) {
+      const gstin = formData.gstin.trim();
+      if (gstin.length !== 15) {
+        newErrors.gstin = 'GSTIN must be exactly 15 characters long';
+      } else {
+        // Check if first 2 characters are numeric
+        const firstTwoDigits = gstin.substring(0, 2);
+        if (!/^[0-9]{2}$/.test(firstTwoDigits)) {
+          newErrors.gstin = 'GSTIN must start with 2 numeric characters';
+        } else {
+          // Additional validation using existing security validator
+          const gstinValidation = validateGSTIN(gstin);
+          if (!gstinValidation.isValid) {
+            newErrors.gstin = gstinValidation.error;
+          }
+        }
       }
     }
 
@@ -172,7 +184,34 @@ export default function ProfileCompletionScreen({ navigation, route }) {
         {renderInput('address', 'Address', 'Enter your complete address', 'default', 200)}
         {renderInput('pincode', 'Pincode', 'Enter 6-digit pincode', 'numeric', 6)}
         {renderInput('companyName', 'Company Name (Optional)', 'Enter your company name', 'default', 100)}
-        {renderInput('gstin', 'GSTIN (Optional)', 'Enter 15-character GSTIN', 'default', 15)}
+        <Animatable.View animation="fadeInUp" delay={650} duration={350} style={{ width: '100%' }}>
+          <Text style={styles.inputLabel}>GSTIN (Optional)</Text>
+          <TextInput
+            style={[
+              styles.input,
+              inputFocused.gstin && styles.inputFocused,
+              errors.gstin && styles.inputError
+            ]}
+            placeholder="Enter 15-character GSTIN"
+            value={formData.gstin}
+            onChangeText={(value) => {
+              const uppercaseValue = value.toUpperCase();
+              const limitedValue = uppercaseValue.slice(0, 15);
+              updateFormData('gstin', limitedValue);
+            }}
+            keyboardType="default"
+            maxLength={15}
+            autoCapitalize="characters"
+            onFocus={() => setInputFocused(prev => ({ ...prev, gstin: true }))}
+            onBlur={() => setInputFocused(prev => ({ ...prev, gstin: false }))}
+          />
+          <Text style={styles.gstinNote}>
+            ⚠️ You are responsible for ensuring the entered GSTIN number is correct.
+          </Text>
+          {errors.gstin && (
+            <Text style={styles.errorText}>{errors.gstin}</Text>
+          )}
+        </Animatable.View>
 
         <Animatable.View animation="fadeInUp" delay={800} duration={350} style={{ width: '100%' }}>
           <TouchableOpacity
@@ -316,5 +355,12 @@ const styles = StyleSheet.create({
     color: '#666',
     fontSize: 16,
     textDecorationLine: 'underline',
+  },
+  gstinNote: {
+    fontSize: 12,
+    color: '#FF6B35',
+    marginTop: -8,
+    marginBottom: 8,
+    fontStyle: 'italic',
   },
 }); 

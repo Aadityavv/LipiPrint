@@ -15,6 +15,7 @@ public class UserDTO {
     private String email;
     private String role;
     private boolean blocked;
+    private boolean canEdit;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
     private boolean isNewUser;

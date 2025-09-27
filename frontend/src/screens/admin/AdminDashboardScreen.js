@@ -25,72 +25,84 @@ export default function AdminDashboardScreen({ navigation }) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [acceptingOrders, setAcceptingOrders] = useState(true);
+  const [canEdit, setCanEdit] = useState(false);
 
-  const quickActions = [
+  const allQuickActions = [
     {
       title: 'Manage Orders',
       icon: <Icon name="assignment" size={22} color="#fff" />, 
       color: '#1976D2',
       iconBg: '#1976D2',
-      onPress: () => navigation.navigate('AdminTabs', { screen: 'AdminOrders' })
+      onPress: () => navigation.navigate('AdminTabs', { screen: 'AdminOrders' }),
+      requiresEdit: false
     },
     {
       title: 'User Management',
       icon: <Icon name="people" size={22} color="#fff" />, 
       color: '#388E3C',
       iconBg: '#388E3C',
-      onPress: () => navigation.navigate('AdminUsers')
+      onPress: () => navigation.navigate('AdminUsers'),
+      requiresEdit: false
     },
     {
       title: 'Analytics',
       icon: <Icon name="analytics" size={22} color="#fff" />, 
       color: '#FBC02D',
       iconBg: '#FBC02D',
-      onPress: () => navigation.navigate('AdminAnalytics')
+      onPress: () => navigation.navigate('AdminAnalytics'),
+      requiresEdit: false
     },
     {
       title: 'Update Services',
       icon: <Icon name="build" size={22} color="#fff" />, 
       color: '#F57C00',
       iconBg: '#F57C00',
-      onPress: () => navigation.navigate('UpdateServices')
+      onPress: () => navigation.navigate('UpdateServices'),
+      requiresEdit: true
     },
     {
       title: 'Manage Discounts',
       icon: <Icon name="local-offer" size={22} color="#fff" />, 
       color: '#00B8D4',
       iconBg: '#00B8D4',
-      onPress: () => navigation.navigate('AdminDiscountScreen')
+      onPress: () => navigation.navigate('AdminDiscountScreen'),
+      requiresEdit: true
     },
     {
       title: 'Settings',
       icon: <Icon name="settings" size={22} color="#fff" />, 
       color: '#7B1FA2',
       iconBg: '#7B1FA2',
-      onPress: () => navigation.navigate('AdminSettings')
+      onPress: () => navigation.navigate('AdminSettings'),
+      requiresEdit: true
     },
     {
       title: 'Failed Payments',
       icon: <Icon name="error-outline" size={22} color="#fff" />, 
       color: '#D32F2F',
       iconBg: '#D32F2F',
-      onPress: () => navigation.navigate('AdminReconciliationScreen', { tab: 'failedPayments' })
+      onPress: () => navigation.navigate('AdminReconciliationScreen', { tab: 'failedPayments' }),
+      requiresEdit: false
     },
     {
       title: 'Payments w/o Order',
       icon: <Icon name="payment" size={22} color="#fff" />, 
       color: '#0288D1',
       iconBg: '#0288D1',
-      onPress: () => navigation.navigate('AdminReconciliationScreen', { tab: 'paymentsNoOrder' })
+      onPress: () => navigation.navigate('AdminReconciliationScreen', { tab: 'paymentsNoOrder' }),
+      requiresEdit: false
     },
     {
       title: 'File Manager',
       icon: <Icon name="folder" size={22} color="#fff" />, 
       color: '#0097A7',
       iconBg: '#0097A7',
-      onPress: () => navigation.navigate('FileManagerScreen')
+      onPress: () => navigation.navigate('FileManagerScreen'),
+      requiresEdit: false
     },
   ];
+
+  const quickActions = allQuickActions.filter(action => !action.requiresEdit || canEdit);
 
   const fetchDashboardData = () => {
     setLoading(true);
@@ -137,6 +149,9 @@ export default function AdminDashboardScreen({ navigation }) {
     api.request('/settings/accepting-orders')
       .then(res => setAcceptingOrders(res.acceptingOrders))
       .catch(() => setAcceptingOrders(true));
+    api.checkCanEdit()
+      .then(res => setCanEdit(res.canEdit))
+      .catch(() => setCanEdit(false));
   }, []);
 
   // Updated: getActivityIcon now uses action (lowercased)
@@ -200,13 +215,14 @@ export default function AdminDashboardScreen({ navigation }) {
         <View style={{flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', minHeight: 44}}>
           <View style={{flex: 1}}>
             <Text style={{fontSize: 24, color: '#222', fontWeight: 'bold', textAlign: 'left', marginBottom: 2}}>
-              {`Welcome back, ${adminName}`}
+              {`Welcome, ${adminName}`}
             </Text>
             <Text style={{fontSize: 15, color: '#888', textAlign: 'left'}}>
               {today}
             </Text>
           </View>
-          <Image source={require('../../assets/logo/LipiPrintLogo.png')} style={styles.heroAvatar} />
+          {/* <Image source={require(
+           */}
         </View>
       </LinearGradient>
       <ScrollView style={styles.containerModern} contentContainerStyle={styles.scrollContentModern} showsVerticalScrollIndicator={false}>

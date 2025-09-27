@@ -437,6 +437,17 @@ class ApiService {
     async deleteAccount() {
         return await this.request('/user/profile', { method: 'DELETE' });
     }
+
+    // Admin canEdit permission management
+    async updateCanEdit(userId, canEdit) {
+        return await this.request(`/user/can-edit/${userId}?canEdit=${canEdit}`, {
+            method: 'POST',
+        });
+    }
+
+    async checkCanEdit() {
+        return await this.request('/user/can-edit');
+    }
 }
 
 export default new ApiService();

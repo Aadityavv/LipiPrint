@@ -2,9 +2,13 @@ package com.lipiprint.backend.controller;
 
 import com.lipiprint.backend.dto.SettingsDTO;
 import com.lipiprint.backend.entity.Settings;
+import com.lipiprint.backend.entity.User;
 import com.lipiprint.backend.service.SettingsService;
+import com.lipiprint.backend.service.UserService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -14,6 +18,8 @@ import java.util.stream.Collectors;
 public class SettingsController {
     @Autowired
     private SettingsService settingsService;
+    @Autowired
+    private UserService userService;
 
     @GetMapping("")
     public ResponseEntity<List<SettingsDTO>> getSettings() {
@@ -37,7 +43,12 @@ public class SettingsController {
     }
 
     @PutMapping("/accepting-orders")
-    public ResponseEntity<?> setAcceptingOrders(@RequestParam boolean accepting) {
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<?> setAcceptingOrders(@RequestParam boolean accepting, Authentication authentication) {
+        User user = userService.findByPhone(authentication.getName()).orElseThrow();
+        if (!user.isCanEdit()) {
+            throw new RuntimeException("You don't have permission to toggle accepting orders");
+        }
         settingsService.setAcceptingOrders(accepting);
         return ResponseEntity.ok(java.util.Map.of("acceptingOrders", accepting));
     }

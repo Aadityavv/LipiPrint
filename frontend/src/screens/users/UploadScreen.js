@@ -618,7 +618,7 @@ const styles = StyleSheet.create({
   headerGradient: { paddingTop: 50, paddingBottom: 30, paddingHorizontal: 20 },
   content: { padding: 20 },
   uploadArea: { backgroundColor: '#f25f73ff', borderRadius: 16, alignItems: 'center', padding: 32, marginBottom: 24, elevation: 2 },
-  uploadIcon: { marginBottom: 16 },
+  uploadIcon: { marginBottom: 16, color: 'white' },
   uploadTitle: { fontSize: 20, fontWeight: 'bold', color: '#1a1a1a', marginBottom: 8 },
   uploadSubtitle: { fontSize: 14, color: '#fff', textAlign: 'center', marginBottom: 20 },
   quickUploadGrid: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 24 },

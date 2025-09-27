@@ -23,6 +23,7 @@ public class User {
     private Role role;
 
     private boolean blocked = false;
+    private boolean canEdit = false; // Only one admin can edit services, discounts, and settings
 
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
@@ -78,6 +79,8 @@ public class User {
     public void setRole(Role role) { this.role = role; }
     public boolean isBlocked() { return blocked; }
     public void setBlocked(boolean blocked) { this.blocked = blocked; }
+    public boolean isCanEdit() { return canEdit; }
+    public void setCanEdit(boolean canEdit) { this.canEdit = canEdit; }
     public LocalDateTime getCreatedAt() { return createdAt; }
     public void setCreatedAt(LocalDateTime createdAt) { this.createdAt = createdAt; }
     public LocalDateTime getUpdatedAt() { return updatedAt; }
