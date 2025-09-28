@@ -326,30 +326,22 @@ export default function InvoiceDetailScreen() {
     `;
   }
 
-  // Helper to request storage permission for Android
+  // Helper to request storage permission only on Android < 11
   async function requestStoragePermissionIfNeeded() {
-    if (Platform.OS === 'android') {
-      // Check if we already have permission
-      const hasPermission = await PermissionsAndroid.check(
-        PermissionsAndroid.PERMISSIONS.WRITE_EXTERNAL_STORAGE
+    if (Platform.OS === 'android' && Platform.Version < 30) {
+      const granted = await PermissionsAndroid.request(
+        PermissionsAndroid.PERMISSIONS.WRITE_EXTERNAL_STORAGE,
+        {
+          title: 'Storage Permission',
+          message: 'App needs access to your storage to save the invoice PDF.',
+          buttonNeutral: 'Ask Me Later',
+          buttonNegative: 'Cancel',
+          buttonPositive: 'OK',
+        },
       );
-      
-      if (!hasPermission) {
-        const granted = await PermissionsAndroid.request(
-          PermissionsAndroid.PERMISSIONS.WRITE_EXTERNAL_STORAGE,
-          {
-            title: 'Storage Permission',
-            message: 'LipiPrint needs storage permission to save invoice PDFs to your device',
-            buttonNeutral: 'Ask Me Later',
-            buttonNegative: 'Cancel',
-            buttonPositive: 'Allow',
-          },
-        );
-        return granted === PermissionsAndroid.RESULTS.GRANTED;
-      }
-      return true;
+      return granted === PermissionsAndroid.RESULTS.GRANTED;
     }
-    // On iOS, permission is not needed for app's own directories
+    // On Android 11+ and iOS, permission is not needed for app's own directories
     return true;
   }
 
