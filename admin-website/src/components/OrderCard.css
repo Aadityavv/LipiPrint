@@ -371,3 +371,36 @@
     font-size: 0.8rem;
   }
 }
+
+/* Admin tracking styles */
+.admin-tracking {
+  background: #f8fafc;
+  border-radius: 8px;
+  padding: 12px;
+  margin: 12px 0;
+  border-left: 4px solid #667eea;
+}
+
+.admin-info {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 6px;
+  font-size: 0.9rem;
+  color: #4b5563;
+}
+
+.admin-info:last-child {
+  margin-bottom: 0;
+}
+
+.admin-icon {
+  font-size: 1rem;
+  width: 16px;
+  text-align: center;
+}
+
+.admin-text {
+  font-weight: 500;
+  color: #374151;
+}

@@ -83,26 +83,61 @@ export default function UploadScreen({ navigation }) {
       });
   }, []);
 
+  // Define fixed order for each option type to maintain consistent positioning
+  const FIXED_ORDER = {
+    color: ['Colour', 'B&W'],
+    paper: ['A4', 'A3'],
+    quality: ['70 GSM', '100 GSM'],
+    side: ['Single Side', 'Double Side']
+  };
+
   // Build unique selectors from combinations
   const uniqueColors = Array.from(new Set(combinations.map(c => c.color)));
   const uniquePapers = Array.from(new Set(combinations.map(c => c.paperSize)));
   const uniqueQualities = Array.from(new Set(combinations.map(c => c.paperQuality)));
   const uniqueSides = Array.from(new Set(combinations.map(c => c.printOption)));
 
-  // Helper: filter available options based on current selection
+  // Helper: filter available options based on current selection and maintain fixed order
   function getAvailableOptions(type, sel) {
     let filtered = combinations;
     if (type !== 'color' && sel.color) filtered = filtered.filter(c => c.color === sel.color);
     if (type !== 'paper' && sel.paper) filtered = filtered.filter(c => c.paperSize === sel.paper);
     if (type !== 'quality' && sel.quality) filtered = filtered.filter(c => c.paperQuality === sel.quality);
     if (type !== 'side' && sel.side) filtered = filtered.filter(c => c.printOption === sel.side);
+    
+    let availableOptions = [];
     switch (type) {
-      case 'color': return Array.from(new Set(filtered.map(c => c.color)));
-      case 'paper': return Array.from(new Set(filtered.map(c => c.paperSize)));
-      case 'quality': return Array.from(new Set(filtered.map(c => c.paperQuality)));
-      case 'side': return Array.from(new Set(filtered.map(c => c.printOption)));
-      default: return [];
+      case 'color': 
+        availableOptions = Array.from(new Set(filtered.map(c => c.color)));
+        break;
+      case 'paper': 
+        availableOptions = Array.from(new Set(filtered.map(c => c.paperSize)));
+        break;
+      case 'quality': 
+        availableOptions = Array.from(new Set(filtered.map(c => c.paperQuality)));
+        break;
+      case 'side': 
+        availableOptions = Array.from(new Set(filtered.map(c => c.printOption)));
+        break;
+      default: 
+        return [];
     }
+    
+    // Sort available options according to fixed order
+    const fixedOrder = FIXED_ORDER[type] || [];
+    return availableOptions.sort((a, b) => {
+      const indexA = fixedOrder.indexOf(a);
+      const indexB = fixedOrder.indexOf(b);
+      // If both options are in the fixed order, sort by their position
+      if (indexA !== -1 && indexB !== -1) {
+        return indexA - indexB;
+      }
+      // If only one is in the fixed order, prioritize it
+      if (indexA !== -1) return -1;
+      if (indexB !== -1) return 1;
+      // If neither is in the fixed order, maintain original order
+      return 0;
+    });
   }
 
   // Add this helper function
@@ -132,10 +167,10 @@ export default function UploadScreen({ navigation }) {
         console.log('[LOG] Picked file:', pickedFile);
         setCurrentFile(pickedFile);
         setCurrentPrintOptions(lastPrintOptions || {
-          color: uniqueColors[0],
-          paper: uniquePapers[0],
-          quality: uniqueQualities[0],
-          side: uniqueSides[0],
+          color: FIXED_ORDER.color.find(c => uniqueColors.includes(c)) || uniqueColors[0],
+          paper: FIXED_ORDER.paper.find(p => uniquePapers.includes(p)) || uniquePapers[0],
+          quality: FIXED_ORDER.quality.find(q => uniqueQualities.includes(q)) || uniqueQualities[0],
+          side: FIXED_ORDER.side.find(s => uniqueSides.includes(s)) || uniqueSides[0],
           binding: 'None',
         });
         setShowPrintOptionsModal(true);
@@ -158,10 +193,10 @@ export default function UploadScreen({ navigation }) {
         console.log('[LOG] Picked from camera:', file);
         setCurrentFile(file);
         setCurrentPrintOptions(lastPrintOptions || {
-          color: uniqueColors[0],
-          paper: uniquePapers[0],
-          quality: uniqueQualities[0],
-          side: uniqueSides[0],
+          color: FIXED_ORDER.color.find(c => uniqueColors.includes(c)) || uniqueColors[0],
+          paper: FIXED_ORDER.paper.find(p => uniquePapers.includes(p)) || uniquePapers[0],
+          quality: FIXED_ORDER.quality.find(q => uniqueQualities.includes(q)) || uniqueQualities[0],
+          side: FIXED_ORDER.side.find(s => uniqueSides.includes(s)) || uniqueSides[0],
           binding: 'None',
         });
         setShowPrintOptionsModal(true);
@@ -184,10 +219,10 @@ export default function UploadScreen({ navigation }) {
         console.log('[LOG] Picked from gallery:', file);
         setCurrentFile(file);
         setCurrentPrintOptions(lastPrintOptions || {
-          color: uniqueColors[0],
-          paper: uniquePapers[0],
-          quality: uniqueQualities[0],
-          side: uniqueSides[0],
+          color: FIXED_ORDER.color.find(c => uniqueColors.includes(c)) || uniqueColors[0],
+          paper: FIXED_ORDER.paper.find(p => uniquePapers.includes(p)) || uniquePapers[0],
+          quality: FIXED_ORDER.quality.find(q => uniqueQualities.includes(q)) || uniqueQualities[0],
+          side: FIXED_ORDER.side.find(s => uniqueSides.includes(s)) || uniqueSides[0],
           binding: 'None',
         });
         setShowPrintOptionsModal(true);

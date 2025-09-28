@@ -5,6 +5,7 @@ import Login from './components/Login';
 import Dashboard from './components/Dashboard';
 import OrderDetail from './components/OrderDetail';
 import PrintTest from './components/PrintTest';
+import AccessDenied from './components/AccessDenied';
 import api from './services/api';
 import './App.css';
 
@@ -12,6 +13,7 @@ function App() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [user, setUser] = useState(null);
+  const [isAdmin, setIsAdmin] = useState(false);
 
   useEffect(() => {
     checkAuthStatus();
@@ -25,6 +27,13 @@ function App() {
         const userProfile = await api.getProfile();
         setUser(userProfile);
         setIsAuthenticated(true);
+        
+        // Check if user is admin
+        const isUserAdmin = userProfile.role === 'ADMIN';
+        setIsAdmin(isUserAdmin);
+        
+        console.log('User profile:', userProfile);
+        console.log('Is admin:', isUserAdmin);
       }
     } catch (error) {
       console.error('Auth check failed:', error);
@@ -53,6 +62,12 @@ function App() {
       console.log('App: Setting user data:', userData);
       setUser(userData);
       setIsAuthenticated(true);
+      
+      // Check if user is admin
+      const isUserAdmin = userData.role === 'ADMIN';
+      setIsAdmin(isUserAdmin);
+      console.log('Is admin:', isUserAdmin);
+      
       return { success: true };
     } catch (error) {
       console.error('App: Login error:', error);
@@ -68,6 +83,7 @@ function App() {
     api.logout();
     setUser(null);
     setIsAuthenticated(false);
+    setIsAdmin(false);
   };
 
   if (isLoading) {
@@ -106,7 +122,10 @@ function App() {
             path="/" 
             element={
               isAuthenticated ? 
-                <Dashboard user={user} onLogout={handleLogout} /> : 
+                (isAdmin ? 
+                  <Dashboard user={user} onLogout={handleLogout} /> : 
+                  <AccessDenied onLogout={handleLogout} />
+                ) : 
                 <Navigate to="/login" replace />
             } 
           />
@@ -114,7 +133,10 @@ function App() {
             path="/order/:orderId" 
             element={
               isAuthenticated ? 
-                <OrderDetail user={user} onLogout={handleLogout} /> : 
+                (isAdmin ? 
+                  <OrderDetail user={user} onLogout={handleLogout} /> : 
+                  <AccessDenied onLogout={handleLogout} />
+                ) : 
                 <Navigate to="/login" replace />
             } 
           />
@@ -122,7 +144,10 @@ function App() {
             path="/print-test" 
             element={
               isAuthenticated ? 
-                <PrintTest /> : 
+                (isAdmin ? 
+                  <PrintTest /> : 
+                  <AccessDenied onLogout={handleLogout} />
+                ) : 
                 <Navigate to="/login" replace />
             } 
           />

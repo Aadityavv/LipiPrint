@@ -154,7 +154,29 @@ const OrderCard = ({
         </div>
       </div>
 
-      {/* Admin tracking information - not available in OrderListDTO */}
+      {/* Admin tracking information */}
+      {(order.printedByAdminName || order.processedByAdminName || order.completedByAdminName) && (
+        <div className="admin-tracking">
+          {order.printedByAdminName && (
+            <div className="admin-info">
+              <span className="admin-icon">🖨️</span>
+              <span className="admin-text">Printed by: {order.printedByAdminName}</span>
+            </div>
+          )}
+          {order.processedByAdminName && (
+            <div className="admin-info">
+              <span className="admin-icon">⚙️</span>
+              <span className="admin-text">Processed by: {order.processedByAdminName}</span>
+            </div>
+          )}
+          {order.completedByAdminName && (
+            <div className="admin-info">
+              <span className="admin-icon">✅</span>
+              <span className="admin-text">Completed by: {order.completedByAdminName}</span>
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Status update buttons */}
       {canEdit && onStatusUpdate && (
