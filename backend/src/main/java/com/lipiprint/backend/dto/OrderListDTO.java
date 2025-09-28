@@ -92,6 +92,31 @@ public class OrderListDTO {
         this.trackingUrl = trackingUrl;
         this.expectedDeliveryDate = expectedDeliveryDate;
     }
+    
+    // ✅ COMPLETE: Constructor with shipping fields AND admin tracking fields
+    public OrderListDTO(Long id, String userName, String status, Double totalAmount, 
+                       LocalDateTime createdAt, Order.DeliveryType deliveryType,
+                       String awbNumber, String courierName, String trackingUrl, 
+                       LocalDateTime expectedDeliveryDate, String printedByAdminName, 
+                       String processedByAdminName, String completedByAdminName,
+                       LocalDateTime printedAt, LocalDateTime processedAt, LocalDateTime completedAt) {
+        this.id = id;
+        this.userName = userName;
+        this.status = status;
+        this.totalAmount = totalAmount;
+        this.createdAt = createdAt;
+        this.deliveryType = deliveryType != null ? deliveryType.name() : null;
+        this.awbNumber = awbNumber;
+        this.courierName = courierName;
+        this.trackingUrl = trackingUrl;
+        this.expectedDeliveryDate = expectedDeliveryDate;
+        this.printedByAdminName = printedByAdminName;
+        this.processedByAdminName = processedByAdminName;
+        this.completedByAdminName = completedByAdminName;
+        this.printedAt = printedAt;
+        this.processedAt = processedAt;
+        this.completedAt = completedAt;
+    }
 
     // ✅ All getters and setters remain the same
     public Long getId() { return id; }
