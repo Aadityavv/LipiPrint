@@ -386,6 +386,16 @@ public class OrderController {
         orderDTO.setCourierId(order.getCourierId());
         orderDTO.setShippingCreated(order.getShippingCreated());
         
+        // ✅ ADD: Map pickup details
+        orderDTO.setPickupName(order.getPickupName());
+        orderDTO.setPickupAddress(order.getPickupAddress());
+        orderDTO.setPickupCity(order.getPickupCity());
+        orderDTO.setPickupState(order.getPickupState());
+        orderDTO.setPickupPincode(order.getPickupPincode());
+        orderDTO.setPickupPhone(order.getPickupPhone());
+        orderDTO.setPickupScheduledDate(order.getPickupScheduledDate());
+        orderDTO.setPickupStatus(order.getPickupStatus());
+        
         // Set admin tracking information
         if (order.getPrintedByAdmin() != null) {
             orderDTO.setPrintedByAdminName(order.getPrintedByAdmin().getName());

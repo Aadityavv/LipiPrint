@@ -1,9 +1,14 @@
 package com.lipiprint.backend.controller;
 
 import com.lipiprint.backend.dto.TrackingResponse;
+import com.lipiprint.backend.dto.PickupDetailsResponse;
 import com.lipiprint.backend.service.OrderService;
 import com.lipiprint.backend.service.NimbusPostService;
 import com.lipiprint.backend.dto.ShipmentRequest;
+import com.lipiprint.backend.entity.User;
+import com.lipiprint.backend.service.UserService;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.GrantedAuthority;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -27,6 +32,9 @@ public class ShippingController {
     
     @Autowired
     private NimbusPostService nimbusPostService;
+    
+    @Autowired
+    private UserService userService;
     
     @PostMapping("/estimate-delivery")
     public ResponseEntity<?> estimateDelivery(@RequestBody Map<String, Object> request) {
@@ -578,5 +586,57 @@ public class ShippingController {
         return pincode.startsWith("797") || // Mizoram remote areas
                pincode.startsWith("798") || // Nagaland remote areas
                pincode.startsWith("792"); // Manipur remote areas
+    }
+    
+    // ✅ NEW: Pickup details endpoints
+    @GetMapping("/pickup-details/{orderId}")
+    public ResponseEntity<?> getOrderPickupDetails(@PathVariable Long orderId, Authentication authentication) {
+        try {
+            User user = userService.findByPhone(authentication.getName()).orElseThrow();
+            boolean isAdmin = authentication.getAuthorities().stream()
+                .map(GrantedAuthority::getAuthority)
+                .anyMatch(a -> a.equals("ROLE_ADMIN"));
+            
+            // Check if user can access this order
+            com.lipiprint.backend.entity.Order order = orderService.findById(orderId);
+            if (!isAdmin && !order.getUser().getId().equals(user.getId())) {
+                return ResponseEntity.status(403).body(Map.of("error", "Access denied"));
+            }
+            
+            PickupDetailsResponse pickupDetails = orderService.getOrderPickupDetails(orderId);
+            return ResponseEntity.ok(pickupDetails);
+        } catch (Exception e) {
+            logger.error("[ShippingController] Error getting order pickup details: {}", e.getMessage(), e);
+            return ResponseEntity.status(500).body(Map.of(
+                "error", "Error getting pickup details",
+                "message", e.getMessage()
+            ));
+        }
+    }
+    
+    @PostMapping("/update-pickup-details/{orderId}")
+    public ResponseEntity<?> updateOrderPickupDetails(@PathVariable Long orderId, Authentication authentication) {
+        try {
+            User user = userService.findByPhone(authentication.getName()).orElseThrow();
+            boolean isAdmin = authentication.getAuthorities().stream()
+                .map(GrantedAuthority::getAuthority)
+                .anyMatch(a -> a.equals("ROLE_ADMIN"));
+            
+            if (!isAdmin) {
+                return ResponseEntity.status(403).body(Map.of("error", "Access denied - Admin only"));
+            }
+            
+            orderService.updateOrderPickupDetails(orderId);
+            return ResponseEntity.ok(Map.of(
+                "success", true,
+                "message", "Pickup details updated successfully"
+            ));
+        } catch (Exception e) {
+            logger.error("[ShippingController] Error updating order pickup details: {}", e.getMessage(), e);
+            return ResponseEntity.status(500).body(Map.of(
+                "error", "Error updating pickup details",
+                "message", e.getMessage()
+            ));
+        }
     }
 }

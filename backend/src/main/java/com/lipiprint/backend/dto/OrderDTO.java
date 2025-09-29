@@ -84,6 +84,31 @@ public class OrderDTO {
     @JsonProperty("shipping_created")
     private Boolean shippingCreated;
 
+    // *** PICKUP DETAILS FIELDS ***
+    @JsonProperty("pickup_name")
+    private String pickupName;
+
+    @JsonProperty("pickup_address")
+    private String pickupAddress;
+
+    @JsonProperty("pickup_city")
+    private String pickupCity;
+
+    @JsonProperty("pickup_state")
+    private String pickupState;
+
+    @JsonProperty("pickup_pincode")
+    private String pickupPincode;
+
+    @JsonProperty("pickup_phone")
+    private String pickupPhone;
+
+    @JsonProperty("pickup_scheduled_date")
+    private LocalDateTime pickupScheduledDate;
+
+    @JsonProperty("pickup_status")
+    private String pickupStatus;
+
     // Admin tracking fields
     private String printedByAdminName;
     private String processedByAdminName;
@@ -233,6 +258,31 @@ public class OrderDTO {
     
     public Boolean getShippingCreated() { return shippingCreated; }
     public void setShippingCreated(Boolean shippingCreated) { this.shippingCreated = shippingCreated; }
+
+    // *** PICKUP DETAILS GETTERS AND SETTERS ***
+    public String getPickupName() { return pickupName; }
+    public void setPickupName(String pickupName) { this.pickupName = pickupName; }
+
+    public String getPickupAddress() { return pickupAddress; }
+    public void setPickupAddress(String pickupAddress) { this.pickupAddress = pickupAddress; }
+
+    public String getPickupCity() { return pickupCity; }
+    public void setPickupCity(String pickupCity) { this.pickupCity = pickupCity; }
+
+    public String getPickupState() { return pickupState; }
+    public void setPickupState(String pickupState) { this.pickupState = pickupState; }
+
+    public String getPickupPincode() { return pickupPincode; }
+    public void setPickupPincode(String pickupPincode) { this.pickupPincode = pickupPincode; }
+
+    public String getPickupPhone() { return pickupPhone; }
+    public void setPickupPhone(String pickupPhone) { this.pickupPhone = pickupPhone; }
+
+    public LocalDateTime getPickupScheduledDate() { return pickupScheduledDate; }
+    public void setPickupScheduledDate(LocalDateTime pickupScheduledDate) { this.pickupScheduledDate = pickupScheduledDate; }
+
+    public String getPickupStatus() { return pickupStatus; }
+    public void setPickupStatus(String pickupStatus) { this.pickupStatus = pickupStatus; }
 
     // Admin tracking getters and setters
     public String getPrintedByAdminName() { return printedByAdminName; }
