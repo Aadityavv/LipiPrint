@@ -132,7 +132,6 @@ const quickActions = [
     }
   };
 
-
 function getGradientColors(title) {
   switch (title) {
     case 'Upload & Print':
@@ -605,4 +604,5 @@ const styles = StyleSheet.create({
   marginTop: 2,
   letterSpacing: 0.1,
 },
+
 });

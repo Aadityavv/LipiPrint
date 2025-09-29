@@ -120,7 +120,6 @@ export default function DashboardScreen({ navigation }) {
     }
   };
 
-
   const renderStatCard = (title, value, icon, color, subtitle) => (
     <Animatable.View
       animation="fadeInUp"
@@ -181,7 +180,6 @@ export default function DashboardScreen({ navigation }) {
             </>
           )}
         </View>
-        
       </TouchableOpacity>
     </Animatable.View>
   );

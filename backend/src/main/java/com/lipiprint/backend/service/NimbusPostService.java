@@ -6,7 +6,6 @@ import com.lipiprint.backend.config.NimbusPostConfig;
 import com.lipiprint.backend.dto.ShipmentRequest;
 import com.lipiprint.backend.dto.ShipmentResponse;
 import com.lipiprint.backend.dto.TrackingResponse;
-import com.lipiprint.backend.dto.PickupDetailsResponse;
 import com.lipiprint.backend.entity.Order;
 import com.lipiprint.backend.entity.UserAddress;
 
@@ -39,7 +38,6 @@ public class NimbusPostService {
     private static final String NDR_ENDPOINT = "/shipments/ndr";
     private static final String RETURN_ENDPOINT = "/shipments/return";
     private static final String RATES_ENDPOINT = "/courier/rates";
-    private static final String PICKUP_ENDPOINT = "/shipments/pickup";
     
     @Autowired
     private NimbusPostConfig config;
@@ -685,57 +683,6 @@ public class NimbusPostService {
         return request;
     }
     
-    // ✅ NEW: Fetch pickup details for an order
-    public PickupDetailsResponse getPickupDetails(String awbNumber) {
-        logger.info("[NimbusPostService] Fetching pickup details for AWB: {}", awbNumber);
-        
-        if (!isEnabled()) {
-            throw new RuntimeException("NimbusPost is not enabled");
-        }
-        
-        if (awbNumber == null || awbNumber.trim().isEmpty()) {
-            throw new RuntimeException("AWB number is required");
-        }
-        
-        ensureAuthenticated();
-        
-        try {
-            String pickupUrl = config.getBaseUrl() + PICKUP_ENDPOINT + "/" + awbNumber;
-            
-            HttpHeaders headers = new HttpHeaders();
-            headers.setContentType(MediaType.APPLICATION_JSON);
-            headers.setBearerAuth(authToken);
-            headers.set("User-Agent", "LipiPrint-NagpalPrintHouse/1.0");
-            
-            HttpEntity<?> entity = new HttpEntity<>(headers);
-            
-            logger.info("🚀 Fetching pickup details from: {}", pickupUrl);
-            ResponseEntity<String> response = restTemplate.exchange(
-                pickupUrl, HttpMethod.GET, entity, String.class);
-            
-            logger.info("📡 Pickup Details Response Status: {}", response.getStatusCode());
-            logger.info("📦 Pickup Details Response Body: {}", response.getBody());
-            
-            if (response.getStatusCode() == HttpStatus.OK && response.getBody() != null) {
-                Map<String, Object> responseBody = objectMapper.readValue(response.getBody(),
-                    new TypeReference<Map<String, Object>>() {});
-                
-                PickupDetailsResponse pickupResponse = parsePickupDetailsResponse(responseBody);
-                logger.info("[NimbusPostService] Pickup details fetched successfully for AWB: {}", awbNumber);
-                return pickupResponse;
-            } else {
-                throw new RuntimeException("Failed to fetch pickup details: " + response.getStatusCode());
-            }
-            
-        } catch (Exception e) {
-            logger.error("❌ Error fetching pickup details for AWB {}: {}", awbNumber, e.getMessage(), e);
-            PickupDetailsResponse errorResponse = new PickupDetailsResponse();
-            errorResponse.setStatus(false);
-            errorResponse.setMessage("Failed to fetch pickup details: " + e.getMessage());
-            return errorResponse;
-        }
-    }
-
     // ✅ ENHANCED: Tracking with better error handling
     public TrackingResponse trackShipment(String awbNumber) {
         logger.info("[NimbusPostService] Tracking shipment: {}", awbNumber);
@@ -890,68 +837,6 @@ if (data != null) {
             response.setMessage(message);
             response.setErrorDetails(responseBody); // Store full error for debugging
             logger.error("❌ Shipment creation failed: {}", message);
-        }
-        
-        return response;
-    }
-    
-    // ✅ NEW: Parse pickup details response
-    private PickupDetailsResponse parsePickupDetailsResponse(Map<String, Object> responseBody) {
-        PickupDetailsResponse response = new PickupDetailsResponse();
-        
-        logger.info("📊 Parsing pickup details response: {}", responseBody);
-        
-        if (responseBody == null) {
-            response.setStatus(false);
-            response.setMessage("Empty pickup details response");
-            return response;
-        }
-        
-        if (Boolean.TRUE.equals(responseBody.get("status"))) {
-            response.setStatus(true);
-            
-            Map<String, Object> data = (Map<String, Object>) responseBody.get("data");
-            if (data != null) {
-                // Extract pickup details
-                response.setAwbNumber((String) data.get("awb_number"));
-                response.setPickupName((String) data.get("pickup_name"));
-                response.setPickupAddress((String) data.get("pickup_address"));
-                response.setPickupCity((String) data.get("pickup_city"));
-                response.setPickupState((String) data.get("pickup_state"));
-                response.setPickupPincode((String) data.get("pickup_pincode"));
-                response.setPickupPhone((String) data.get("pickup_phone"));
-                response.setPickupStatus((String) data.get("pickup_status"));
-                response.setCourierName((String) data.get("courier_name"));
-                response.setCourierId((String) data.get("courier_id"));
-                
-                // Parse scheduled date if available
-                String scheduledDateStr = (String) data.get("pickup_scheduled_date");
-                if (scheduledDateStr != null && !scheduledDateStr.isEmpty()) {
-                    try {
-                        response.setPickupScheduledDate(LocalDateTime.parse(scheduledDateStr));
-                    } catch (Exception e) {
-                        logger.warn("Could not parse pickup scheduled date: {}", scheduledDateStr);
-                    }
-                }
-                
-                // Store additional info
-                response.setAdditionalInfo(data);
-                
-                // Extract pickup history if available
-                if (data.containsKey("pickup_history")) {
-                    response.setPickupHistory((List<Map<String, Object>>) data.get("pickup_history"));
-                }
-                
-                logger.info("✅ Pickup details parsed successfully");
-            } else {
-                response.setStatus(false);
-                response.setMessage("No pickup data found in response");
-            }
-        } else {
-            response.setStatus(false);
-            String message = (String) responseBody.getOrDefault("message", "Failed to fetch pickup details");
-            response.setMessage(message);
-            logger.error("❌ Pickup details fetch failed: {}", message);
         }
         
         return response;

@@ -96,7 +96,6 @@ const OrdersScreen = ({ navigation }) => {
     }
   };
 
-
   // Fixed search functionality
   const filteredOrders = React.useMemo(() => {
     let result = [...orders];
@@ -175,7 +174,6 @@ const OrdersScreen = ({ navigation }) => {
             <Text style={styles.detailText}>{formatAmount(order.totalAmount)}</Text>
           </View>
         </View>
-
 
         <View style={styles.orderActions}>
           <TouchableOpacity

@@ -94,31 +94,6 @@ public class Order {
     @Column(name = "shipping_created")
     private Boolean shippingCreated = false;
 
-    // *** PICKUP DETAILS FIELDS ***
-    @Column(name = "pickup_name")
-    private String pickupName;
-
-    @Column(name = "pickup_address")
-    private String pickupAddress;
-
-    @Column(name = "pickup_city")
-    private String pickupCity;
-
-    @Column(name = "pickup_state")
-    private String pickupState;
-
-    @Column(name = "pickup_pincode")
-    private String pickupPincode;
-
-    @Column(name = "pickup_phone")
-    private String pickupPhone;
-
-    @Column(name = "pickup_scheduled_date")
-    private LocalDateTime pickupScheduledDate;
-
-    @Column(name = "pickup_status")
-    private String pickupStatus;
-
     // Admin tracking fields
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "printed_by_admin_id")
@@ -274,31 +249,6 @@ public class Order {
 
     public Boolean getShippingCreated() { return shippingCreated; }
     public void setShippingCreated(Boolean shippingCreated) { this.shippingCreated = shippingCreated; }
-
-    // *** PICKUP DETAILS GETTERS AND SETTERS ***
-    public String getPickupName() { return pickupName; }
-    public void setPickupName(String pickupName) { this.pickupName = pickupName; }
-
-    public String getPickupAddress() { return pickupAddress; }
-    public void setPickupAddress(String pickupAddress) { this.pickupAddress = pickupAddress; }
-
-    public String getPickupCity() { return pickupCity; }
-    public void setPickupCity(String pickupCity) { this.pickupCity = pickupCity; }
-
-    public String getPickupState() { return pickupState; }
-    public void setPickupState(String pickupState) { this.pickupState = pickupState; }
-
-    public String getPickupPincode() { return pickupPincode; }
-    public void setPickupPincode(String pickupPincode) { this.pickupPincode = pickupPincode; }
-
-    public String getPickupPhone() { return pickupPhone; }
-    public void setPickupPhone(String pickupPhone) { this.pickupPhone = pickupPhone; }
-
-    public LocalDateTime getPickupScheduledDate() { return pickupScheduledDate; }
-    public void setPickupScheduledDate(LocalDateTime pickupScheduledDate) { this.pickupScheduledDate = pickupScheduledDate; }
-
-    public String getPickupStatus() { return pickupStatus; }
-    public void setPickupStatus(String pickupStatus) { this.pickupStatus = pickupStatus; }
 
     // *** ADMIN TRACKING GETTERS AND SETTERS ***
     public User getPrintedByAdmin() { return printedByAdmin; }

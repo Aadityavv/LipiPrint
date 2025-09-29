@@ -246,7 +246,6 @@ export default function TrackOrderScreen({ navigation }) {
     }
   };
 
-
   const getTrackingSteps = (order) => {
     const steps = [
       { key: 'PENDING', title: 'Order Placed', icon: 'shopping-cart', completed: true },
@@ -370,7 +369,6 @@ export default function TrackOrderScreen({ navigation }) {
                 </View>
               )}
         </View>
-
 
         {/* Progress Steps */}
         <View style={styles.progressContainer}>

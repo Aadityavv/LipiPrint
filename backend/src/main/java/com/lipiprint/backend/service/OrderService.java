@@ -6,7 +6,6 @@ import com.lipiprint.backend.repository.OrderRepository;
 import com.lipiprint.backend.repository.UserAddressRepository;
 import com.lipiprint.backend.dto.ShipmentResponse;
 import com.lipiprint.backend.dto.TrackingResponse;
-import com.lipiprint.backend.dto.PickupDetailsResponse;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import java.util.List;
@@ -282,52 +281,7 @@ public class OrderService {
             return nimbusPostService.trackShipment(order.getAwbNumber());
         }
         
-        throw new RuntimeException("Order has no shipping information");
-    }
-    
-    // ✅ NEW: Update order pickup details from NimbusPost
-    public void updateOrderPickupDetails(Long orderId) {
-        Order order = orderRepository.findById(orderId)
-            .orElseThrow(() -> new RuntimeException("Order not found"));
-            
-        if (order.hasShippingInfo() && order.getAwbNumber() != null) {
-            try {
-                PickupDetailsResponse pickupResponse = nimbusPostService.getPickupDetails(order.getAwbNumber());
-                
-                if (pickupResponse.isStatus()) {
-                    // Update order with pickup details
-                    order.setPickupName(pickupResponse.getPickupName());
-                    order.setPickupAddress(pickupResponse.getPickupAddress());
-                    order.setPickupCity(pickupResponse.getPickupCity());
-                    order.setPickupState(pickupResponse.getPickupState());
-                    order.setPickupPincode(pickupResponse.getPickupPincode());
-                    order.setPickupPhone(pickupResponse.getPickupPhone());
-                    order.setPickupScheduledDate(pickupResponse.getPickupScheduledDate());
-                    order.setPickupStatus(pickupResponse.getPickupStatus());
-                    
-                    orderRepository.save(order);
-                    logger.info("✅ Updated pickup details for order {}: {}", orderId, pickupResponse.getPickupStatus());
-                } else {
-                    logger.warn("⚠️ Failed to fetch pickup details for order {}: {}", orderId, pickupResponse.getMessage());
-                }
-            } catch (Exception e) {
-                logger.error("❌ Error updating pickup details for order {}: {}", orderId, e.getMessage(), e);
-            }
-        } else {
-            logger.warn("⚠️ Order {} has no shipping information or AWB number", orderId);
-        }
-    }
-    
-    // ✅ NEW: Get pickup details for an order
-    public PickupDetailsResponse getOrderPickupDetails(Long orderId) {
-        Order order = orderRepository.findById(orderId)
-            .orElseThrow(() -> new RuntimeException("Order not found"));
-            
-        if (order.hasShippingInfo() && order.getAwbNumber() != null) {
-            return nimbusPostService.getPickupDetails(order.getAwbNumber());
-        }
-        
-        throw new RuntimeException("Order has no shipping information");
+        throw new RuntimeException("No tracking available for this order. Order may be for pickup or shipping not yet created.");
     }
 
     public TrackingResponse getTrackingByAwb(String awbNumber) {

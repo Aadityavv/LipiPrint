@@ -154,62 +154,6 @@ const OrderCard = ({
         </div>
       </div>
 
-      {/* Pickup details for delivery orders */}
-      {order.deliveryType === 'DELIVERY' && (order.pickupName || order.pickupStatus) && (
-        <div className="pickup-details">
-          <div className="pickup-header">
-            <Truck size={14} className="pickup-icon" />
-            <span className="pickup-title">Pickup Details</span>
-          </div>
-          {order.pickupName && (
-            <div className="pickup-info">
-              <span className="pickup-label">Pickup Location:</span>
-              <span className="pickup-value">{order.pickupName}</span>
-            </div>
-          )}
-          {order.pickupAddress && (
-            <div className="pickup-info">
-              <span className="pickup-label">Address:</span>
-              <span className="pickup-value">{order.pickupAddress}</span>
-            </div>
-          )}
-          {order.pickupCity && order.pickupState && (
-            <div className="pickup-info">
-              <span className="pickup-label">Location:</span>
-              <span className="pickup-value">{order.pickupCity}, {order.pickupState} {order.pickupPincode}</span>
-            </div>
-          )}
-          {order.pickupPhone && (
-            <div className="pickup-info">
-              <span className="pickup-label">Phone:</span>
-              <span className="pickup-value">{order.pickupPhone}</span>
-            </div>
-          )}
-          {order.pickupStatus && (
-            <div className="pickup-info">
-              <span className="pickup-label">Status:</span>
-              <span className={`pickup-status ${order.pickupStatus.toLowerCase()}`}>
-                {order.pickupStatus}
-              </span>
-            </div>
-          )}
-          {order.pickupScheduledDate && (
-            <div className="pickup-info">
-              <span className="pickup-label">Scheduled:</span>
-              <span className="pickup-value">
-                {new Date(order.pickupScheduledDate).toLocaleDateString('en-US', {
-                  month: 'short',
-                  day: 'numeric',
-                  year: 'numeric',
-                  hour: '2-digit',
-                  minute: '2-digit'
-                })}
-              </span>
-            </div>
-          )}
-        </div>
-      )}
-
       {/* Admin tracking information */}
       {(order.printedByAdminName || order.processedByAdminName || order.completedByAdminName) && (
         <div className="admin-tracking">
