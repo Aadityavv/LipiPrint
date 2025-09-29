@@ -6,6 +6,7 @@ import com.lipiprint.backend.repository.OrderRepository;
 import com.lipiprint.backend.repository.UserAddressRepository;
 import com.lipiprint.backend.dto.ShipmentResponse;
 import com.lipiprint.backend.dto.TrackingResponse;
+import com.lipiprint.backend.dto.PickupDetailsResponse;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import java.util.List;

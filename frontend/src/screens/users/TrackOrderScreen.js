@@ -246,17 +246,6 @@ export default function TrackOrderScreen({ navigation }) {
     }
   };
 
-  const getPickupStatusColor = (status) => {
-    switch (status?.toLowerCase()) {
-      case 'scheduled': return '#f59e0b';
-      case 'pending': return '#f59e0b';
-      case 'in_progress': return '#3b82f6';
-      case 'completed': return '#10b981';
-      case 'failed': return '#ef4444';
-      case 'cancelled': return '#6b7280';
-      default: return '#6b7280';
-    }
-  };
 
   const getTrackingSteps = (order) => {
     const steps = [
@@ -382,60 +371,6 @@ export default function TrackOrderScreen({ navigation }) {
               )}
         </View>
 
-        {/* Pickup Details for Delivery Orders */}
-        {order.deliveryType === 'DELIVERY' && (order.pickupName || order.pickupStatus) && (
-          <View style={styles.pickupDetails}>
-            <View style={styles.pickupHeader}>
-              <Icon name="local-shipping" size={16} color="#0ea5e9" />
-              <Text style={styles.pickupTitle}>Pickup Details</Text>
-            </View>
-            {order.pickupName && (
-              <View style={styles.pickupInfo}>
-                <Text style={styles.pickupLabel}>Location:</Text>
-                <Text style={styles.pickupValue}>{order.pickupName}</Text>
-              </View>
-            )}
-            {order.pickupAddress && (
-              <View style={styles.pickupInfo}>
-                <Text style={styles.pickupLabel}>Address:</Text>
-                <Text style={styles.pickupValue}>{order.pickupAddress}</Text>
-              </View>
-            )}
-            {order.pickupCity && order.pickupState && (
-              <View style={styles.pickupInfo}>
-                <Text style={styles.pickupLabel}>Area:</Text>
-                <Text style={styles.pickupValue}>{order.pickupCity}, {order.pickupState} {order.pickupPincode}</Text>
-              </View>
-            )}
-            {order.pickupPhone && (
-              <View style={styles.pickupInfo}>
-                <Text style={styles.pickupLabel}>Phone:</Text>
-                <Text style={styles.pickupValue}>{order.pickupPhone}</Text>
-              </View>
-            )}
-            {order.pickupStatus && (
-              <View style={styles.pickupInfo}>
-                <Text style={styles.pickupLabel}>Status:</Text>
-                <View style={[styles.pickupStatusBadge, { backgroundColor: getPickupStatusColor(order.pickupStatus) }]}>
-                  <Text style={styles.pickupStatusText}>{order.pickupStatus}</Text>
-                </View>
-              </View>
-            )}
-            {order.pickupScheduledDate && (
-              <View style={styles.pickupInfo}>
-                <Text style={styles.pickupLabel}>Scheduled:</Text>
-                <Text style={styles.pickupValue}>
-                  {new Date(order.pickupScheduledDate).toLocaleDateString('en-US', {
-                    month: 'short',
-                    day: 'numeric',
-                    hour: '2-digit',
-                    minute: '2-digit'
-                  })}
-                </Text>
-              </View>
-            )}
-          </View>
-        )}
 
         {/* Progress Steps */}
         <View style={styles.progressContainer}>
@@ -1113,62 +1048,5 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: 'white',
     marginLeft: 6,
-  },
-  // Pickup details styles
-  pickupDetails: {
-    backgroundColor: '#f0f9ff',
-    borderWidth: 1,
-    borderColor: '#bae6fd',
-    borderRadius: 8,
-    padding: 12,
-    marginVertical: 8,
-    borderLeftWidth: 4,
-    borderLeftColor: '#0ea5e9',
-  },
-  pickupHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 8,
-    paddingBottom: 6,
-    borderBottomWidth: 1,
-    borderBottomColor: '#bae6fd',
-  },
-  pickupTitle: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: '#0c4a6e',
-    marginLeft: 6,
-    textTransform: 'uppercase',
-    letterSpacing: 0.5,
-  },
-  pickupInfo: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    marginBottom: 4,
-  },
-  pickupLabel: {
-    fontSize: 11,
-    fontWeight: '500',
-    color: '#0c4a6e',
-    minWidth: 60,
-    marginRight: 8,
-  },
-  pickupValue: {
-    fontSize: 11,
-    color: '#1e40af',
-    fontWeight: '500',
-    flex: 1,
-  },
-  pickupStatusBadge: {
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-    borderRadius: 8,
-    alignSelf: 'flex-start',
-  },
-  pickupStatusText: {
-    fontSize: 10,
-    fontWeight: '600',
-    color: 'white',
-    textTransform: 'uppercase',
   },
 }); 

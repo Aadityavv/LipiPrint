@@ -6,6 +6,7 @@ import com.lipiprint.backend.config.NimbusPostConfig;
 import com.lipiprint.backend.dto.ShipmentRequest;
 import com.lipiprint.backend.dto.ShipmentResponse;
 import com.lipiprint.backend.dto.TrackingResponse;
+import com.lipiprint.backend.dto.PickupDetailsResponse;
 import com.lipiprint.backend.entity.Order;
 import com.lipiprint.backend.entity.UserAddress;
 
