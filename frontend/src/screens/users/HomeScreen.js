@@ -132,6 +132,18 @@ const quickActions = [
     }
   };
 
+  const getPickupStatusColor = (status) => {
+    switch (status?.toLowerCase()) {
+      case 'scheduled': return '#f59e0b';
+      case 'pending': return '#f59e0b';
+      case 'in_progress': return '#3b82f6';
+      case 'completed': return '#10b981';
+      case 'failed': return '#ef4444';
+      case 'cancelled': return '#6b7280';
+      default: return '#6b7280';
+    }
+  };
+
 function getGradientColors(title) {
   switch (title) {
     case 'Upload & Print':
@@ -295,6 +307,23 @@ function getGradientColors(title) {
                       <Text style={styles.awbText}>
                         AWB: {order.awbNumber}
                       </Text>
+                    )}
+                    {/* Pickup details for delivery orders */}
+                    {order.deliveryType === 'DELIVERY' && (order.pickupName || order.pickupStatus) && (
+                      <View style={styles.pickupDetails}>
+                        <View style={styles.pickupHeader}>
+                          <Icon name="local-shipping" size={12} color="#0ea5e9" />
+                          <Text style={styles.pickupTitle}>Pickup</Text>
+                        </View>
+                        {order.pickupName && (
+                          <Text style={styles.pickupText}>{order.pickupName}</Text>
+                        )}
+                        {order.pickupStatus && (
+                          <View style={[styles.pickupStatusBadge, { backgroundColor: getPickupStatusColor(order.pickupStatus) }]}>
+                            <Text style={styles.pickupStatusText}>{order.pickupStatus}</Text>
+                          </View>
+                        )}
+                      </View>
                     )}
                   </View>
                   <View style={styles.orderPrice}>
@@ -604,5 +633,47 @@ const styles = StyleSheet.create({
   marginTop: 2,
   letterSpacing: 0.1,
 },
-
+  // Pickup details styles
+  pickupDetails: {
+    backgroundColor: '#f0f9ff',
+    borderWidth: 1,
+    borderColor: '#bae6fd',
+    borderRadius: 6,
+    padding: 8,
+    marginTop: 6,
+    borderLeftWidth: 3,
+    borderLeftColor: '#0ea5e9',
+  },
+  pickupHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 4,
+  },
+  pickupTitle: {
+    fontSize: 10,
+    fontWeight: '600',
+    color: '#0c4a6e',
+    marginLeft: 4,
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+  },
+  pickupText: {
+    fontSize: 10,
+    color: '#1e40af',
+    fontWeight: '500',
+    marginTop: 2,
+  },
+  pickupStatusBadge: {
+    paddingHorizontal: 4,
+    paddingVertical: 2,
+    borderRadius: 6,
+    alignSelf: 'flex-start',
+    marginTop: 4,
+  },
+  pickupStatusText: {
+    fontSize: 8,
+    fontWeight: '600',
+    color: 'white',
+    textTransform: 'uppercase',
+  },
 });

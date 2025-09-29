@@ -517,6 +517,7 @@ export default function InvoiceDetailScreen() {
     return name;
   };
 
+
   // Group print jobs by print options
   function groupPrintJobsByOptions(printJobs) {
     if (!printJobs) return [];
@@ -678,6 +679,7 @@ export default function InvoiceDetailScreen() {
             </View>
           </View>
         </Animatable.View>
+
 
         {/* Print Jobs Card */}
         <Animatable.View animation="fadeInUp" delay={400} duration={500} style={styles.printJobsCard}>
