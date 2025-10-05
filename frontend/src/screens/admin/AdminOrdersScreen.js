@@ -125,22 +125,8 @@ export default function AdminOrdersScreen({ navigation }) {
     fetchOrders(true);
   }, []);
 
-  // ✅ NEW: Auto-fetch tracking data for orders that need it
-  useEffect(() => {
-    if (orders.length > 0) {
-      // Auto-fetch tracking for orders that are out for delivery or delivered
-      const ordersNeedingTracking = orders.filter(order => 
-        (order.status === 'OUT_FOR_DELIVERY' || order.status === 'DELIVERED' || order.status === 'COMPLETED') &&
-        !trackingData[order.id] && 
-        !loadingTracking[order.id]
-      );
-      
-      // Fetch tracking for up to 3 orders at a time to avoid overwhelming the API
-      ordersNeedingTracking.slice(0, 3).forEach(order => {
-        fetchTrackingData(order.id);
-      });
-    }
-  }, [orders]);
+  // ✅ REMOVED: Auto-fetch tracking - Now only fetches when user clicks "Track" button
+  // This prevents repeated API calls and 400 errors for orders without tracking info
 
   useEffect(() => {
     if (activeTab === 'orders' || activeTab === 'recentOrders') fetchOrders(true);
@@ -267,7 +253,14 @@ export default function AdminOrdersScreen({ navigation }) {
       setTrackingData(prev => ({ ...prev, [orderId]: tracking }));
     } catch (e) {
       console.error('Failed to fetch tracking data:', e);
-      showAlert('Error', 'Failed to fetch tracking information', 'error');
+      // Set error state instead of showing alert (some orders might not have tracking yet)
+      setTrackingData(prev => ({ 
+        ...prev, 
+        [orderId]: { 
+          error: true, 
+          message: e.message || 'Tracking information not available for this order' 
+        } 
+      }));
     } finally {
       setLoadingTracking(prev => ({ ...prev, [orderId]: false }));
     }
@@ -305,6 +298,14 @@ export default function AdminOrdersScreen({ navigation }) {
   const getDeliveryStatus = (orderId) => {
     const tracking = trackingData[orderId];
     if (!tracking) return null;
+    
+    // Handle error state
+    if (tracking.error) {
+      return {
+        error: true,
+        message: tracking.message || 'Tracking not available'
+      };
+    }
     
     return {
       currentStatus: tracking.currentStatus || 'Unknown',
@@ -572,7 +573,7 @@ export default function AdminOrdersScreen({ navigation }) {
           {/* ✅ NEW: Delivery tracking information - Show for all orders */}
           {true && (
             <View style={styles.deliveryTracking}>
-              <View style={styles.trackingHeader}>
+              {/* <View style={styles.trackingHeader}>
                 <Icon name="local-shipping" size={14} color="#3B82F6" />
                 <Text style={styles.trackingTitle}>Delivery Status</Text>
                 {!trackingData[item.id] && (
@@ -588,7 +589,7 @@ export default function AdminOrdersScreen({ navigation }) {
                     )}
                   </TouchableOpacity>
                 )}
-              </View>
+              </View> */}
               
               {(() => {
                 const deliveryStatus = getDeliveryStatus(item.id);
@@ -615,6 +616,20 @@ export default function AdminOrdersScreen({ navigation }) {
                           Click "Track" to fetch detailed delivery status
                         </Text>
                       )}
+                    </View>
+                  );
+                }
+                
+                // Handle error state
+                if (deliveryStatus.error) {
+                  return (
+                    <View style={styles.trackingDetails}>
+                      <Text style={styles.trackingStatus}>
+                        ⚠️ {deliveryStatus.message}
+                      </Text>
+                      <Text style={styles.trackingLocation}>
+                        This order may not have been shipped yet, or tracking is not available.
+                      </Text>
                     </View>
                   );
                 }
@@ -836,14 +851,14 @@ export default function AdminOrdersScreen({ navigation }) {
             </TouchableOpacity>
             <Text style={styles.headerTitle}>Manage Orders</Text>
             <View style={styles.headerActions}>
-              <TouchableOpacity 
+              {/* <TouchableOpacity 
                 style={styles.headerActionButton} 
                 onPress={() => {
                   showAlert('Info', 'Please wait for orders to load first', 'info');
                 }}
               >
                 <Icon name="track-changes" size={18} color="white" />
-              </TouchableOpacity>
+              </TouchableOpacity> */}
               <TouchableOpacity style={styles.refreshButton} onPress={() => fetchOrders(true)}>
                 <Icon name="refresh" size={20} color="white" />
               </TouchableOpacity>
@@ -867,7 +882,7 @@ export default function AdminOrdersScreen({ navigation }) {
           </TouchableOpacity>
           <Text style={styles.headerTitle}>Manage Orders</Text>
           <View style={styles.headerActions}>
-            <TouchableOpacity 
+            {/* <TouchableOpacity 
               style={styles.headerActionButton} 
               onPress={() => {
                 // Track all orders that don't have tracking data yet
@@ -881,7 +896,7 @@ export default function AdminOrdersScreen({ navigation }) {
               }}
             >
               <Icon name="track-changes" size={18} color="white" />
-            </TouchableOpacity>
+            </TouchableOpacity> */}
             <TouchableOpacity style={styles.refreshButton} onPress={() => fetchOrders(true)}>
               <Icon name="refresh" size={20} color="white" />
             </TouchableOpacity>
@@ -932,10 +947,10 @@ export default function AdminOrdersScreen({ navigation }) {
             <Text style={styles.summaryValue}>{summaryStats.completedOrders}</Text>
             <Text style={styles.summaryLabel}>Completed</Text>
           </View>
-          <View style={styles.summaryItem}>
+          {/* <View style={styles.summaryItem}>
             <Text style={styles.summaryValue}>{Object.keys(trackingData).length}</Text>
             <Text style={styles.summaryLabel}>Tracked</Text>
-          </View>
+          </View> */}
         </View>
 
         {renderStatusFilter()}
@@ -1110,7 +1125,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    minHeight: 36,
+    minHeight: 46,
   },
   backButton: {
     padding: 6,

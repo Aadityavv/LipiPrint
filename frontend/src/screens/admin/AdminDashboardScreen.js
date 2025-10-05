@@ -28,30 +28,30 @@ export default function AdminDashboardScreen({ navigation }) {
   const [canEdit, setCanEdit] = useState(false);
 
   const allQuickActions = [
-    {
-      title: 'Manage Orders',
-      icon: <Icon name="assignment" size={22} color="#fff" />, 
-      color: '#1976D2',
-      iconBg: '#1976D2',
-      onPress: () => navigation.navigate('AdminTabs', { screen: 'AdminOrders' }),
-      requiresEdit: false
-    },
-    {
-      title: 'User Management',
-      icon: <Icon name="people" size={22} color="#fff" />, 
-      color: '#388E3C',
-      iconBg: '#388E3C',
-      onPress: () => navigation.navigate('AdminUsers'),
-      requiresEdit: false
-    },
-    {
-      title: 'Analytics',
-      icon: <Icon name="analytics" size={22} color="#fff" />, 
-      color: '#FBC02D',
-      iconBg: '#FBC02D',
-      onPress: () => navigation.navigate('AdminAnalytics'),
-      requiresEdit: false
-    },
+    // {
+    //   title: 'Manage Orders',
+    //   icon: <Icon name="assignment" size={22} color="#fff" />, 
+    //   color: '#1976D2',
+    //   iconBg: '#1976D2',
+    //   onPress: () => navigation.navigate('AdminTabs', { screen: 'AdminOrders' }),
+    //   requiresEdit: false
+    // },
+    // {
+    //   title: 'User Management',
+    //   icon: <Icon name="people" size={22} color="#fff" />, 
+    //   color: '#388E3C',
+    //   iconBg: '#388E3C',
+    //   onPress: () => navigation.navigate('AdminUsers'),
+    //   requiresEdit: false
+    // },
+    // {
+    //   title: 'Analytics',
+    //   icon: <Icon name="analytics" size={22} color="#fff" />, 
+    //   color: '#FBC02D',
+    //   iconBg: '#FBC02D',
+    //   onPress: () => navigation.navigate('AdminAnalytics'),
+    //   requiresEdit: false
+    // },
     {
       title: 'Update Services',
       icon: <Icon name="build" size={22} color="#fff" />, 
@@ -68,14 +68,14 @@ export default function AdminDashboardScreen({ navigation }) {
       onPress: () => navigation.navigate('AdminDiscountScreen'),
       requiresEdit: true
     },
-    {
-      title: 'Settings',
-      icon: <Icon name="settings" size={22} color="#fff" />, 
-      color: '#7B1FA2',
-      iconBg: '#7B1FA2',
-      onPress: () => navigation.navigate('AdminSettings'),
-      requiresEdit: true
-    },
+    // {
+    //   title: 'Settings',
+    //   icon: <Icon name="settings" size={22} color="#fff" />, 
+    //   color: '#7B1FA2',
+    //   iconBg: '#7B1FA2',
+    //   onPress: () => navigation.navigate('AdminSettings'),
+    //   requiresEdit: true
+    // },
     {
       title: 'Failed Payments',
       icon: <Icon name="error-outline" size={22} color="#fff" />, 
@@ -84,14 +84,14 @@ export default function AdminDashboardScreen({ navigation }) {
       onPress: () => navigation.navigate('AdminReconciliationScreen', { tab: 'failedPayments' }),
       requiresEdit: false
     },
-    {
-      title: 'Payments w/o Order',
-      icon: <Icon name="payment" size={22} color="#fff" />, 
-      color: '#0288D1',
-      iconBg: '#0288D1',
-      onPress: () => navigation.navigate('AdminReconciliationScreen', { tab: 'paymentsNoOrder' }),
-      requiresEdit: false
-    },
+    // {
+    //   title: 'Payments w/o Order',
+    //   icon: <Icon name="payment" size={22} color="#fff" />, 
+    //   color: '#0288D1',
+    //   iconBg: '#0288D1',
+    //   onPress: () => navigation.navigate('AdminReconciliationScreen', { tab: 'paymentsNoOrder' }),
+    //   requiresEdit: false
+    // },
     {
       title: 'File Manager',
       icon: <Icon name="folder" size={22} color="#fff" />, 
@@ -264,9 +264,9 @@ export default function AdminDashboardScreen({ navigation }) {
         <View style={styles.sectionModern}>
           <View style={styles.sectionHeaderModern}>
             <Text style={styles.sectionTitleModern}>Recent Activity</Text>
-            <TouchableOpacity onPress={() => navigation.navigate('AdminAnalytics')}>
+            {/* <TouchableOpacity onPress={() => navigation.navigate('AdminAnalytics')}>
               <Text style={styles.viewAllTextModern}>View All</Text>
-            </TouchableOpacity>
+            </TouchableOpacity> */}
           </View>
           <View style={styles.timelineWrap}>
           {(recentActivities || []).length === 0 ? (

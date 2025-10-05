@@ -56,7 +56,7 @@ export default function DeliveryOptionsScreen({ navigation, route }) {
 
     setCheckingServiceability(true);
     try {
-      const response = await ApiService.request(`/api/shipping/serviceability/${pincodeValue}`);
+      const response = await ApiService.request(`/shipping/serviceability/${pincodeValue}`);
       setPincodeServiceable(response);
       
       if (response.serviceable) {
