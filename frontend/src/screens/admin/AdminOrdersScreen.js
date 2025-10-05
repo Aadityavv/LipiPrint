@@ -43,6 +43,8 @@ export default function AdminOrdersScreen({ navigation }) {
   const flatListRef = useRef(null);
   const [invoiceModal, setInvoiceModal] = useState({ visible: false, filePath: '', orderId: null, url: '', loading: false });
   const [refreshing, setRefreshing] = useState(false);
+  const [trackingData, setTrackingData] = useState({});
+  const [loadingTracking, setLoadingTracking] = useState({});
 
   const fetchOrders = async (reset = false) => {
     if (reset && typeof reset === 'object' && reset.nativeEvent) reset = true;
@@ -122,6 +124,23 @@ export default function AdminOrdersScreen({ navigation }) {
   useEffect(() => {
     fetchOrders(true);
   }, []);
+
+  // ✅ NEW: Auto-fetch tracking data for orders that need it
+  useEffect(() => {
+    if (orders.length > 0) {
+      // Auto-fetch tracking for orders that are out for delivery or delivered
+      const ordersNeedingTracking = orders.filter(order => 
+        (order.status === 'OUT_FOR_DELIVERY' || order.status === 'DELIVERED' || order.status === 'COMPLETED') &&
+        !trackingData[order.id] && 
+        !loadingTracking[order.id]
+      );
+      
+      // Fetch tracking for up to 3 orders at a time to avoid overwhelming the API
+      ordersNeedingTracking.slice(0, 3).forEach(order => {
+        fetchTrackingData(order.id);
+      });
+    }
+  }, [orders]);
 
   useEffect(() => {
     if (activeTab === 'orders' || activeTab === 'recentOrders') fetchOrders(true);
@@ -233,6 +252,68 @@ export default function AdminOrdersScreen({ navigation }) {
     } finally {
       setUpdatingId(null);
     }
+  };
+
+  // ✅ NEW: Fetch tracking data for an order
+  const fetchTrackingData = async (orderId) => {
+    if (trackingData[orderId] || loadingTracking[orderId]) return;
+    
+    setLoadingTracking(prev => ({ ...prev, [orderId]: true }));
+    try {
+      console.log('Fetching tracking data for order:', orderId);
+      const tracking = await api.trackOrder(orderId);
+      console.log('Tracking data received:', tracking);
+      
+      setTrackingData(prev => ({ ...prev, [orderId]: tracking }));
+    } catch (e) {
+      console.error('Failed to fetch tracking data:', e);
+      showAlert('Error', 'Failed to fetch tracking information', 'error');
+    } finally {
+      setLoadingTracking(prev => ({ ...prev, [orderId]: false }));
+    }
+  };
+
+  // ✅ NEW: Get pickup information from tracking data
+  const getPickupInfo = (orderId) => {
+    const tracking = trackingData[orderId];
+    if (!tracking || !tracking.trackingData || !Array.isArray(tracking.trackingData)) return null;
+    
+    // Look for pickup-related events
+    const pickupEvents = tracking.trackingData.filter(event => 
+      event && event.activity && (
+        event.activity.toLowerCase().includes('pickup') ||
+        event.activity.toLowerCase().includes('collected') ||
+        event.activity.toLowerCase().includes('picked up') ||
+        event.status === 'pickup'
+      )
+    );
+    
+    if (pickupEvents.length > 0) {
+      const latestPickup = pickupEvents[0];
+      return {
+        date: latestPickup.date || latestPickup.timestamp || 'Unknown',
+        location: latestPickup.location || 'Unknown',
+        description: latestPickup.activity || latestPickup.description || 'Pickup completed',
+        courier: tracking.courierName || 'Unknown'
+      };
+    }
+    
+    return null;
+  };
+
+  // ✅ NEW: Get current delivery status from tracking data
+  const getDeliveryStatus = (orderId) => {
+    const tracking = trackingData[orderId];
+    if (!tracking) return null;
+    
+    return {
+      currentStatus: tracking.currentStatus || 'Unknown',
+      lastLocation: tracking.lastLocation || 'Not available',
+      expectedDelivery: tracking.expectedDeliveryDate || 'Not available',
+      deliveredDate: tracking.deliveredDate || null,
+      courierName: tracking.courierName || 'Not available',
+      awbNumber: tracking.awbNumber || 'Not available'
+    };
   };
 
   const blobToBase64 = (blob) => {
@@ -488,6 +569,117 @@ export default function AdminOrdersScreen({ navigation }) {
             </View>
           )}
 
+          {/* ✅ NEW: Delivery tracking information - Show for all orders */}
+          {true && (
+            <View style={styles.deliveryTracking}>
+              <View style={styles.trackingHeader}>
+                <Icon name="local-shipping" size={14} color="#3B82F6" />
+                <Text style={styles.trackingTitle}>Delivery Status</Text>
+                {!trackingData[item.id] && (
+                  <TouchableOpacity
+                    style={styles.trackButton}
+                    onPress={() => fetchTrackingData(item.id)}
+                    disabled={loadingTracking[item.id]}
+                  >
+                    {loadingTracking[item.id] ? (
+                      <ActivityIndicator size="small" color="#3B82F6" />
+                    ) : (
+                      <Text style={styles.trackButtonText}>Track</Text>
+                    )}
+                  </TouchableOpacity>
+                )}
+              </View>
+              
+              {(() => {
+                const deliveryStatus = getDeliveryStatus(item.id);
+                const pickupInfo = getPickupInfo(item.id);
+                
+                // If no tracking data is available, show a message based on order status
+                if (!deliveryStatus) {
+                  const statusMessage = {
+                    'PENDING': 'Order is pending - not yet shipped',
+                    'PROCESSING': 'Order is being processed - preparing for shipment',
+                    'COMPLETED': 'Order completed - ready for pickup/shipment',
+                    'OUT_FOR_DELIVERY': 'Order is out for delivery - click Track for details',
+                    'DELIVERED': 'Order delivered - click Track for delivery details',
+                    'CANCELLED': 'Order cancelled'
+                  };
+                  
+                  return (
+                    <View style={styles.trackingDetails}>
+                      <Text style={styles.trackingStatus}>
+                        📦 {statusMessage[item.status] || 'Order status unknown'}
+                      </Text>
+                      {(item.status === 'OUT_FOR_DELIVERY' || item.status === 'DELIVERED' || item.status === 'COMPLETED') && (
+                        <Text style={styles.trackingLocation}>
+                          Click "Track" to fetch detailed delivery status
+                        </Text>
+                      )}
+                    </View>
+                  );
+                }
+                
+                return (
+                  <View style={styles.trackingDetails}>
+                    {deliveryStatus.currentStatus && deliveryStatus.currentStatus !== 'Unknown' && (
+                      <Text style={styles.trackingStatus}>
+                        📦 Status: {deliveryStatus.currentStatus}
+                      </Text>
+                    )}
+                    {deliveryStatus.lastLocation && deliveryStatus.lastLocation !== 'Not available' && (
+                      <Text style={styles.trackingLocation}>
+                        📍 Last Location: {deliveryStatus.lastLocation}
+                      </Text>
+                    )}
+                    {deliveryStatus.expectedDelivery && deliveryStatus.expectedDelivery !== 'Not available' && (
+                      <Text style={styles.trackingExpected}>
+                        📅 Expected: {deliveryStatus.expectedDelivery}
+                      </Text>
+                    )}
+                    {deliveryStatus.deliveredDate && (
+                      <Text style={styles.trackingDelivered}>
+                        ✅ Delivered: {deliveryStatus.deliveredDate}
+                      </Text>
+                    )}
+                    {deliveryStatus.courierName && deliveryStatus.courierName !== 'Not available' && (
+                      <Text style={styles.trackingCourier}>
+                        🚚 Courier: {deliveryStatus.courierName}
+                      </Text>
+                    )}
+                    {deliveryStatus.awbNumber && deliveryStatus.awbNumber !== 'Not available' && (
+                      <Text style={styles.trackingAwb}>
+                        🏷️ AWB: {deliveryStatus.awbNumber}
+                      </Text>
+                    )}
+                    
+                    {/* Pickup information */}
+                    {pickupInfo && (
+                      <View style={styles.pickupInfo}>
+                        <Text style={styles.pickupTitle}>📦 Pickup Details:</Text>
+                        <Text style={styles.pickupDate}>
+                          📅 {pickupInfo.date}
+                        </Text>
+                        {pickupInfo.location && (
+                          <Text style={styles.pickupLocation}>
+                            📍 {pickupInfo.location}
+                          </Text>
+                        )}
+                        <Text style={styles.pickupDescription}>
+                          {pickupInfo.description}
+                        </Text>
+                        {pickupInfo.courier && (
+                          <Text style={styles.pickupCourier}>
+                            🚚 {pickupInfo.courier}
+                          </Text>
+                        )}
+                      </View>
+                    )}
+                  </View>
+                );
+              })()}
+            </View>
+          )}
+
           <View style={styles.orderStats}>
             <View style={styles.statItem}>
               <Text style={styles.statValue}>₹{item.totalAmount?.toFixed(2) || '0.00'}</Text>
@@ -643,9 +835,19 @@ export default function AdminOrdersScreen({ navigation }) {
               <Icon name="arrow-back" size={20} color="white" />
             </TouchableOpacity>
             <Text style={styles.headerTitle}>Manage Orders</Text>
-            <TouchableOpacity style={styles.refreshButton} onPress={() => fetchOrders(true)}>
-              <Icon name="refresh" size={20} color="white" />
-            </TouchableOpacity>
+            <View style={styles.headerActions}>
+              <TouchableOpacity 
+                style={styles.headerActionButton} 
+                onPress={() => {
+                  showAlert('Info', 'Please wait for orders to load first', 'info');
+                }}
+              >
+                <Icon name="track-changes" size={18} color="white" />
+              </TouchableOpacity>
+              <TouchableOpacity style={styles.refreshButton} onPress={() => fetchOrders(true)}>
+                <Icon name="refresh" size={20} color="white" />
+              </TouchableOpacity>
+            </View>
           </View>
         </LinearGradient>
         <View style={styles.loadingContainer}>
@@ -664,9 +866,26 @@ export default function AdminOrdersScreen({ navigation }) {
             <Icon name="arrow-back" size={20} color="white" />
           </TouchableOpacity>
           <Text style={styles.headerTitle}>Manage Orders</Text>
-          <TouchableOpacity style={styles.refreshButton} onPress={() => fetchOrders(true)}>
-            <Icon name="refresh" size={20} color="white" />
-          </TouchableOpacity>
+          <View style={styles.headerActions}>
+            <TouchableOpacity 
+              style={styles.headerActionButton} 
+              onPress={() => {
+                // Track all orders that don't have tracking data yet
+                const trackableOrders = orders.filter(order => 
+                  !trackingData[order.id] && !loadingTracking[order.id]
+                );
+                trackableOrders.forEach(order => {
+                  fetchTrackingData(order.id);
+                });
+                showAlert('Info', `Tracking initiated for ${trackableOrders.length} orders`, 'info');
+              }}
+            >
+              <Icon name="track-changes" size={18} color="white" />
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.refreshButton} onPress={() => fetchOrders(true)}>
+              <Icon name="refresh" size={20} color="white" />
+            </TouchableOpacity>
+          </View>
         </View>
       </LinearGradient>
 
@@ -714,8 +933,8 @@ export default function AdminOrdersScreen({ navigation }) {
             <Text style={styles.summaryLabel}>Completed</Text>
           </View>
           <View style={styles.summaryItem}>
-            <Text style={styles.summaryValue}>₹{summaryStats.totalRevenue.toFixed(0)}</Text>
-            <Text style={styles.summaryLabel}>Revenue</Text>
+            <Text style={styles.summaryValue}>{Object.keys(trackingData).length}</Text>
+            <Text style={styles.summaryLabel}>Tracked</Text>
           </View>
         </View>
 
@@ -904,6 +1123,14 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
   },
   refreshButton: {
+    padding: 6,
+  },
+  headerActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+  headerActionButton: {
     padding: 6,
   },
   content: {
@@ -1250,5 +1477,101 @@ const styles = StyleSheet.create({
     color: 'white',
     fontWeight: 'bold',
     fontSize: 14,
+  },
+  // ✅ NEW: Delivery tracking styles
+  deliveryTracking: {
+    backgroundColor: '#F0F9FF',
+    borderRadius: 8,
+    padding: 8,
+    marginBottom: 8,
+    borderLeftWidth: 3,
+    borderLeftColor: '#3B82F6',
+  },
+  trackingHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 6,
+  },
+  trackingTitle: {
+    fontSize: 12,
+    fontWeight: 'bold',
+    color: '#1E40AF',
+    marginLeft: 4,
+    flex: 1,
+  },
+  trackButton: {
+    backgroundColor: '#3B82F6',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 4,
+  },
+  trackButtonText: {
+    color: 'white',
+    fontSize: 10,
+    fontWeight: '600',
+  },
+  trackingDetails: {
+    gap: 2,
+  },
+  trackingStatus: {
+    fontSize: 11,
+    color: '#1F2937',
+    fontWeight: '600',
+  },
+  trackingLocation: {
+    fontSize: 10,
+    color: '#6B7280',
+  },
+  trackingExpected: {
+    fontSize: 10,
+    color: '#059669',
+  },
+  trackingDelivered: {
+    fontSize: 10,
+    color: '#10B981',
+    fontWeight: '600',
+  },
+  trackingCourier: {
+    fontSize: 10,
+    color: '#7C3AED',
+  },
+  trackingAwb: {
+    fontSize: 10,
+    color: '#DC2626',
+    fontFamily: 'monospace',
+  },
+  pickupInfo: {
+    backgroundColor: '#FEF3C7',
+    borderRadius: 6,
+    padding: 6,
+    marginTop: 4,
+    borderLeftWidth: 2,
+    borderLeftColor: '#F59E0B',
+  },
+  pickupTitle: {
+    fontSize: 11,
+    fontWeight: 'bold',
+    color: '#92400E',
+    marginBottom: 2,
+  },
+  pickupDate: {
+    fontSize: 10,
+    color: '#B45309',
+    fontWeight: '600',
+  },
+  pickupLocation: {
+    fontSize: 10,
+    color: '#B45309',
+  },
+  pickupDescription: {
+    fontSize: 10,
+    color: '#92400E',
+    fontStyle: 'italic',
+  },
+  pickupCourier: {
+    fontSize: 10,
+    color: '#B45309',
+    fontWeight: '600',
   },
 });

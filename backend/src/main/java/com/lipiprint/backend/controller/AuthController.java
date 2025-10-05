@@ -262,9 +262,9 @@ public class AuthController {
             String email = request.get("email").trim().toLowerCase();
             String newPassword = request.get("newPassword");
             
-            if (newPassword == null || newPassword.length() < 6) {
+            if (newPassword == null || newPassword.length() < 4) {
                 return ResponseEntity.badRequest()
-                    .body(new MessageResponse("Password must be at least 6 characters long."));
+                    .body(new MessageResponse("Password must be at least 4 characters long."));
             }
             
             // Find user by email
