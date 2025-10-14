@@ -649,6 +649,79 @@
   },
   "commands": [
     {
+      "name": "set-icon",
+      "description": "\u001b[1m\u001b[41mâ�±m\u001b[49m\u001b[22m\u001b[41make\u001b[49m generate app icons",
+      "options": [
+        {
+          "name": "--path <string>",
+          "description": "path to your image file (mandatory)"
+        },
+        {
+          "name": "--platform [type]",
+          "description": "ios or android",
+          "default": "all"
+        },
+        {
+          "name": "--background [string]",
+          "description": "background color",
+          "default": "#ffffff"
+        }
+      ],
+      "examples": [
+        {
+          "desc": "set the app icon for both devices",
+          "cmd": "react-native set-icon --path <path-to-image> --background <background-color-for-android>"
+        },
+        {
+          "desc": "set the app icon for iOS",
+          "cmd": "react-native set-icon --platform ios --path <path-to-image>"
+        },
+        {
+          "desc": "set the app icon for both devices",
+          "cmd": "react-native set-icon --platform android --path <path-to-image> --background <background-color>"
+        }
+      ]
+    },
+    {
+      "name": "set-splash",
+      "description": "\u001b[1m\u001b[41mâ�±m\u001b[49m\u001b[22m\u001b[41make\u001b[49m generate app splash screen",
+      "options": [
+        {
+          "name": "--path <string>",
+          "description": "path to your image file (mandatory)"
+        },
+        {
+          "name": "--platform [type]",
+          "description": "all, ios, android",
+          "default": "all"
+        },
+        {
+          "name": "--resize [string]",
+          "description": "contain, cover, center",
+          "default": "contain"
+        },
+        {
+          "name": "--background [string]",
+          "description": "background color",
+          "default": "#ffffff"
+        }
+      ],
+      "examples": [
+        {
+          "desc": "set the splash screen for both devices",
+          "cmd": "react-native set-splash --path <path-to-image>  --resize <cover|contain|center> --background \"<background-color>\""
+        },
+        {
+          "desc": "set the splash screen for iOS",
+          "cmd": "react-native set-splash --platform ios --path <path-to-image> --resize <cover|contain|center> --background \"<background-color>\""
+        },
+        {
+          "desc": "set the splash screen for Android",
+          "cmd": "react-native set-splash --platform android --path <path-to-image> --resize <cover|contain|center> --background \"<background-color>\""
+        }
+      ]
+    },
+    {
       "name": "bundle",
       "description": "Build the bundle for the provided JavaScript entry file.",
       "options": [

@@ -112,6 +112,12 @@ const InvoiceGenerator = {
     const finalGst = gst || 0;
     const finalDelivery = delivery || 0;
     const finalTotal = grandTotal || totalAmount || 0;
+    
+    // Check if this is a Uttar Pradesh pincode for CGST/SGST or IGST
+    const isUttarPradesh = deliveryAddress && /\b(20\d{4}|21\d{4}|22\d{4}|23\d{4}|24\d{4}|25\d{4}|26\d{4}|27\d{4}|28\d{4})\b/.test(deliveryAddress);
+    const cgst = isUttarPradesh ? finalGst / 2 : 0;
+    const sgst = isUttarPradesh ? finalGst / 2 : 0;
+    const igst = !isUttarPradesh ? finalGst : 0;
 
     // Generate order items HTML
     const orderItemsHTML = safePrintJobs.map(printJob => {
@@ -229,7 +235,11 @@ const InvoiceGenerator = {
             <table class="totals" style="background:#f8f9fa;border-radius:10px;padding:10px;">
                 <tr><td class="label">Subtotal</td><td class="value">INR ${finalSubtotal.toFixed(2)}</td></tr>
                 ${finalDiscount > 0 ? `<tr><td class="label">Discount</td><td class="value">INR -${finalDiscount.toFixed(2)}</td></tr>` : ''}
-                <tr><td class="label">GST (18%)</td><td class="value">INR ${finalGst.toFixed(2)}</td></tr>
+                ${isUttarPradesh ? 
+                  `<tr><td class="label">CGST (9%)</td><td class="value">INR ${cgst.toFixed(2)}</td></tr>
+                   <tr><td class="label">SGST (9%)</td><td class="value">INR ${sgst.toFixed(2)}</td></tr>` :
+                  `<tr><td class="label">IGST (18%)</td><td class="value">INR ${igst.toFixed(2)}</td></tr>`
+                }
                 <tr><td class="label">Delivery</td><td class="value">INR ${finalDelivery.toFixed(2)}</td></tr>
                 <tr><td class="label grand-total">Grand Total</td><td class="value grand-total">INR ${finalTotal.toFixed(2)}</td></tr>
             </table>

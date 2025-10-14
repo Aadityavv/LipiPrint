@@ -127,6 +127,13 @@ public class OrderController {
             order.setUser(user);
             order.setDeliveryType(Order.DeliveryType.valueOf(orderDTO.getDeliveryType().toUpperCase()));
             order.setDeliveryAddress(deliveryAddressDisplay);
+            
+            // Store pincode and state for GST calculation
+            if (deliveryAddress != null) {
+                order.setDeliveryPincode(deliveryAddress.getPincode());
+                order.setDeliveryState(deliveryAddress.getState());
+            }
+            
             order.setStatus(Order.Status.PENDING);
             order.setTotalAmount(orderDTO.getTotalAmount());
 
@@ -176,15 +183,24 @@ public class OrderController {
             }
 
             if (order.getPrintJobs() != null && !order.getPrintJobs().isEmpty()) {
-                PricingService.PriceSummary summary = pricingService.calculatePriceSummaryForPrintJobs(order.getPrintJobs());
+                // Pass pincode to pricing service for CGST/SGST calculation
+                String pincode = deliveryAddress != null ? deliveryAddress.getPincode() : null;
+                PricingService.PriceSummary summary = pricingService.calculatePriceSummaryForPrintJobs(order.getPrintJobs(), pincode);
                 double delivery = order.getDeliveryType() != null && order.getDeliveryType() == Order.DeliveryType.PICKUP ? 0.0 : 30.0;
                 
                 order.setSubtotal(summary.subtotal);
                 order.setDiscount(summary.discount);
                 order.setDiscountedSubtotal(summary.discountedSubtotal);
                 order.setGst(summary.gst);
+                order.setCgst(summary.cgst);
+                order.setSgst(summary.sgst);
+                order.setIgst(summary.igst);
                 order.setDelivery(delivery);
-                order.setGrandTotal(summary.grandTotal + delivery);
+                
+                // Apply custom rounding to grand total
+                double rawGrandTotal = summary.grandTotal + delivery;
+                double roundedGrandTotal = customRound(rawGrandTotal);
+                order.setGrandTotal(roundedGrandTotal);
                 order.setTotalAmount(order.getGrandTotal());
                 order.setBreakdown(summary.breakdown);
             }
@@ -750,5 +766,19 @@ public class OrderController {
                                  .replace(">", "&gt;")
                                  .replace("\"", "&quot;")
                                  .replace("'", "&#39;");
+    }
+    
+    // Custom rounding: > 0.50 round up, <= 0.49 round down
+    private double customRound(double value) {
+        double integerPart = Math.floor(value);
+        double decimalPart = value - integerPart;
+        
+        if (decimalPart > 0.50) {
+            // Round up
+            return Math.ceil(value);
+        } else {
+            // Round down
+            return integerPart;
+        }
     }
 }

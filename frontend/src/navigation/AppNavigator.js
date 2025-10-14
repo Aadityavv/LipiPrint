@@ -55,6 +55,13 @@ import AdminReconciliationScreen from '../screens/admin/AdminReconciliationScree
 import FileManagerScreen from '../screens/admin/FileManagerScreen';
 import AdminDiscountScreen from '../screens/admin/AdminDiscountScreen';
 
+// Import policy screens
+import TermsAndConditionsScreen from '../screens/policies/TermsAndConditionsScreen';
+import PrivacyPolicyScreen from '../screens/policies/PrivacyPolicyScreen';
+import ShippingPolicyScreen from '../screens/policies/ShippingPolicyScreen';
+import CancellationRefundScreen from '../screens/policies/CancellationRefundScreen';
+import ContactUsScreen from '../screens/policies/ContactUsScreen';
+
 const Tab = createBottomTabNavigator();
 const Stack = createNativeStackNavigator();
 
@@ -161,6 +168,13 @@ export default function AppNavigator() {
         <Stack.Screen name="InvoiceDetailScreen" component={InvoiceDetailScreen} />
         <Stack.Screen name="FilesScreen" component={FilesScreen} />
         <Stack.Screen name="PrivacySecurity" component={PrivacySecurityScreen} />
+        
+        {/* Policy Screens */}
+        <Stack.Screen name="TermsAndConditions" component={TermsAndConditionsScreen} />
+        <Stack.Screen name="PrivacyPolicy" component={PrivacyPolicyScreen} />
+        <Stack.Screen name="ShippingPolicy" component={ShippingPolicyScreen} />
+        <Stack.Screen name="CancellationRefund" component={CancellationRefundScreen} />
+        <Stack.Screen name="ContactUs" component={ContactUsScreen} />
         
         {/* Admin Screens */}
         <Stack.Screen name="AdminTabs" component={AdminTabNavigator} />

@@ -205,24 +205,37 @@ public class PricingService {
         public double discount;
         public double discountedSubtotal; // after discount, before GST
         public double gst;
+        public double cgst;
+        public double sgst;
+        public double igst;
         public double grandTotal;
         public java.util.List<BreakdownItem> breakdown;
-        public PriceSummary(double subtotal, double discount, double discountedSubtotal, double gst, double grandTotal, java.util.List<BreakdownItem> breakdown) {
+        public PriceSummary(double subtotal, double discount, double discountedSubtotal, double gst, double cgst, double sgst, double igst, double grandTotal, java.util.List<BreakdownItem> breakdown) {
             this.subtotal = subtotal;
             this.discount = discount;
             this.discountedSubtotal = discountedSubtotal;
             this.gst = gst;
+            this.cgst = cgst;
+            this.sgst = sgst;
+            this.igst = igst;
             this.grandTotal = grandTotal;
             this.breakdown = breakdown;
         }
     }
 
     public PriceSummary calculatePriceSummaryForPrintJobs(List<PrintJob> printJobs) {
+        return calculatePriceSummaryForPrintJobs(printJobs, null);
+    }
+    
+    public PriceSummary calculatePriceSummaryForPrintJobs(List<PrintJob> printJobs, String pincode) {
         double subtotal = 0.0;
         double discountPercent = 0.0;
         int totalPages = 0;
         String color = null, paper = null, quality = null, side = null;
         java.util.List<BreakdownItem> breakdown = new java.util.ArrayList<>();
+        
+        // Check if pincode is from Uttar Pradesh
+        boolean isUttarPradesh = isUttarPradeshPincode(pincode);
 
         // Group print jobs by print options
         java.util.Map<String, java.util.List<PrintJob>> groups = new java.util.LinkedHashMap<>();
@@ -317,8 +330,28 @@ public class PricingService {
         subtotal = Math.round(subtotal * 100.0) / 100.0;
         double discount = Math.round((subtotal * discountPercent) * 100.0) / 100.0;
         double discountedSubtotal = subtotal - discount;
-        double gst = Math.round(discountedSubtotal * 0.18 * 100.0) / 100.0;
-        double grandTotal = Math.round((discountedSubtotal + gst) * 100.0) / 100.0;
+        
+        // Calculate GST based on location
+        double cgst = 0.0;
+        double sgst = 0.0;
+        double igst = 0.0;
+        double gst = 0.0;
+        
+        if (isUttarPradesh) {
+            // Within Uttar Pradesh: CGST 9% + SGST 9%
+            cgst = Math.round(discountedSubtotal * 0.09 * 100.0) / 100.0;
+            sgst = Math.round(discountedSubtotal * 0.09 * 100.0) / 100.0;
+            gst = cgst + sgst;
+        } else {
+            // Outside Uttar Pradesh: IGST 18%
+            igst = Math.round(discountedSubtotal * 0.18 * 100.0) / 100.0;
+            gst = igst;
+        }
+        
+        // Calculate grand total with rounding logic
+        double rawGrandTotal = discountedSubtotal + gst;
+        double grandTotal = customRound(rawGrandTotal);
+        
         // Distribute discount proportionally to each group
         if (discount > 0 && subtotal > 0) {
             for (BreakdownItem item : breakdown) {
@@ -332,7 +365,36 @@ public class PricingService {
                 item.total = item.amount;
             }
         }
-        logger.info("[PricingService] Final Calculation: subtotal(before discount)={}, discountPercent={}, discountAmount={}, discountedSubtotal(after discount)={}, gst={}, grandTotal={}", subtotal, discountPercent, discount, discountedSubtotal, gst, grandTotal);
-        return new PriceSummary(subtotal, discount, discountedSubtotal, gst, grandTotal, breakdown);
+        logger.info("[PricingService] Final Calculation: subtotal(before discount)={}, discountPercent={}, discountAmount={}, discountedSubtotal(after discount)={}, gst={}, cgst={}, sgst={}, igst={}, grandTotal={}", 
+            subtotal, discountPercent, discount, discountedSubtotal, gst, cgst, sgst, igst, grandTotal);
+        return new PriceSummary(subtotal, discount, discountedSubtotal, gst, cgst, sgst, igst, grandTotal, breakdown);
+    }
+    
+    // Helper method to check if pincode is from Uttar Pradesh
+    private boolean isUttarPradeshPincode(String pincode) {
+        if (pincode == null || pincode.trim().isEmpty()) {
+            return false;
+        }
+        String cleaned = pincode.trim();
+        // Uttar Pradesh pincodes start with: 20xxxx to 28xxxx
+        if (cleaned.length() == 6 && cleaned.matches("\\d{6}")) {
+            int prefix = Integer.parseInt(cleaned.substring(0, 2));
+            return prefix >= 20 && prefix <= 28;
+        }
+        return false;
+    }
+    
+    // Custom rounding: > 0.50 round up, <= 0.49 round down
+    private double customRound(double value) {
+        double integerPart = Math.floor(value);
+        double decimalPart = value - integerPart;
+        
+        if (decimalPart > 0.50) {
+            // Round up
+            return Math.ceil(value);
+        } else {
+            // Round down
+            return integerPart;
+        }
     }
 } 

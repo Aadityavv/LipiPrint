@@ -65,6 +65,15 @@ export default function SignUpScreen({ navigation }) {
       setAlertVisible(true);
       return false;
     }
+    // Email validation
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(formData.email.trim())) {
+      setAlertTitle('Error');
+      setAlertMessage('Please enter a valid email address');
+      setAlertType('error');
+      setAlertVisible(true);
+      return false;
+    }
     if (!formData.phone.trim()) {
       setAlertTitle('Error');
       setAlertMessage('Please enter your phone number');

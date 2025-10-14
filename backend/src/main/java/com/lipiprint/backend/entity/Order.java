@@ -40,6 +40,9 @@ public class Order {
     private Double discount;
     private Double discountedSubtotal;
     private Double gst;
+    private Double cgst;
+    private Double sgst;
+    private Double igst;
     private Double delivery;
     private Double grandTotal;
     
@@ -55,6 +58,12 @@ public class Order {
     
     @Column(name = "delivery_address")
     private String deliveryAddress;
+    
+    @Column(name = "delivery_pincode")
+    private String deliveryPincode;
+    
+    @Column(name = "delivery_state")
+    private String deliveryState;
     
     @Column(name = "order_note")
     private String orderNote;
@@ -174,6 +183,12 @@ public class Order {
     
     public String getDeliveryAddress() { return deliveryAddress; }
     public void setDeliveryAddress(String deliveryAddress) { this.deliveryAddress = deliveryAddress; }
+    
+    public String getDeliveryPincode() { return deliveryPincode; }
+    public void setDeliveryPincode(String deliveryPincode) { this.deliveryPincode = deliveryPincode; }
+    
+    public String getDeliveryState() { return deliveryState; }
+    public void setDeliveryState(String deliveryState) { this.deliveryState = deliveryState; }
 
     public java.util.List<PrintJob> getPrintJobs() { return printJobs; }
     public void setPrintJobs(java.util.List<PrintJob> printJobs) { 
@@ -218,6 +233,15 @@ public class Order {
     
     public Double getGst() { return gst; }
     public void setGst(Double gst) { this.gst = gst; }
+    
+    public Double getCgst() { return cgst; }
+    public void setCgst(Double cgst) { this.cgst = cgst; }
+    
+    public Double getSgst() { return sgst; }
+    public void setSgst(Double sgst) { this.sgst = sgst; }
+    
+    public Double getIgst() { return igst; }
+    public void setIgst(Double igst) { this.igst = igst; }
     
     public Double getDelivery() { return delivery; }
     public void setDelivery(Double delivery) { this.delivery = delivery; }

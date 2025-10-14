@@ -228,6 +228,12 @@ export default function InvoiceDetailScreen() {
     const summaryGST = order.gst !== undefined && order.gst !== null ? order.gst.toFixed(2) : '0.00';
     const summaryDelivery = order.delivery !== undefined && order.delivery !== null ? order.delivery.toFixed(2) : '0.00';
     const summaryGrandTotal = order.grandTotal !== undefined && order.grandTotal !== null ? order.grandTotal.toFixed(2) : '0.00';
+    
+    // Check if this is a Uttar Pradesh pincode for CGST/SGST or IGST
+    const isUttarPradesh = customerAddress && /\b(20\d{4}|21\d{4}|22\d{4}|23\d{4}|24\d{4}|25\d{4}|26\d{4}|27\d{4}|28\d{4})\b/.test(customerAddress);
+    const cgst = isUttarPradesh ? (parseFloat(summaryGST) / 2).toFixed(2) : '0.00';
+    const sgst = isUttarPradesh ? (parseFloat(summaryGST) / 2).toFixed(2) : '0.00';
+    const igst = !isUttarPradesh ? summaryGST : '0.00';
     // HTML template
     return `
       <!DOCTYPE html>
@@ -309,7 +315,11 @@ export default function InvoiceDetailScreen() {
             <tr><td class='label'>Subtotal</td><td class='value'>INR ${summarySubtotal}</td></tr>
             <tr><td class='label'>Discount</td><td class='value'>INR ${summaryDiscount}</td></tr>
             <tr><td class='label'>Subtotal (After Discount)</td><td class='value'>INR ${summaryDiscountedSubtotal}</td></tr>
-            <tr><td class='label'>GST</td><td class='value'>INR ${summaryGST}</td></tr>
+            ${isUttarPradesh ? 
+              `<tr><td class='label'>CGST (9%)</td><td class='value'>INR ${cgst}</td></tr>
+               <tr><td class='label'>SGST (9%)</td><td class='value'>INR ${sgst}</td></tr>` :
+              `<tr><td class='label'>IGST (18%)</td><td class='value'>INR ${igst}</td></tr>`
+            }
             <tr><td class='label'>Delivery</td><td class='value'>INR ${summaryDelivery}</td></tr>
             <tr><td class='label grand-total'>Grand Total</td><td class='value grand-total'>INR ${summaryGrandTotal}</td></tr>
           </table>
@@ -763,10 +773,32 @@ export default function InvoiceDetailScreen() {
               </View>
             )}
             
-            <View style={styles.pricingRow}>
-              <Text style={styles.pricingLabel}>GST (18%)</Text>
-              <Text style={styles.pricingValue}>₹{order.gst?.toFixed(2) || '0.00'}</Text>
-            </View>
+            {(() => {
+              const isUP = order.deliveryAddress && /\b(20\d{4}|21\d{4}|22\d{4}|23\d{4}|24\d{4}|25\d{4}|26\d{4}|27\d{4}|28\d{4})\b/.test(order.deliveryAddress);
+              const gstAmount = order.gst || 0;
+              
+              if (isUP) {
+                return (
+                  <>
+                    <View style={styles.pricingRow}>
+                      <Text style={styles.pricingLabel}>CGST (9%)</Text>
+                      <Text style={styles.pricingValue}>₹{(gstAmount / 2).toFixed(2)}</Text>
+                    </View>
+                    <View style={styles.pricingRow}>
+                      <Text style={styles.pricingLabel}>SGST (9%)</Text>
+                      <Text style={styles.pricingValue}>₹{(gstAmount / 2).toFixed(2)}</Text>
+                    </View>
+                  </>
+                );
+              } else {
+                return (
+                  <View style={styles.pricingRow}>
+                    <Text style={styles.pricingLabel}>IGST (18%)</Text>
+                    <Text style={styles.pricingValue}>₹{gstAmount.toFixed(2)}</Text>
+                  </View>
+                );
+              }
+            })()}
             
             <View style={styles.pricingRow}>
               <Text style={styles.pricingLabel}>Delivery</Text>
