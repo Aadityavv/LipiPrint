@@ -9,6 +9,7 @@ import ApiService from '../../services/api';
 import GoogleAuthService from '../../services/googleAuth';
 import { useTheme } from '../../theme/ThemeContext';
 import CustomAlert from '../../components/CustomAlert';
+import { SecurityValidator } from '../../utils/security';
 
 export default function SignUpScreen({ navigation }) {
   const { theme, isDark } = useTheme();
@@ -65,11 +66,12 @@ export default function SignUpScreen({ navigation }) {
       setAlertVisible(true);
       return false;
     }
-    // Email validation
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(formData.email.trim())) {
+    
+    // Validate email format
+    const emailValidation = SecurityValidator.validateEmail(formData.email);
+    if (!emailValidation.isValid) {
       setAlertTitle('Error');
-      setAlertMessage('Please enter a valid email address');
+      setAlertMessage(emailValidation.error);
       setAlertType('error');
       setAlertVisible(true);
       return false;

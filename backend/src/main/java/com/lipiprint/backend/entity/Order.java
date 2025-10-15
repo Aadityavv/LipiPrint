@@ -39,10 +39,20 @@ public class Order {
     private Double subtotal;
     private Double discount;
     private Double discountedSubtotal;
-    private Double gst;
-    private Double cgst;
-    private Double sgst;
-    private Double igst;
+    private Double gst; // Total GST (for backward compatibility)
+    
+    @Column(name = "cgst")
+    private Double cgst; // Central GST (9% for intra-state)
+    
+    @Column(name = "sgst")
+    private Double sgst; // State GST (9% for intra-state)
+    
+    @Column(name = "igst")
+    private Double igst; // Integrated GST (18% for inter-state)
+    
+    @Column(name = "is_intra_state")
+    private Boolean isIntraState; // true if within UP, false otherwise
+    
     private Double delivery;
     private Double grandTotal;
     
@@ -58,12 +68,6 @@ public class Order {
     
     @Column(name = "delivery_address")
     private String deliveryAddress;
-    
-    @Column(name = "delivery_pincode")
-    private String deliveryPincode;
-    
-    @Column(name = "delivery_state")
-    private String deliveryState;
     
     @Column(name = "order_note")
     private String orderNote;
@@ -183,12 +187,6 @@ public class Order {
     
     public String getDeliveryAddress() { return deliveryAddress; }
     public void setDeliveryAddress(String deliveryAddress) { this.deliveryAddress = deliveryAddress; }
-    
-    public String getDeliveryPincode() { return deliveryPincode; }
-    public void setDeliveryPincode(String deliveryPincode) { this.deliveryPincode = deliveryPincode; }
-    
-    public String getDeliveryState() { return deliveryState; }
-    public void setDeliveryState(String deliveryState) { this.deliveryState = deliveryState; }
 
     public java.util.List<PrintJob> getPrintJobs() { return printJobs; }
     public void setPrintJobs(java.util.List<PrintJob> printJobs) { 
@@ -242,6 +240,9 @@ public class Order {
     
     public Double getIgst() { return igst; }
     public void setIgst(Double igst) { this.igst = igst; }
+    
+    public Boolean getIsIntraState() { return isIntraState; }
+    public void setIsIntraState(Boolean isIntraState) { this.isIntraState = isIntraState; }
     
     public Double getDelivery() { return delivery; }
     public void setDelivery(Double delivery) { this.delivery = delivery; }

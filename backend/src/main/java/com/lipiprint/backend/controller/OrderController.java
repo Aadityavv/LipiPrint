@@ -59,6 +59,18 @@ public class OrderController {
         this.pricingService = pricingService;
         this.fileRepository = fileRepository;
     }
+    
+    // Helper method for custom rounding: > 0.50 rounds up, <= 0.49 stays down
+    private double customRoundGrandTotal(double value) {
+        double wholePart = Math.floor(value);
+        double decimalPart = value - wholePart;
+        
+        if (decimalPart > 0.50) {
+            return Math.ceil(value);
+        } else {
+            return wholePart;
+        }
+    }
 
     @PostMapping("")
     public ResponseEntity<?> createOrder(@Valid @RequestBody OrderDTO orderDTO, Authentication authentication) {
@@ -127,13 +139,6 @@ public class OrderController {
             order.setUser(user);
             order.setDeliveryType(Order.DeliveryType.valueOf(orderDTO.getDeliveryType().toUpperCase()));
             order.setDeliveryAddress(deliveryAddressDisplay);
-            
-            // Store pincode and state for GST calculation
-            if (deliveryAddress != null) {
-                order.setDeliveryPincode(deliveryAddress.getPincode());
-                order.setDeliveryState(deliveryAddress.getState());
-            }
-            
             order.setStatus(Order.Status.PENDING);
             order.setTotalAmount(orderDTO.getTotalAmount());
 
@@ -183,9 +188,11 @@ public class OrderController {
             }
 
             if (order.getPrintJobs() != null && !order.getPrintJobs().isEmpty()) {
-                // Pass pincode to pricing service for CGST/SGST calculation
-                String pincode = deliveryAddress != null ? deliveryAddress.getPincode() : null;
-                PricingService.PriceSummary summary = pricingService.calculatePriceSummaryForPrintJobs(order.getPrintJobs(), pincode);
+                // ✅ Use new method with delivery address for state-based GST calculation
+                PricingService.PriceSummary summary = pricingService.calculatePriceSummaryForPrintJobs(
+                    order.getPrintJobs(), 
+                    order.getDeliveryAddress()
+                );
                 double delivery = order.getDeliveryType() != null && order.getDeliveryType() == Order.DeliveryType.PICKUP ? 0.0 : 30.0;
                 
                 order.setSubtotal(summary.subtotal);
@@ -195,14 +202,20 @@ public class OrderController {
                 order.setCgst(summary.cgst);
                 order.setSgst(summary.sgst);
                 order.setIgst(summary.igst);
+                order.setIsIntraState(summary.isIntraState);
                 order.setDelivery(delivery);
                 
-                // Apply custom rounding to grand total
-                double rawGrandTotal = summary.grandTotal + delivery;
-                double roundedGrandTotal = customRound(rawGrandTotal);
-                order.setGrandTotal(roundedGrandTotal);
+                // ✅ Use custom-rounded grand total from summary, then add delivery
+                double grandTotalBeforeDelivery = summary.grandTotal;
+                double grandTotalWithDelivery = grandTotalBeforeDelivery + delivery;
+                
+                // Apply custom rounding to final total with delivery
+                order.setGrandTotal(customRoundGrandTotal(grandTotalWithDelivery));
                 order.setTotalAmount(order.getGrandTotal());
                 order.setBreakdown(summary.breakdown);
+                
+                logger.info("✅ GST Breakdown - Intra-state: {}, CGST: {}, SGST: {}, IGST: {}, Total GST: {}", 
+                           summary.isIntraState, summary.cgst, summary.sgst, summary.igst, summary.gst);
             }
 
             String razorpayOrderId = orderDTO.getRazorpayOrderId();
@@ -766,19 +779,5 @@ public class OrderController {
                                  .replace(">", "&gt;")
                                  .replace("\"", "&quot;")
                                  .replace("'", "&#39;");
-    }
-    
-    // Custom rounding: > 0.50 round up, <= 0.49 round down
-    private double customRound(double value) {
-        double integerPart = Math.floor(value);
-        double decimalPart = value - integerPart;
-        
-        if (decimalPart > 0.50) {
-            // Round up
-            return Math.ceil(value);
-        } else {
-            // Round down
-            return integerPart;
-        }
     }
 }

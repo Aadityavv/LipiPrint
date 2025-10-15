@@ -371,17 +371,16 @@ export default function UploadScreen({ navigation }) {
     }));
     ApiService.calculatePrintJobsCost({ files: filesPayload })
       .then(res => {
-        setTotalPrice(res.grandTotal);
+        // Don't include GST yet - it will be calculated in DeliveryOptions based on state
+        setTotalPrice(res.discountedSubtotal); // Use discounted subtotal WITHOUT GST
         setBackendSubtotal(res.subtotal); // before discount
         setBackendDiscountedSubtotal(res.discountedSubtotal); // after discount, before GST
-        setBackendGst(res.gst);
         setBackendDiscount(res.discount);
         setPriceBreakdown(res.breakdown || []);
       })
       .catch(e => {
         setTotalPrice(null);
         setBackendSubtotal(null);
-        setBackendGst(null);
         setBackendDiscount(null);
         setPriceBreakdown([]);
       });
@@ -402,12 +401,13 @@ const handleProceedToCheckout = async () => {
 
   navigation.navigate('DeliveryOptions', {
     printJobs,
-    total: totalPrice, // Pass total for order summary
+    total: totalPrice, // Pass total WITHOUT GST (will be calculated in DeliveryOptions)
     totalPrice,
     priceBreakdown,
     files: uploadedFiles, // Pass files with pages
     subtotal: backendSubtotal,
-    gst: backendGst,
+    discountedSubtotal: backendDiscountedSubtotal,
+    // GST will be calculated dynamically in DeliveryOptions based on state
     discount: backendDiscount,
     // Add any other order-related data here if needed
   });

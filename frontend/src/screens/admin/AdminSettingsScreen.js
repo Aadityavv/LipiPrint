@@ -9,7 +9,7 @@ import { useTheme } from '../../theme/ThemeContext';
 import Heading from '../../components/Heading';
 
 export default function AdminSettingsScreen({ navigation }) {
-  const { theme, toggleTheme, isDark } = useTheme();
+  const { theme } = useTheme();
   const [options, setOptions] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);

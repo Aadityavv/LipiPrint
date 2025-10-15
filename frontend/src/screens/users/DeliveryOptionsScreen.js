@@ -18,11 +18,26 @@ import { useTheme } from '../../theme/ThemeContext';
 import Heading from '../../components/Heading';
 import LottieView from 'lottie-react-native';
 import LoadingWorld from '../../assets/animations/loading-world.json';
+import { roundIndianPrice, formatPrice, formatPriceWithDecimals } from '../../utils/priceUtils';
 
 const { width } = Dimensions.get('window');
 
 export default function DeliveryOptionsScreen({ navigation, route }) {
-  const { files, selectedOptions, selectedPaper, selectedPrint, total, totalPrice, priceBreakdown, subtotal, gst, discount } = route.params || {};
+  const { 
+    files, 
+    selectedOptions, 
+    selectedPaper, 
+    selectedPrint, 
+    total, 
+    totalPrice, 
+    priceBreakdown, 
+    subtotal, 
+    discountedSubtotal, 
+    discount 
+  } = route.params || {};
+  
+  // ✅ Ensure we have a valid base amount for GST calculation
+  const baseAmountForGST = discountedSubtotal || totalPrice || total || 0;
   const [deliveryMethod, setDeliveryMethod] = useState('delivery');
   const [selectedLocation, setSelectedLocation] = useState(null);
   const [pickupLocations, setPickupLocations] = useState([]);
@@ -44,8 +59,23 @@ export default function DeliveryOptionsScreen({ navigation, route }) {
   const [state, setState] = useState('');
   const [pincodeServiceable, setPincodeServiceable] = useState(null);
   const [checkingServiceability, setCheckingServiceability] = useState(false);
+  
+  // ✅ NEW: Dynamic GST calculation based on state
+  const [cgst, setCgst] = useState(0);
+  const [sgst, setSgst] = useState(0);
+  const [igst, setIgst] = useState(0);
+  const [isIntraState, setIsIntraState] = useState(false);
 
   const { theme } = useTheme();
+  
+  // ✅ NEW: Calculate dynamic weight based on number of pages
+  const calculateWeight = () => {
+    if (!files || files.length === 0) return 0.2; // Default 200g
+    const totalPages = files.reduce((sum, fileObj) => sum + (fileObj.file?.pages || 0), 0);
+    // Assume 5g per page (standard paper weight)
+    const weightInKg = (totalPages * 5) / 1000;
+    return Math.max(0.1, Math.min(weightInKg, 5)); // Between 100g and 5kg
+  };
 
   // Check pincode serviceability
   const checkPincodeServiceability = async (pincodeValue) => {
@@ -191,12 +221,65 @@ export default function DeliveryOptionsScreen({ navigation, route }) {
       setState('');
     }
   }, [pincode, deliveryMethod]);
+  
+  // ✅ NEW: Calculate GST based on state
+  useEffect(() => {
+    console.log('🔍 GST useEffect triggered - state:', state, 'baseAmountForGST:', baseAmountForGST);
+    
+    if (!state || !baseAmountForGST) {
+      console.log('❌ Missing state or baseAmountForGST, skipping GST calculation');
+      return;
+    }
+    
+    console.log('💰 Calculating GST for state:', state, 'Base amount:', baseAmountForGST);
+    
+    // Enhanced state detection for Uttar Pradesh
+    const stateLower = state.toLowerCase().trim();
+    const isUP = stateLower.includes('uttar pradesh') || 
+                 stateLower.includes('up') || 
+                 stateLower === 'uttar pradesh' ||
+                 stateLower === 'up';
+    console.log('🔍 State check - stateLower:', stateLower, 'isUP:', isUP);
+    setIsIntraState(isUP);
+    
+    if (isUP) {
+      // Intra-state: CGST 9% + SGST 9%
+      const cgstAmount = Math.round(baseAmountForGST * 0.09 * 100) / 100;
+      const sgstAmount = Math.round(baseAmountForGST * 0.09 * 100) / 100;
+      setCgst(cgstAmount);
+      setSgst(sgstAmount);
+      setIgst(0);
+      setIsIntraState(true);
+      console.log('✅ Uttar Pradesh - CGST:', cgstAmount, 'SGST:', sgstAmount, 'Total GST:', cgstAmount + sgstAmount);
+    } else {
+      // Inter-state: IGST 18% (DEFAULT for non-UP states)
+      const igstAmount = Math.round(baseAmountForGST * 0.18 * 100) / 100;
+      setCgst(0);
+      setSgst(0);
+      setIgst(igstAmount);
+      setIsIntraState(false);
+      console.log('✅ Other state - IGST (DEFAULT):', igstAmount);
+    }
+  }, [state, baseAmountForGST]);
 
   useEffect(() => {
     ApiService.getUserAddresses()
       .then(setSavedAddresses)
       .catch(() => setSavedAddresses([]));
   }, []);
+
+  // ✅ NEW: Update state variable when a saved address is selected
+  useEffect(() => {
+    if (!showNewAddress && selectedAddressId && savedAddresses.length > 0) {
+      const selectedAddr = savedAddresses.find(a => a.id === selectedAddressId);
+      if (selectedAddr && selectedAddr.state) {
+        console.log('🔍 Updating state from saved address:', selectedAddr.state);
+        setState(selectedAddr.state);
+        setCity(selectedAddr.city || '');
+        setPincode(selectedAddr.pincode || '');
+      }
+    }
+  }, [selectedAddressId, showNewAddress, savedAddresses]);
 
   // Check serviceability when pincode changes (debounced)
   useEffect(() => {
@@ -225,9 +308,11 @@ export default function DeliveryOptionsScreen({ navigation, route }) {
     setLoadingEstimate(true);
     try {
       console.log('📡 Requesting delivery estimate for:', pincodeValue);
+      const dynamicWeight = calculateWeight();
+      console.log('📦 Calculated weight:', dynamicWeight, 'kg');
       const estimate = await ApiService.request('/shipping/estimate-delivery', {
         method: 'POST',
-        body: JSON.stringify({ pincode: pincodeValue, weight: 0.2 })
+        body: JSON.stringify({ pincode: pincodeValue, weight: dynamicWeight })
       });
       
       console.log('✅ Delivery estimate received:', estimate);
@@ -262,7 +347,31 @@ export default function DeliveryOptionsScreen({ navigation, route }) {
       deliveryPrice = deliveryEstimate.price;
     }
     
-    return finalTotal + deliveryPrice;
+    // ✅ Calculate GST manually to ensure accuracy
+    let totalGST = 0;
+    if (state && baseAmountForGST > 0) {
+      const stateLower = state.toLowerCase().trim();
+      const isUP = stateLower.includes('uttar pradesh') || 
+                   stateLower.includes('up') || 
+                   stateLower === 'uttar pradesh' ||
+                   stateLower === 'up';
+      
+      if (isUP) {
+        // Intra-state: CGST 9% + SGST 9%
+        const cgstAmount = Math.round(baseAmountForGST * 0.09 * 100) / 100;
+        const sgstAmount = Math.round(baseAmountForGST * 0.09 * 100) / 100;
+        totalGST = cgstAmount + sgstAmount;
+      } else {
+        // Inter-state: IGST 18% (DEFAULT for non-UP states)
+        totalGST = Math.round(baseAmountForGST * 0.18 * 100) / 100;
+      }
+    } else if (baseAmountForGST > 0) {
+      // ✅ FALLBACK: If no state detected but we have amount, default to IGST
+      totalGST = Math.round(baseAmountForGST * 0.18 * 100) / 100;
+    }
+    
+    const finalAmount = (finalTotal || 0) + totalGST + deliveryPrice;
+    return roundIndianPrice(finalAmount);
   };
 
   // ✅ COMPLETELY FIXED: proceedToPayment function
@@ -270,6 +379,9 @@ export default function DeliveryOptionsScreen({ navigation, route }) {
     console.log('🚀 proceedToPayment called - deliveryMethod:', deliveryMethod);
     console.log('🚀 showNewAddress:', showNewAddress);
     console.log('🚀 Current form data:', { addressLine1, addressLine2, pincode, city, state, phone });
+    
+    // ✅ Initialize stateForGST for GST calculation
+    let stateForGST = state; // Default to current state
 
     if (deliveryMethod === 'delivery') {
       if (showNewAddress) {
@@ -338,6 +450,16 @@ export default function DeliveryOptionsScreen({ navigation, route }) {
           deliveryAddress = `${selectedAddr.line1}, ${selectedAddr.line2}, ${selectedAddr.city}, ${selectedAddr.state} ${selectedAddr.pincode}`;
           deliveryPhone = selectedAddr.phone || '';
           addressData = selectedAddr;
+          
+          // ✅ CRITICAL: Extract state for GST calculation
+          const extractedState = selectedAddr.state;
+          console.log('🔍 Extracted state from saved address:', extractedState);
+          
+          // Set stateForGST for GST calculation
+          if (extractedState) {
+            stateForGST = extractedState;
+            console.log('💰 Setting stateForGST from saved address:', stateForGST);
+          }
         }
       }
     }
@@ -357,6 +479,68 @@ export default function DeliveryOptionsScreen({ navigation, route }) {
       actualDeliveryCost
     });
 
+    // ✅ MANUAL GST RECALCULATION: Ensure GST is calculated before navigation
+    let finalCgst = cgst || 0;
+    let finalSgst = sgst || 0;
+    let finalIgst = igst || 0;
+    let finalIsIntraState = isIntraState || false;
+    
+    console.log('🔍 Final stateForGST:', stateForGST, 'baseAmountForGST:', baseAmountForGST);
+    
+    // ✅ Calculate GST with the correct state (after address setup)
+    if (stateForGST && baseAmountForGST > 0) {
+      // Enhanced state detection for Uttar Pradesh
+      const stateLower = stateForGST.toLowerCase().trim();
+      const isUP = stateLower.includes('uttar pradesh') || 
+                   stateLower.includes('up') || 
+                   stateLower === 'uttar pradesh' ||
+                   stateLower === 'up';
+      
+      console.log('🔍 State detection - stateLower:', stateLower, 'isUP:', isUP);
+      
+      finalIsIntraState = isUP;
+      
+      if (isUP) {
+        // Intra-state: CGST 9% + SGST 9%
+        finalCgst = Math.round(baseAmountForGST * 0.09 * 100) / 100;
+        finalSgst = Math.round(baseAmountForGST * 0.09 * 100) / 100;
+        finalIgst = 0;
+        finalIsIntraState = true;
+        console.log('🔄 Manual GST calculation - UP: CGST:', finalCgst, 'SGST:', finalSgst, 'Total GST:', finalCgst + finalSgst);
+      } else {
+        // Inter-state: IGST 18% (DEFAULT for non-UP states)
+        finalCgst = 0;
+        finalSgst = 0;
+        finalIgst = Math.round(baseAmountForGST * 0.18 * 100) / 100;
+        finalIsIntraState = false;
+        console.log('🔄 Manual GST calculation - Other state: IGST (DEFAULT):', finalIgst);
+      }
+    } else if (baseAmountForGST > 0) {
+      // ✅ FALLBACK: If no state detected but we have amount, default to IGST
+      finalCgst = 0;
+      finalSgst = 0;
+      finalIgst = Math.round(baseAmountForGST * 0.18 * 100) / 100;
+      finalIsIntraState = false;
+      console.log('🔄 Manual GST calculation - FALLBACK: IGST (DEFAULT):', finalIgst);
+    } else {
+      console.log('❌ Manual GST calculation failed - stateForGST:', stateForGST, 'baseAmountForGST:', baseAmountForGST);
+    }
+
+    // ✅ DEBUG: Log GST values before navigation
+    console.log('💰 GST Values before navigation:', {
+      originalCgst: cgst,
+      originalSgst: sgst,
+      originalIgst: igst,
+      originalIsIntraState: isIntraState,
+      finalCgst,
+      finalSgst,
+      finalIgst,
+      finalIsIntraState,
+      totalGST: finalCgst + finalSgst + finalIgst,
+      baseAmountForGST,
+      state
+    });
+
     navigation.navigate('Payment', {
       files,
       selectedOptions,
@@ -368,9 +552,15 @@ export default function DeliveryOptionsScreen({ navigation, route }) {
       total: calculateFinalTotal(),
       totalPrice: finalTotal,
       priceBreakdown,
-      subtotal,
-      gst,
-      discount,
+      subtotal: subtotal || 0,
+      discountedSubtotal: baseAmountForGST,
+      // ✅ Pass manually calculated GST values based on state
+      gst: finalCgst + finalSgst + finalIgst, // Total GST
+      cgst: finalCgst,
+      sgst: finalSgst,
+      igst: finalIgst,
+      isIntraState: finalIsIntraState,
+      discount: discount || 0,
       deliveryEstimate,
       deliveryCost: actualDeliveryCost,
       // ✅ CRITICAL: Pass structured address data for backend processing
@@ -881,33 +1071,37 @@ export default function DeliveryOptionsScreen({ navigation, route }) {
             <View style={styles.summaryCard}>
               <View style={styles.summaryRow}>
                 <Text style={styles.summaryLabel}>Printing Cost</Text>
-                <Text style={styles.summaryValue}>₹{total}</Text>
+                <Text style={styles.summaryValue}>{formatPriceWithDecimals(total || 0)}</Text>
               </View>
               <View style={styles.summaryRow}>
                 <Text style={styles.summaryLabel}>
                   {deliveryMethod === 'pickup' ? 'Pickup' : 'Delivery'}
                 </Text>
                 <Text style={styles.summaryValue}>
-                  ₹{deliveryEstimate && deliveryMethod === 'delivery' && deliveryEstimate.price 
-                    ? deliveryEstimate.price 
-                    : (deliveryOptions.find(m => m.id === deliveryMethod)?.price || 0)}
+                  {formatPriceWithDecimals(
+                    deliveryEstimate && deliveryMethod === 'delivery' && deliveryEstimate.price 
+                      ? deliveryEstimate.price 
+                      : (deliveryOptions.find(m => m.id === deliveryMethod)?.price || 0)
+                  )}
                 </Text>
               </View>
-              {gst > 0 && (
-                <View style={styles.summaryRow}>
-                  <Text style={styles.summaryLabel}>GST</Text>
-                  <Text style={styles.summaryValue}>₹{gst}</Text>
-                </View>
-              )}
               {discount > 0 && (
                 <View style={styles.summaryRow}>
                   <Text style={[styles.summaryLabel, {color: '#4CAF50'}]}>Discount</Text>
-                  <Text style={[styles.summaryValue, {color: '#4CAF50'}]}>-₹{discount}</Text>
+                  <Text style={[styles.summaryValue, {color: '#4CAF50'}]}>-{formatPriceWithDecimals(discount || 0)}</Text>
                 </View>
               )}
+              <View style={styles.summaryRow}>
+                <Text style={styles.summaryLabel}>GST</Text>
+                <Text style={styles.summaryValue}>
+                  {formatPriceWithDecimals(
+                    isIntraState ? (cgst + sgst) : igst
+                  )}
+                </Text>
+              </View>
               <View style={styles.totalRow}>
                 <Text style={styles.totalLabel}>Total Amount</Text>
-                <Text style={styles.totalAmount}>₹{calculateFinalTotal()}</Text>
+                <Text style={styles.totalAmount}>{formatPrice(calculateFinalTotal())}</Text>
               </View>
             </View>
           </Animatable.View>
@@ -1219,12 +1413,13 @@ const styles = StyleSheet.create({
   continueButton: {
     flexDirection: 'row',
     borderRadius: 16,
+    marginBottom: 30,
     paddingVertical: 16,
     alignItems: 'center',
     justifyContent: 'center',
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.10,
+    shadowOpacity: 0.05,
     shadowRadius: 8,
     elevation: 4,
   },

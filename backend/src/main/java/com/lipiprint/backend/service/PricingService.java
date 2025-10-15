@@ -204,13 +204,28 @@ public class PricingService {
         public double subtotal; // before discount
         public double discount;
         public double discountedSubtotal; // after discount, before GST
-        public double gst;
-        public double cgst;
-        public double sgst;
-        public double igst;
+        public double gst; // total GST (for backward compatibility)
+        public double cgst; // Central GST (9% for intra-state)
+        public double sgst; // State GST (9% for intra-state)
+        public double igst; // Integrated GST (18% for inter-state)
+        public boolean isIntraState; // true if within UP, false otherwise
         public double grandTotal;
         public java.util.List<BreakdownItem> breakdown;
-        public PriceSummary(double subtotal, double discount, double discountedSubtotal, double gst, double cgst, double sgst, double igst, double grandTotal, java.util.List<BreakdownItem> breakdown) {
+        
+        public PriceSummary(double subtotal, double discount, double discountedSubtotal, double gst, double grandTotal, java.util.List<BreakdownItem> breakdown) {
+            this.subtotal = subtotal;
+            this.discount = discount;
+            this.discountedSubtotal = discountedSubtotal;
+            this.gst = gst;
+            this.grandTotal = grandTotal;
+            this.breakdown = breakdown;
+            this.cgst = 0.0;
+            this.sgst = 0.0;
+            this.igst = 0.0;
+            this.isIntraState = false;
+        }
+        
+        public PriceSummary(double subtotal, double discount, double discountedSubtotal, double gst, double cgst, double sgst, double igst, boolean isIntraState, double grandTotal, java.util.List<BreakdownItem> breakdown) {
             this.subtotal = subtotal;
             this.discount = discount;
             this.discountedSubtotal = discountedSubtotal;
@@ -218,24 +233,183 @@ public class PricingService {
             this.cgst = cgst;
             this.sgst = sgst;
             this.igst = igst;
+            this.isIntraState = isIntraState;
             this.grandTotal = grandTotal;
             this.breakdown = breakdown;
         }
     }
 
-    public PriceSummary calculatePriceSummaryForPrintJobs(List<PrintJob> printJobs) {
-        return calculatePriceSummaryForPrintJobs(printJobs, null);
+    // Helper method to extract pincode from delivery address
+    private String extractPincode(String deliveryAddress) {
+        if (deliveryAddress == null || deliveryAddress.trim().isEmpty()) {
+            return null;
+        }
+        
+        // Look for 6-digit pincode pattern
+        java.util.regex.Pattern pattern = java.util.regex.Pattern.compile("\\b(\\d{6})\\b");
+        java.util.regex.Matcher matcher = pattern.matcher(deliveryAddress);
+        
+        if (matcher.find()) {
+            return matcher.group(1);
+        }
+        
+        return null;
     }
     
-    public PriceSummary calculatePriceSummaryForPrintJobs(List<PrintJob> printJobs, String pincode) {
+    // Helper method to check if pincode is in Uttar Pradesh
+    private boolean isUttarPradeshPincode(String pincode) {
+        if (pincode == null || pincode.length() != 6) {
+            return false;
+        }
+        
+        // Uttar Pradesh pincode ranges:
+        // 20xxxx, 21xxxx, 22xxxx, 23xxxx, 24xxxx, 25xxxx, 26xxxx, 27xxxx, 28xxxx
+        try {
+            int firstTwo = Integer.parseInt(pincode.substring(0, 2));
+            return firstTwo >= 20 && firstTwo <= 28;
+        } catch (Exception e) {
+            return false;
+        }
+    }
+    
+    // Helper method for custom rounding: > 0.50 rounds up, <= 0.49 stays down
+    private double customRound(double value) {
+        double wholePart = Math.floor(value);
+        double decimalPart = value - wholePart;
+        
+        if (decimalPart > 0.50) {
+            return Math.ceil(value);
+        } else {
+            return wholePart;
+        }
+    }
+
+    public PriceSummary calculatePriceSummaryForPrintJobs(List<PrintJob> printJobs) {
         double subtotal = 0.0;
         double discountPercent = 0.0;
         int totalPages = 0;
         String color = null, paper = null, quality = null, side = null;
         java.util.List<BreakdownItem> breakdown = new java.util.ArrayList<>();
-        
-        // Check if pincode is from Uttar Pradesh
-        boolean isUttarPradesh = isUttarPradeshPincode(pincode);
+
+        // Group print jobs by print options
+        java.util.Map<String, java.util.List<PrintJob>> groups = new java.util.LinkedHashMap<>();
+        java.util.Map<String, String> groupOptionsStr = new java.util.HashMap<>();
+        for (var pj : printJobs) {
+            if (pj.getFile() == null) continue;
+            Integer numPages = pj.getFile().getPages();
+            if (numPages == null || numPages == 0) continue;
+            if (pj.getOptions() == null || pj.getOptions().isBlank()) continue;
+            try {
+                com.fasterxml.jackson.databind.ObjectMapper mapper = new com.fasterxml.jackson.databind.ObjectMapper();
+                java.util.Map<String, Object> opts = mapper.readValue(pj.getOptions(), java.util.Map.class);
+                color = (String) opts.getOrDefault("color", null);
+                paper = (String) opts.getOrDefault("paper", null);
+                quality = (String) opts.getOrDefault("quality", null);
+                side = (String) opts.getOrDefault("side", null);
+                String binding = (String) opts.getOrDefault("binding", null);
+                // Build group key
+                String groupKey = (color + "," + paper + "," + quality + "," + side + "," + (binding != null ? binding : "")).toLowerCase();
+                // Build print options string
+                StringBuilder printOptionsStr = new StringBuilder();
+                if (color != null) printOptionsStr.append("<b>Color:</b> ").append(color).append("<br>");
+                if (paper != null) printOptionsStr.append("<b>Paper:</b> ").append(paper).append("<br>");
+                if (quality != null) printOptionsStr.append("<b>Quality:</b> ").append(quality).append("<br>");
+                if (side != null) printOptionsStr.append("<b>Side:</b> ").append(side).append("<br>");
+                if (binding != null) printOptionsStr.append("<b>Binding:</b> ").append(binding).append("<br>");
+                groups.computeIfAbsent(groupKey, k -> new java.util.ArrayList<>()).add(pj);
+                groupOptionsStr.put(groupKey, printOptionsStr.toString());
+            } catch (Exception e) {
+                continue;
+            }
+        }
+
+        // For each group, calculate totals
+        for (var entry : groups.entrySet()) {
+            java.util.List<PrintJob> groupJobs = entry.getValue();
+            if (groupJobs.isEmpty()) continue;
+            PrintJob first = groupJobs.get(0);
+            com.fasterxml.jackson.databind.ObjectMapper mapper = new com.fasterxml.jackson.databind.ObjectMapper();
+            java.util.Map<String, Object> opts;
+            try { opts = mapper.readValue(first.getOptions(), java.util.Map.class); } catch (Exception e) { opts = new java.util.HashMap<>(); }
+            color = (String) opts.getOrDefault("color", null);
+            paper = (String) opts.getOrDefault("paper", null);
+            quality = (String) opts.getOrDefault("quality", null);
+            side = (String) opts.getOrDefault("side", null);
+            String binding = (String) opts.getOrDefault("binding", null);
+            ServiceCombination combo = serviceCombinationRepository.findByColorAndPaperSizeAndPaperQualityAndPrintOption(
+                color, paper, quality, side
+            ).orElseThrow(() -> new RuntimeException("No price found for selected options"));
+            double basePricePerPage = combo.getCostPerPage().doubleValue();
+            int groupPages = 0;
+            java.util.List<String> fileNames = new java.util.ArrayList<>();
+            double groupPrintCost = 0.0;
+            double groupBindingCost = 0.0;
+            for (var pj : groupJobs) {
+                int numPages = pj.getFile().getPages();
+                groupPages += numPages;
+                fileNames.add(pj.getFile().getOriginalFilename() != null ? pj.getFile().getOriginalFilename() : pj.getFile().getFilename());
+                groupPrintCost += basePricePerPage * numPages;
+                if (binding != null && !binding.isBlank()) {
+                    BindingOption bindingOpt = bindingOptionRepository.findByType(binding).orElse(null);
+                    if (bindingOpt != null) {
+                        double perPage = bindingOpt.getPerPagePrice().doubleValue();
+                        double min = bindingOpt.getMinPrice().doubleValue();
+                        groupBindingCost += Math.max(perPage * numPages, min);
+                    }
+                }
+            }
+            double amount = groupPrintCost + groupBindingCost;
+            subtotal += amount;
+            totalPages += groupPages;
+            String description = fileNames.size() > 1 ? ("Multiple files: " + String.join(", ", fileNames)) : fileNames.get(0);
+            breakdown.add(new BreakdownItem(
+                description,
+                groupPages,
+                "4911",
+                basePricePerPage,
+                amount,
+                0.0, // will fill later if per-group discount
+                amount, // will fill later if per-group discount
+                groupOptionsStr.get(entry.getKey())
+            ));
+        }
+
+        // Find best discount for the whole order (by options and totalPages)
+        List<DiscountRule> discounts = discountRuleRepository.findByColorAndPaperSizeAndPaperQualityAndPrintOptionAndMinPagesLessThanEqualOrderByMinPagesDesc(
+            color, paper, quality, side, totalPages
+        );
+        if (!discounts.isEmpty()) {
+            discountPercent = discounts.get(0).getAmountOff().doubleValue();
+        }
+        subtotal = Math.round(subtotal * 100.0) / 100.0;
+        double discount = Math.round((subtotal * discountPercent) * 100.0) / 100.0;
+        double discountedSubtotal = subtotal - discount;
+        double gst = Math.round(discountedSubtotal * 0.18 * 100.0) / 100.0;
+        double grandTotal = Math.round((discountedSubtotal + gst) * 100.0) / 100.0;
+        // Distribute discount proportionally to each group
+        if (discount > 0 && subtotal > 0) {
+            for (BreakdownItem item : breakdown) {
+                double prop = item.amount / subtotal;
+                item.discount = Math.round(discount * prop * 100.0) / 100.0;
+                item.total = Math.round((item.amount - item.discount) * 100.0) / 100.0;
+            }
+        } else {
+            for (BreakdownItem item : breakdown) {
+                item.discount = 0.0;
+                item.total = item.amount;
+            }
+        }
+        logger.info("[PricingService] Final Calculation: subtotal(before discount)={}, discountPercent={}, discountAmount={}, discountedSubtotal(after discount)={}, gst={}, grandTotal={}", subtotal, discountPercent, discount, discountedSubtotal, gst, grandTotal);
+        return new PriceSummary(subtotal, discount, discountedSubtotal, gst, grandTotal, breakdown);
+    }
+    
+    // Overloaded method with delivery address for state-based GST calculation
+    public PriceSummary calculatePriceSummaryForPrintJobs(List<PrintJob> printJobs, String deliveryAddress) {
+        double subtotal = 0.0;
+        double discountPercent = 0.0;
+        int totalPages = 0;
+        String color = null, paper = null, quality = null, side = null;
+        java.util.List<BreakdownItem> breakdown = new java.util.ArrayList<>();
 
         // Group print jobs by print options
         java.util.Map<String, java.util.List<PrintJob>> groups = new java.util.LinkedHashMap<>();
@@ -331,26 +505,33 @@ public class PricingService {
         double discount = Math.round((subtotal * discountPercent) * 100.0) / 100.0;
         double discountedSubtotal = subtotal - discount;
         
-        // Calculate GST based on location
+        // ✅ NEW: State-based GST calculation
+        String pincode = extractPincode(deliveryAddress);
+        boolean isIntraState = isUttarPradeshPincode(pincode);
+        
         double cgst = 0.0;
         double sgst = 0.0;
         double igst = 0.0;
         double gst = 0.0;
         
-        if (isUttarPradesh) {
-            // Within Uttar Pradesh: CGST 9% + SGST 9%
+        if (isIntraState) {
+            // Uttar Pradesh: CGST 9% + SGST 9%
             cgst = Math.round(discountedSubtotal * 0.09 * 100.0) / 100.0;
             sgst = Math.round(discountedSubtotal * 0.09 * 100.0) / 100.0;
             gst = cgst + sgst;
+            logger.info("[PricingService] Intra-state (UP) GST: CGST={}, SGST={}, Total GST={}", cgst, sgst, gst);
         } else {
-            // Outside Uttar Pradesh: IGST 18%
+            // Other states: IGST 18%
             igst = Math.round(discountedSubtotal * 0.18 * 100.0) / 100.0;
             gst = igst;
+            logger.info("[PricingService] Inter-state GST: IGST={}", igst);
         }
         
-        // Calculate grand total with rounding logic
-        double rawGrandTotal = discountedSubtotal + gst;
-        double grandTotal = customRound(rawGrandTotal);
+        // ✅ NEW: Custom rounding for grand total
+        double grandTotalBeforeRounding = discountedSubtotal + gst;
+        double grandTotal = customRound(grandTotalBeforeRounding);
+        
+        logger.info("[PricingService] Grand total before custom rounding: {}, after rounding: {}", grandTotalBeforeRounding, grandTotal);
         
         // Distribute discount proportionally to each group
         if (discount > 0 && subtotal > 0) {
@@ -365,36 +546,10 @@ public class PricingService {
                 item.total = item.amount;
             }
         }
-        logger.info("[PricingService] Final Calculation: subtotal(before discount)={}, discountPercent={}, discountAmount={}, discountedSubtotal(after discount)={}, gst={}, cgst={}, sgst={}, igst={}, grandTotal={}", 
-            subtotal, discountPercent, discount, discountedSubtotal, gst, cgst, sgst, igst, grandTotal);
-        return new PriceSummary(subtotal, discount, discountedSubtotal, gst, cgst, sgst, igst, grandTotal, breakdown);
-    }
-    
-    // Helper method to check if pincode is from Uttar Pradesh
-    private boolean isUttarPradeshPincode(String pincode) {
-        if (pincode == null || pincode.trim().isEmpty()) {
-            return false;
-        }
-        String cleaned = pincode.trim();
-        // Uttar Pradesh pincodes start with: 20xxxx to 28xxxx
-        if (cleaned.length() == 6 && cleaned.matches("\\d{6}")) {
-            int prefix = Integer.parseInt(cleaned.substring(0, 2));
-            return prefix >= 20 && prefix <= 28;
-        }
-        return false;
-    }
-    
-    // Custom rounding: > 0.50 round up, <= 0.49 round down
-    private double customRound(double value) {
-        double integerPart = Math.floor(value);
-        double decimalPart = value - integerPart;
         
-        if (decimalPart > 0.50) {
-            // Round up
-            return Math.ceil(value);
-        } else {
-            // Round down
-            return integerPart;
-        }
+        logger.info("[PricingService] Final Calculation: subtotal={}, discount={}, discountedSubtotal={}, isIntraState={}, cgst={}, sgst={}, igst={}, totalGst={}, grandTotal={}", 
+                    subtotal, discount, discountedSubtotal, isIntraState, cgst, sgst, igst, gst, grandTotal);
+        
+        return new PriceSummary(subtotal, discount, discountedSubtotal, gst, cgst, sgst, igst, isIntraState, grandTotal, breakdown);
     }
 } 

@@ -1,7 +1,8 @@
-import React, { createContext, useContext, useState, useMemo } from 'react';
-import { Appearance } from 'react-native';
+import React, { createContext, useContext } from 'react';
 
-const lightTheme = {
+// Fixed color scheme - ignores system appearance changes
+// App will not restart when phone switches between dark/light mode
+const fixedTheme = {
   mode: 'light',
   background: '#F5F5F5',
   card: '#fff',
@@ -18,12 +19,18 @@ const lightTheme = {
 };
 
 const ThemeContext = createContext({
-  theme: lightTheme,
+  theme: fixedTheme,
+  isDark: false,
+  toggleTheme: () => {}, // No-op function for backwards compatibility
 });
 
 export const ThemeProvider = ({ children }) => {
   return (
-    <ThemeContext.Provider value={{ theme: lightTheme }}>
+    <ThemeContext.Provider value={{ 
+      theme: fixedTheme, 
+      isDark: false,
+      toggleTheme: () => {} // No-op
+    }}>
       {children}
     </ThemeContext.Provider>
   );

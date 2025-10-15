@@ -19,7 +19,7 @@ import ApiService from '../../services/api';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 export default function SettingsScreen({ navigation }) {
-  const { theme, toggleTheme, isDark } = useTheme();
+  const { theme } = useTheme();
   const [notifications, setNotifications] = useState(true);
   const [orderUpdates, setOrderUpdates] = useState(true);
   const [promotionalEmails, setPromotionalEmails] = useState(false);
@@ -27,7 +27,6 @@ export default function SettingsScreen({ navigation }) {
   const [emailNotifications, setEmailNotifications] = useState(true);
   const [pushNotifications, setPushNotifications] = useState(true);
   const [autoSave, setAutoSave] = useState(true);
-  const [darkMode, setDarkMode] = useState(isDark);
   const [showChangePasswordModal, setShowChangePasswordModal] = useState(false);
   const [passwordData, setPasswordData] = useState({
     currentPassword: '',
@@ -80,14 +79,8 @@ export default function SettingsScreen({ navigation }) {
         emailNotifications,
         pushNotifications,
         autoSave,
-        darkMode,
       };
       await AsyncStorage.setItem('userSettings', JSON.stringify(settings));
-      
-      // If dark mode changed, toggle theme
-      if (darkMode !== isDark) {
-        toggleTheme();
-      }
       
       Alert.alert('Success', 'Settings saved successfully');
     } catch (error) {
@@ -246,21 +239,6 @@ export default function SettingsScreen({ navigation }) {
           onValueChange: setPromotionalEmails,
           icon: 'campaign',
           iconColor: '#FF5722',
-        },
-      ],
-    },
-    {
-      title: 'Appearance',
-      items: [
-        {
-          id: 'darkMode',
-          title: 'Dark Mode',
-          subtitle: 'Switch between light and dark theme',
-          type: 'switch',
-          value: darkMode,
-          onValueChange: setDarkMode,
-          icon: 'dark-mode',
-          iconColor: '#607D8B',
         },
       ],
     },

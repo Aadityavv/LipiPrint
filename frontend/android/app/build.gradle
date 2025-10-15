@@ -4,6 +4,9 @@ apply plugin: "com.facebook.react"
 // Add Firebase Google Services plugin
 apply plugin: 'com.google.gms.google-services'
 
+// Apply Expo modules
+apply from: new File(["node", "--print", "require.resolve('expo-modules-core/package.json')"].execute(null, rootDir).text.trim(), "../android/ExpoModulesCorePlugin.gradle")
+
 /**
  * This is the configuration block to customize your React Native Android app.
  * By default you don't need to apply any configuration, just uncomment the lines you need.

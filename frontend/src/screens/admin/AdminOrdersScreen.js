@@ -398,13 +398,17 @@ export default function AdminOrdersScreen({ navigation }) {
         // Check if the file exists
         const fileExists = await RNFS.exists(invoiceModal.filePath);
         if (!fileExists) {
-          throw new Error('Invoice file not found');
+          throw new Error('Invoice file not found. Please regenerate the invoice first.');
+        }
+        
+        // Validate file path
+        if (!invoiceModal.filePath || invoiceModal.filePath.trim() === '') {
+          throw new Error('Invalid file path. Please regenerate the invoice first.');
         }
 
         // Use react-native-print to print the PDF
         try {
           const printOptions = {
-            html: '', // We're printing a PDF file, not HTML
             filePath: invoiceModal.filePath,
             fileName: `Invoice_LP${orderId}`,
             jobName: `Invoice LP${orderId}`,
@@ -431,7 +435,12 @@ export default function AdminOrdersScreen({ navigation }) {
           showAlert('Success', 'Print job sent to printer successfully!', 'success');
           
         } catch (printError) {
-          console.error('[PRINT] Print error:', printError);
+          console.error('[PRINT] PDF print error:', printError);
+          
+          // Check if it's a parameter error
+          if (printError.message && printError.message.includes('html') && printError.message.includes('filePath')) {
+            console.log('[PRINT] Parameter error detected, trying HTML fallback');
+          }
           
           // Fallback: Try printing as HTML content
           try {

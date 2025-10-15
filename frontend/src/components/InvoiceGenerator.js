@@ -3,6 +3,7 @@ import { View, Text, StyleSheet, Alert, ActivityIndicator } from 'react-native';
 import RNHTMLtoPDF from 'react-native-html-to-pdf';
 import RNFS from 'react-native-fs';
 import { PermissionsAndroid, Platform } from 'react-native';
+import { roundIndianPrice } from '../utils/priceUtils';
 
 const InvoiceGenerator = {
   // Generate PDF invoice from order data
@@ -18,8 +19,8 @@ const InvoiceGenerator = {
         breakdownType: Array.isArray(orderData?.breakdown) ? 'array' : typeof orderData?.breakdown
       });
       
-      // Request storage permission for Android
-      if (Platform.OS === 'android') {
+      // Request storage permission for Android (only for versions < 11)
+      if (Platform.OS === 'android' && Platform.Version < 30) {
         const granted = await PermissionsAndroid.request(
           PermissionsAndroid.PERMISSIONS.WRITE_EXTERNAL_STORAGE,
           {
@@ -32,18 +33,20 @@ const InvoiceGenerator = {
         );
         
         if (granted !== PermissionsAndroid.RESULTS.GRANTED) {
-          throw new Error('Storage permission denied');
+          throw new Error('Storage permission denied. Please allow storage access to save invoices.');
         }
       }
 
       // Generate HTML content
       const htmlContent = this.generateInvoiceHTML(orderData);
       
-      // Configure PDF options
+      // Configure PDF options with better directory handling
       const options = {
         html: htmlContent,
         fileName: `invoice_${orderData.id}_${new Date().getTime()}`,
-        directory: Platform.OS === 'android' ? 'Documents' : 'Documents',
+        directory: Platform.OS === 'android' 
+          ? (Platform.Version >= 30 ? 'Download' : 'Documents') 
+          : 'Documents',
         width: 612,
         height: 792,
         padding: 24,
@@ -65,10 +68,25 @@ const InvoiceGenerator = {
       
     } catch (error) {
       console.error('[InvoiceGenerator] Error generating PDF:', error);
-      if (onError) {
-        onError(error);
+      
+      // Provide more specific error messages
+      let errorMessage = error.message || 'Failed to generate invoice PDF';
+      
+      if (error.message && error.message.includes('permission')) {
+        errorMessage = 'Storage permission denied. Please allow storage access in app settings to save invoices.';
+      } else if (error.message && error.message.includes('template')) {
+        errorMessage = 'Invoice template error. Please contact support.';
+      } else if (error.message && error.message.includes('Network')) {
+        errorMessage = 'Network error. Please check your connection and try again.';
       }
-      throw error;
+      
+      const enhancedError = new Error(errorMessage);
+      enhancedError.originalError = error;
+      
+      if (onError) {
+        onError(enhancedError);
+      }
+      throw enhancedError;
     }
   },
 
@@ -111,13 +129,7 @@ const InvoiceGenerator = {
     const finalDiscount = discount || 0;
     const finalGst = gst || 0;
     const finalDelivery = delivery || 0;
-    const finalTotal = grandTotal || totalAmount || 0;
-    
-    // Check if this is a Uttar Pradesh pincode for CGST/SGST or IGST
-    const isUttarPradesh = deliveryAddress && /\b(20\d{4}|21\d{4}|22\d{4}|23\d{4}|24\d{4}|25\d{4}|26\d{4}|27\d{4}|28\d{4})\b/.test(deliveryAddress);
-    const cgst = isUttarPradesh ? finalGst / 2 : 0;
-    const sgst = isUttarPradesh ? finalGst / 2 : 0;
-    const igst = !isUttarPradesh ? finalGst : 0;
+    const finalTotal = roundIndianPrice(grandTotal || totalAmount || 0);
 
     // Generate order items HTML
     const orderItemsHTML = safePrintJobs.map(printJob => {
@@ -235,13 +247,14 @@ const InvoiceGenerator = {
             <table class="totals" style="background:#f8f9fa;border-radius:10px;padding:10px;">
                 <tr><td class="label">Subtotal</td><td class="value">INR ${finalSubtotal.toFixed(2)}</td></tr>
                 ${finalDiscount > 0 ? `<tr><td class="label">Discount</td><td class="value">INR -${finalDiscount.toFixed(2)}</td></tr>` : ''}
-                ${isUttarPradesh ? 
-                  `<tr><td class="label">CGST (9%)</td><td class="value">INR ${cgst.toFixed(2)}</td></tr>
-                   <tr><td class="label">SGST (9%)</td><td class="value">INR ${sgst.toFixed(2)}</td></tr>` :
-                  `<tr><td class="label">IGST (18%)</td><td class="value">INR ${igst.toFixed(2)}</td></tr>`
-                }
+                ${orderData.isIntraState ? `
+                  <tr><td class="label">CGST (9%)</td><td class="value">INR ${(orderData.cgst || 0).toFixed(2)}</td></tr>
+                  <tr><td class="label">SGST (9%)</td><td class="value">INR ${(orderData.sgst || 0).toFixed(2)}</td></tr>
+                ` : `
+                  <tr><td class="label">IGST (18%)</td><td class="value">INR ${(orderData.igst || finalGst).toFixed(2)}</td></tr>
+                `}
                 <tr><td class="label">Delivery</td><td class="value">INR ${finalDelivery.toFixed(2)}</td></tr>
-                <tr><td class="label grand-total">Grand Total</td><td class="value grand-total">INR ${finalTotal.toFixed(2)}</td></tr>
+                <tr><td class="label grand-total">Grand Total</td><td class="value grand-total">INR ${finalTotal}</td></tr>
             </table>
         </div>
         <div class="footer" style="margin-top:40px;text-align:center;color:#888;font-size:14px;border-top:1px solid #eee;padding-top:16px;background:#fff;">

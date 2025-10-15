@@ -184,7 +184,7 @@ function getGradientColors(title) {
       >
         <View style={{flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', minHeight: 44}}>
           <View style={{flex: 1}}>
-            <Text style={{fontSize: 26, color: '#fff', fontWeight: 'bold', textAlign: 'left', marginBottom: 4}}>
+            <Text style={{fontSize: 26, color: '#fff', fontWeight: 'bold', textAlign: 'left', marginBottom: 4, marginTop: 20}}>
               {`Welcome, ${(user?.name?.split(' ')[0]) || 'User'}!`}
             </Text>
             <Text style={{fontSize: 16, color: '#e0e0e0', textAlign: 'left'}}>

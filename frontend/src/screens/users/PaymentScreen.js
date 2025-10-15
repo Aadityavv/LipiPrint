@@ -16,11 +16,19 @@ import { launchRazorpay, createRazorpayOrder } from '../../services/razorpay';
 import ApiService from '../../services/api';
 import CustomAlert from '../../components/CustomAlert';
 import Heading from '../../components/Heading';
+import { roundIndianPrice, formatPrice, formatPriceWithDecimals } from '../../utils/priceUtils';
 
 const { width } = Dimensions.get('window');
 
 export default function PaymentScreen({ navigation, route }) {
   console.log('[PaymentScreen] route.params:', route.params);
+  console.log('[PaymentScreen] GST values received:', {
+    gst: route.params?.gst,
+    cgst: route.params?.cgst,
+    sgst: route.params?.sgst,
+    igst: route.params?.igst,
+    isIntraState: route.params?.isIntraState
+  });
   
   const { 
     files, 
@@ -80,7 +88,12 @@ export default function PaymentScreen({ navigation, route }) {
                            (deliveryEstimate?.price) || 
                            (deliveryType === 'PICKUP' ? 0 : 30); // Default fallback
   
-  const grandTotalWithDelivery = baseTotal + finalDeliveryCost;
+  // ✅ FIXED: Include GST in total calculation
+  const totalGST = gst !== undefined && gst !== null ? gst : 0;
+  const grandTotalWithDelivery = baseTotal + finalDeliveryCost + totalGST;
+  
+  // ✅ Apply Indian rounding rules to final total
+  const roundedFinalTotal = roundIndianPrice(grandTotalWithDelivery);
 
   const orderSummary = {
     items: files?.length || 0,
@@ -91,6 +104,7 @@ export default function PaymentScreen({ navigation, route }) {
     discount: discount !== undefined && discount !== null ? discount : 0,
     deliveryCost: finalDeliveryCost,
     total: grandTotalWithDelivery,
+    roundedTotal: roundedFinalTotal,
   };
 
   const showAlert = (title, message, type = 'info', onConfirm = null, showCancel = false) => {
@@ -291,18 +305,54 @@ deliveryAddressData: structuredDeliveryAddress,  // Add structured data
                 </View>
                 <View style={styles.summaryRow}>
                   <Text style={styles.summaryLabel}>Printing Cost</Text>
-                  <Text style={styles.summaryValue}>₹{orderSummary.subtotal.toFixed(2)}</Text>
+                  <Text style={styles.summaryValue}>{formatPriceWithDecimals(orderSummary.subtotal)}</Text>
                 </View>
                 {orderSummary.discount > 0 && (
                   <View style={styles.summaryRow}>
                     <Text style={[styles.summaryLabel, {color: '#4CAF50'}]}>Discount</Text>
-                    <Text style={[styles.summaryValue, {color: '#4CAF50'}]}>-₹{orderSummary.discount.toFixed(2)}</Text>
+                    <Text style={[styles.summaryValue, {color: '#4CAF50'}]}>-{formatPriceWithDecimals(orderSummary.discount)}</Text>
                   </View>
                 )}
-                <View style={styles.summaryRow}>
-                  <Text style={styles.summaryLabel}>GST (18%)</Text>
-                  <Text style={styles.summaryValue}>₹{orderSummary.gst.toFixed(2)}</Text>
-                </View>
+                {/* ✅ DYNAMIC GST DISPLAY: Show CGST/SGST for UP, IGST for other states */}
+                {(() => {
+                  // Extract GST components from route params
+                  const { cgst = 0, sgst = 0, igst = 0, isIntraState = false } = route.params || {};
+                  
+                  if (isIntraState && (cgst > 0 || sgst > 0)) {
+                    // Show CGST and SGST for Uttar Pradesh
+                    return (
+                      <>
+                        <View style={styles.summaryRow}>
+                          <Text style={styles.summaryLabel}>CGST (9%)</Text>
+                          <Text style={styles.summaryValue}>{formatPriceWithDecimals(cgst)}</Text>
+                        </View>
+                        <View style={styles.summaryRow}>
+                          <Text style={styles.summaryLabel}>SGST (9%)</Text>
+                          <Text style={styles.summaryValue}>{formatPriceWithDecimals(sgst)}</Text>
+                        </View>
+                      </>
+                    );
+                  } else if (igst > 0) {
+                    // Show IGST for other states (DEFAULT)
+                    return (
+                      <View style={styles.summaryRow}>
+                        <Text style={styles.summaryLabel}>IGST (18%)</Text>
+                        <Text style={styles.summaryValue}>{formatPriceWithDecimals(igst)}</Text>
+                      </View>
+                    );
+                  } else if (orderSummary.gst > 0) {
+                    // Fallback: Show total GST (DEFAULT to IGST)
+                    return (
+                      <View style={styles.summaryRow}>
+                        <Text style={styles.summaryLabel}>IGST (18%)</Text>
+                        <Text style={styles.summaryValue}>{formatPriceWithDecimals(orderSummary.gst)}</Text>
+                      </View>
+                    );
+                  } else {
+                    // No GST to show
+                    return null;
+                  }
+                })()}
                 
                 {/* ✅ NEW: Delivery cost row with dynamic pricing */}
                 <View style={styles.summaryRow}>
@@ -311,13 +361,13 @@ deliveryAddressData: structuredDeliveryAddress,  // Add structured data
                     {deliveryEstimate?.estimatedDays && ` (${deliveryEstimate.estimatedDays} days)`}
                   </Text>
                   <Text style={styles.summaryValue}>
-                    {finalDeliveryCost > 0 ? `₹${finalDeliveryCost.toFixed(2)}` : 'FREE'}
+                    {finalDeliveryCost > 0 ? formatPriceWithDecimals(finalDeliveryCost) : 'FREE'}
                   </Text>
                 </View>
                 
                 <View style={styles.totalRow}>
                   <Text style={styles.totalLabel}>Total Amount</Text>
-                  <Text style={styles.totalAmount}>₹{orderSummary.total.toFixed(2)}</Text>
+                  <Text style={styles.totalAmount}>{formatPrice(orderSummary.roundedTotal)}</Text>
                 </View>
                 
                 <View style={styles.summaryRow}>
@@ -431,7 +481,7 @@ deliveryAddressData: structuredDeliveryAddress,  // Add structured data
       <Animatable.View animation="fadeInUp" delay={700} duration={500} style={styles.buttonContainer}>
         <TouchableOpacity onPress={handlePayment} activeOpacity={0.85}>
           <LinearGradient colors={["#667eea", "#764ba2"]} style={styles.payButton}>
-            <Text style={styles.payText}>Pay ₹{orderSummary.total.toFixed(2)}</Text>
+            <Text style={styles.payText}>Pay {formatPrice(orderSummary.roundedTotal)}</Text>
             <Text style={styles.paySubtext}>
               {deliveryType === 'PICKUP' 
                 ? 'Pickup from Saharanpur store' 
